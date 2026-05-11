@@ -1,16 +1,18 @@
+import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../core/db/database_service.dart';
+import 'history_detail_screen.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../widgets/banner_ad_widget.dart';
 import '../widgets/premium_cta_widget.dart';
-import '../main.dart' show altLanguageNotifier;
+import '../main.dart' show isSpanishNotifier;
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -25,6 +27,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    analyticsService.logHistoryViewed();
     _load();
   }
 
@@ -53,7 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(cancel)),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(ok, style: const TextStyle(color: Colors.red)),
+            child: Text(ok, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -67,7 +70,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: altLanguageNotifier,
+      valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
@@ -82,12 +85,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             actions: [
               if (_entries.isNotEmpty)
                 IconButton(
-                  icon: const Icon(Icons.delete_sweep_outlined),
+                  icon: Icon(Icons.delete_sweep_outlined),
                   tooltip: fr ? 'Tout effacer' : (es ? 'Borrar todo' : 'Clear All'),
                   onPressed: () => _confirmClearAll(fr, es),
                 ),
               IconButton(
-                icon: const Icon(Icons.refresh),
+                icon: Icon(Icons.refresh),
                 onPressed: _load,
               ),
             ],
@@ -95,7 +98,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           body: Column(
             children: [
               Expanded(child: _buildBody(empty, limitMsg, fr, es)),
-              const BannerAdWidget(),
+              const AdFooter(),
             ],
           ),
         );
@@ -105,7 +108,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildBody(String empty, String limitMsg, bool fr, bool es) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator());
     }
 
     if (_entries.isEmpty) {
@@ -113,11 +116,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.history_outlined, size: 72, color: AppTheme.labelGray.withValues(alpha: 0.4)),
-            const SizedBox(height: 16),
+            Icon(Icons.history_outlined, size: 44, color: AppTheme.labelGray.withValues(alpha: 0.4)),
+            SizedBox(height: 16),
             Text(empty,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.labelGray, fontSize: 15)),
+                style: TextStyle(color: AppTheme.labelGray, fontSize: 15)),
           ]),
         ),
       );
@@ -139,25 +142,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   border: Border.all(color: AppTheme.warning.withValues(alpha: 0.4)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.lock_outline, color: AppTheme.warning, size: 18),
-                  const SizedBox(width: 8),
+                  Icon(Icons.lock_outline, color: AppTheme.warning, size: 18),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(limitMsg,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppTheme.warning, fontSize: 13, fontWeight: FontWeight.w500)),
                   ),
                 ]),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
             ..._entries.map((e) => _HistoryCard(
                   entry: e,
                   fr: fr,
                   es: es,
                   onDelete: () => _delete(e.id!),
-                )),
+                  onTap: () => Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => HistoryDetailScreen(entry: e),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: const Duration(milliseconds: 250),
+                  )),
+                  ),
+                ),
             if (showCta) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               PremiumCtaWidget(
                 feature: fr
                     ? 'Historique illimité'
@@ -178,12 +190,14 @@ class _HistoryCard extends StatelessWidget {
   final HistoryEntry entry;
   final bool fr, es;
   final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   const _HistoryCard({
     required this.entry,
     required this.fr,
     required this.es,
     required this.onDelete,
+    required this.onTap,
   });
 
   String _fmt(double v) {
@@ -208,50 +222,53 @@ class _HistoryCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(entry.region,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11,
                     color: AppTheme.primary,
                     fontWeight: FontWeight.w600)),
           )
         : const SizedBox.shrink();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const Icon(Icons.schedule, size: 14, color: AppTheme.labelGray),
-            const SizedBox(width: 4),
-            Text(dateStr,
-                style: const TextStyle(color: AppTheme.labelGray, fontSize: 12)),
-            const Spacer(),
-            regionBadge,
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: onDelete,
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.close, size: 16, color: AppTheme.labelGray),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.schedule, size: 14, color: AppTheme.labelGray),
+              SizedBox(width: 4),
+              Text(dateStr,
+                  style: TextStyle(color: AppTheme.labelGray, fontSize: 12)),
+              const Spacer(),
+              regionBadge,
+              SizedBox(width: 8),
+              InkWell(
+                onTap: onDelete,
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close, size: 16, color: AppTheme.labelGray),
+                ),
               ),
-            ),
+            ]),
+            SizedBox(height: 10),
+            Row(children: [
+              _StatCell(label: grossLabel, value: _fmt(entry.result.grossAnnual)),
+              SizedBox(width: 12),
+              _StatCell(
+                  label: netLabel,
+                  value: _fmt(entry.result.netAnnual),
+                  color: AppTheme.success),
+              SizedBox(width: 12),
+              _StatCell(
+                  label: rateLabel,
+                  value: '${entry.result.effectiveRate.toStringAsFixed(1)}%',
+                  color: Colors.redAccent),
+            ]),
           ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            _StatCell(label: grossLabel, value: _fmt(entry.result.grossAnnual)),
-            const SizedBox(width: 12),
-            _StatCell(
-                label: netLabel,
-                value: _fmt(entry.result.netAnnual),
-                color: AppTheme.success),
-            const SizedBox(width: 12),
-            _StatCell(
-                label: rateLabel,
-                value: '${entry.result.effectiveRate.toStringAsFixed(1)}%',
-                color: Colors.redAccent),
-          ]),
-        ]),
+        ),
       ),
     );
   }
@@ -266,8 +283,8 @@ class _StatCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label,
-          style: const TextStyle(color: AppTheme.labelGray, fontSize: 11)),
-      const SizedBox(height: 2),
+          style: TextStyle(color: AppTheme.labelGray, fontSize: 11)),
+      SizedBox(height: 2),
       Text(value,
           style: TextStyle(
               fontWeight: FontWeight.w700,

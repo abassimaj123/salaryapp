@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../config/ad_config.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/analytics/analytics_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
@@ -11,6 +12,7 @@ class BannerAdWidget extends StatefulWidget {
 class _State extends State<BannerAdWidget> {
   BannerAd? _ad;
   bool _loaded = false;
+  bool _retried = false;
   @override
   void initState() { super.initState(); _load(); }
   void _load() {
@@ -18,8 +20,19 @@ class _State extends State<BannerAdWidget> {
       adUnitId: AdConfig.bannerAndroid, size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() => _loaded = true),
-        onAdFailedToLoad: (_, __) { _ad?.dispose(); _ad = null; },
+        onAdLoaded: (_) { if (mounted) setState(() => _loaded = true); },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          if (!mounted) return;
+          setState(() { _ad = null; _loaded = false; });
+          AnalyticsService.instance.logBannerFailed();
+          if (!_retried) {
+            _retried = true;
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) _load();
+            });
+          }
+        },
       ),
     )..load();
   }
@@ -32,17 +45,11 @@ class _State extends State<BannerAdWidget> {
       valueListenable: freemiumService.isPremiumNotifier,
       builder: (_, isPremium, __) {
         if (isPremium) return const SizedBox.shrink();
-        return ValueListenableBuilder<bool>(
-          valueListenable: freemiumService.isRewardedNotifier,
-          builder: (_, isRewarded, __) {
-            if (isRewarded) return const SizedBox.shrink();
-            if (!_loaded || _ad == null) return const SizedBox(height: 50);
-            return SizedBox(
-              width: _ad!.size.width.toDouble(),
-              height: _ad!.size.height.toDouble(),
-              child: AdWidget(ad: _ad!),
-            );
-          },
+        if (!_loaded || _ad == null) return SizedBox(height: 50);
+        return SizedBox(
+          width: _ad!.size.width.toDouble(),
+          height: _ad!.size.height.toDouble(),
+          child: AdWidget(ad: _ad!),
         );
       },
     );

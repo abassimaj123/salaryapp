@@ -1,0 +1,42 @@
+flutter_native_splash:
+  # Default splash (shared)
+  image: assets/splash/splash_default.png
+  image_dark: assets/splash/splash_dark.png
+  background_image: assets/splash/splash_bg.png
+  
+  # Flavor-specific splashes
+  branding: assets/splash/splash_branding.png
+  
+  android: true
+  ios: true
+  
+  # Responsive configuration
+  fullscreen: false
+  
+  # Colors
+  color: "#0D0B1E"
+  color_dark: "#0D0B1E"
+
+  # Android-specific
+  android_12:
+    image: assets/splash/splash_android12.png
+    icon_background_color: "#0D0B1E"
+    icon_background_color_dark: "#0D0B1E"
+
+# Flavor-specific configs (example for flutter build apk --flavor ca)
+flutter_native_splash_flavors:
+  ca:
+    image: assets/splash/splash_ca.png
+    image_dark: assets/splash/splash_ca_dark.png
+    color: "#0D0B1E"
+    color_dark: "#0D0B1E"
+  us:
+    image: assets/splash/splash_us.png
+    image_dark: assets/splash/splash_us_dark.png
+    color: "#0D0B1E"
+    color_dark: "#0D0B1E"
+  uk:
+    image: assets/splash/splash_uk.png
+    image_dark: assets/splash/splash_uk_dark.png
+    color: "#0D0B1E"
+    color_dark: "#0D0B1E"

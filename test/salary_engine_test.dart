@@ -66,8 +66,9 @@ void main() {
       expect(UsSalaryEngine.stateTax(100000, 'TX'), 0.0);
     });
 
-    test('California — 9.3%', () {
-      approx(UsSalaryEngine.stateTax(100000, 'CA'), 9300);
+    test('California — progressive brackets (~5842 on 100k)', () {
+      // CA uses 9 progressive brackets; effective tax on $100k ≈ $5,842
+      approx(UsSalaryEngine.stateTax(100000, 'CA'), 5842, tolerance: 5);
     });
 
     test('unknown state — defaults to 5%', () {

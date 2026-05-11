@@ -1,16 +1,19 @@
+import '../core/ads/ad_footer.dart';
+import 'package:calcwise_core/calcwise_core.dart' show themeModeService;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/ads/ad_service.dart';
+import '../core/services/review_service.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../widgets/banner_ad_widget.dart';
-import '../main.dart' show altLanguageNotifier;
+import '../main.dart' show isSpanishNotifier;
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -18,7 +21,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: altLanguageNotifier,
+      valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
@@ -35,28 +38,51 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     // ── Premium section ────────────────────────────────
                     _PremiumSection(fr: fr, es: es),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
 
                     // ── Language toggle (CA: FR/EN | US: EN/ES | UK: none) ──
                     if (!FlavorConfig.isUK) ...[
                       _LanguageSection(fr: fr, es: es),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                     ],
+
+                    // ── Appearance (theme toggle) ─────────────────────
+                    _AppearanceSection(fr: fr, es: es),
+                    SizedBox(height: 16),
 
                     // ── Rewarded ad ───────────────────────────────────
                     _RewardedSection(fr: fr, es: es),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
 
                     // ── Links ─────────────────────────────────────────
                     _LinksSection(fr: fr, es: es),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
+
+                    // ── Disclaimer ────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+                      child: Text(
+                        fr
+                            ? 'À titre informatif seulement. Pas de conseil financier. Consultez un conseiller avant de prendre des décisions.'
+                            : es
+                                ? 'Solo con fines informativos. No es asesoramiento financiero. Consulte a un profesional.'
+                                : 'For informational purposes only. Not financial advice. Consult a qualified advisor before making financial decisions.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: AppTheme.labelGray,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(height: 8),
 
                     // ── App info ──────────────────────────────────────
                     _AppInfoTile(fr: fr, es: es),
                   ],
                 ),
               ),
-              const BannerAdWidget(),
+              const AdFooter(),
             ],
           ),
         );
@@ -101,13 +127,13 @@ class _PremiumSection extends StatelessWidget {
                   color: AppTheme.success.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.verified, color: AppTheme.success),
+                child: Icon(Icons.verified, color: AppTheme.success),
               ),
               title: Text(activeLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                  style: TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(premiumDesc,
-                  style: const TextStyle(color: AppTheme.labelGray, fontSize: 12)),
-              trailing: const Icon(Icons.check_circle, color: AppTheme.success),
+                  style: TextStyle(color: AppTheme.labelGray, fontSize: 12)),
+              trailing: Icon(Icons.check_circle, color: AppTheme.success),
             ),
           );
         }
@@ -123,29 +149,29 @@ class _PremiumSection extends StatelessWidget {
                     gradient: AppTheme.primaryGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.star_rounded,
+                  child: Icon(Icons.star_rounded,
                       color: Colors.white, size: 20),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(premiumTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 15)),
                   Text(premiumDesc,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppTheme.labelGray, fontSize: 12)),
                 ]),
               ]),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => IAPService.instance.buy(),
                 child: Text(getPremium),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               TextButton(
                 onPressed: () => IAPService.instance.restore(),
                 child: Text(restore,
-                    style: const TextStyle(color: AppTheme.labelGray)),
+                    style: TextStyle(color: AppTheme.labelGray)),
               ),
             ]),
           ),
@@ -168,8 +194,18 @@ class _LanguageSection extends StatelessWidget {
         : (es ? 'Idioma' : 'Language');
 
     return ValueListenableBuilder<bool>(
-      valueListenable: altLanguageNotifier,
+      valueListenable: isSpanishNotifier,
       builder: (_, useAlt, __) {
+        Future<void> setAlt(bool value) async {
+          isSpanishNotifier.value = value;
+          final prefs = await SharedPreferences.getInstance();
+          if (FlavorConfig.isCA) {
+            await prefs.setString('language', value ? 'fr' : 'en');
+          } else {
+            await prefs.setString('language', value ? 'es' : 'en');
+          }
+        }
+
         if (FlavorConfig.isCA) {
           // FR / EN toggle
           return _SectionCard(
@@ -181,15 +217,15 @@ class _LanguageSection extends StatelessWidget {
                   child: _LangChip(
                     label: 'Français',
                     selected: useAlt,
-                    onTap: () => altLanguageNotifier.value = true,
+                    onTap: () => setAlt(true),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: _LangChip(
                     label: 'English',
                     selected: !useAlt,
-                    onTap: () => altLanguageNotifier.value = false,
+                    onTap: () => setAlt(false),
                   ),
                 ),
               ]),
@@ -207,15 +243,15 @@ class _LanguageSection extends StatelessWidget {
                 child: _LangChip(
                   label: 'English',
                   selected: !useAlt,
-                  onTap: () => altLanguageNotifier.value = false,
+                  onTap: () => setAlt(false),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: _LangChip(
                   label: 'Español',
                   selected: useAlt,
-                  onTap: () => altLanguageNotifier.value = true,
+                  onTap: () => setAlt(true),
                 ),
               ),
             ]),
@@ -290,23 +326,23 @@ class _RewardedSection extends StatelessWidget {
                     color: Colors.purple.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.ondemand_video, color: Colors.purple),
+                  child: Icon(Icons.ondemand_video, color: Colors.purple),
                 ),
                 title: Text(adFreeLabel,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
                   isRewarded
-                      ? '${freemiumService.rewardedMinutesLeft} min left'
+                      ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min left'
                       : (fr
                           ? 'Regardez une pub pour 60 min sans pub'
                           : (es
                               ? 'Vea un anuncio para 60 min sin anuncios'
                               : 'Watch an ad for 60 ad-free minutes')),
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppTheme.labelGray, fontSize: 12),
                 ),
                 trailing: isRewarded
-                    ? const Icon(Icons.check_circle, color: AppTheme.success)
+                    ? Icon(Icons.check_circle, color: AppTheme.success)
                     : ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(90, 36),
@@ -319,7 +355,7 @@ class _RewardedSection extends StatelessWidget {
                                 )
                             : null,
                         child: Text(watchLabel,
-                            style: const TextStyle(fontSize: 12)),
+                            style: TextStyle(fontSize: 12)),
                       ),
               ),
             );
@@ -360,17 +396,23 @@ class _LinksSection extends StatelessWidget {
       title: fr ? 'Liens' : (es ? 'Enlaces' : 'Links'),
       child: Column(children: [
         _LinkTile(
+          icon: Icons.star_outline,
+          label: fr ? 'Noter l\'app' : (es ? 'Calificar la app' : 'Rate App'),
+          onTap: () => ReviewService.instance.requestReview(),
+        ),
+        Divider(height: 1, indent: 56, color: AppTheme.divider),
+        _LinkTile(
           icon: Icons.privacy_tip_outlined,
           label: privacyLabel,
           onTap: () => _launch(FlavorConfig.privacyPolicyUrl),
         ),
-        const Divider(height: 1, indent: 56, color: AppTheme.divider),
+        Divider(height: 1, indent: 56, color: AppTheme.divider),
         _LinkTile(
           icon: Icons.mail_outline,
           label: supportLabel,
           onTap: () => _launch('mailto:${FlavorConfig.supportEmail}'),
         ),
-        const Divider(height: 1, indent: 56, color: AppTheme.divider),
+        Divider(height: 1, indent: 56, color: AppTheme.divider),
         _LinkTile(
           icon: Icons.apps_outlined,
           label: '$discoverLabel — $calqwiseLabel',
@@ -392,8 +434,8 @@ class _LinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: AppTheme.primary, size: 22),
-      title: Text(label, style: const TextStyle(fontSize: 14)),
-      trailing: const Icon(Icons.chevron_right, color: AppTheme.labelGray),
+      title: Text(label, style: TextStyle(fontSize: 14)),
+      trailing: Icon(Icons.chevron_right, color: AppTheme.labelGray),
       onTap: onTap,
     );
   }
@@ -415,7 +457,32 @@ class _AppInfoTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(
           'Salary Calculator $flavorBadge · v1.0.0',
-          style: const TextStyle(color: AppTheme.labelGray, fontSize: 12),
+          style: TextStyle(color: AppTheme.labelGray, fontSize: 12),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Appearance section ───────────────────────────────────────────────────────
+
+class _AppearanceSection extends StatelessWidget {
+  final bool fr, es;
+  const _AppearanceSection({required this.fr, required this.es});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = fr ? 'Apparence' : (es ? 'Apariencia' : 'Appearance');
+    return _SectionCard(
+      title: title,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: themeModeService.notifier,
+        builder: (_, __, ___) => ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(themeModeService.icon, color: AppTheme.primary),
+          title: Text(themeModeService.label(isFrench: fr, isSpanish: es)),
+          trailing: Icon(Icons.chevron_right, color: AppTheme.labelGray),
+          onTap: () => themeModeService.toggle(),
         ),
       ),
     );
@@ -439,7 +506,7 @@ class _SectionCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Text(title!,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       color: AppTheme.labelGray,

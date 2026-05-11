@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SalaryApp CA — Simplified calculator + maple leaf badge -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Calculator body — white rounded rect -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,20 Q20,20 20,28 L20,80 Q20,28 28,88 L72,88 Q80,88 80,80 L80,28 Q80,20 72,20 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,20 L72,20 Q80,20 80,28 L80,80 Q80,88 72,88 L28,88 Q20,88 20,80 L20,28 Q20,20 28,20 Z"/>
+
+    <!-- Display screen — red accent -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M28,26 L72,26 L72,44 L28,44 Z"/>
+
+    <!-- Keypad dots — 3x2 grid -->
+    <path android:fillColor="#E67E22"
+        android:pathData="M32,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+    <path android:fillColor="#E67E22"
+        android:pathData="M50,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+    <path android:fillColor="#EF4444"
+        android:pathData="M68,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+    <path android:fillColor="#E67E22"
+        android:pathData="M32,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+    <path android:fillColor="#E67E22"
+        android:pathData="M50,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+    <path android:fillColor="#EF4444"
+        android:pathData="M68,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
+
+    <!-- Maple leaf badge — bottom right circle -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M88,88 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0"/>
+
+    <!-- Simplified maple leaf — white on red circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M88,78 L90,83 L95,81 L93,86 L98,86 L94,89 L96,93 L88.5,91 L88.5,95 L87.5,95 L87.5,91 L80,93 L82,89 L78,86 L83,86 L81,81 L86,83 Z"/>
+
+</vector>

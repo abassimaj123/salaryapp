@@ -1,0 +1,26 @@
+App: Calculadora de Salario y Cheque de Pago — EE.UU.
+Precio: $2.99 (compra única)
+Idiomas: Inglés, Español
+
+Descripción corta:
+Calcula tu sueldo neto al instante — impuestos federales y estatales, FICA, horas extra y más.
+
+Descripción completa:
+Calculadora de Salario y Cheque de Pago te ayuda a entender exactamente cuánto ganas después de impuestos y deducciones en los 50 estados.
+
+Funciones:
+- Conversión de tarifa por hora a salario (por hora, semanal, quincenal, mensual, anual)
+- Estimación del impuesto federal (todos los tramos 2024)
+- Impuesto estatal para los 50 estados
+- Deducciones FICA: Seguro Social + Medicare
+- Cálculo del sueldo neto
+- Calculadora de horas extra
+- Varios períodos de pago disponibles
+- Estimación de beneficios y deducciones (seguro médico, 401k, cuotas sindicales)
+- Exportación de resultados en PDF (Premium)
+- Historial ilimitado (Premium)
+- Sin anuncios (Premium)
+
+Más de 90,000 trabajadores confían en SalaryApp para calcular su sueldo.
+
+Contacto: abassimaj@gmail.com

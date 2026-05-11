@@ -1,0 +1,26 @@
+App: Salary & Paycheck Calculator US
+Price: $2.99 (one-time unlock)
+Languages: English, Spanish
+
+Short Description:
+Calculate your take-home pay instantly — federal & state taxes, FICA, overtime, and more.
+
+Full Description:
+Salary & Paycheck Calculator US helps workers across all 50 states understand exactly what they earn after taxes and deductions.
+
+Features:
+- Hourly to salary conversion (hourly, weekly, bi-weekly, monthly, annual)
+- Federal income tax estimator (all 2024 brackets)
+- State income tax for all 50 states
+- FICA deductions: Social Security + Medicare
+- Net take-home pay calculation
+- Overtime calculator
+- Multiple pay periods supported
+- Benefits & deductions estimator (health insurance, 401k, union dues)
+- PDF export of results (Premium)
+- Unlimited history (Premium)
+- Zero ads (Premium)
+
+Trusted by 90,000+ workers to calculate their take-home pay.
+
+Contact: abassimaj@gmail.com

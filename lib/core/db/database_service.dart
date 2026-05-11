@@ -51,6 +51,9 @@ class DatabaseService {
     return openDatabase(
       path,
       version: 1,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // Future schema migrations go here
+      },
       onCreate: (db, _) => db.execute('''
         CREATE TABLE history (
           id          INTEGER PRIMARY KEY AUTOINCREMENT,

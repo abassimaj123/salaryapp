@@ -77,24 +77,150 @@ class UsSalaryEngine {
     return ss + medicare;
   }
 
-  /// Simplified flat state income-tax rates.
+  /// Applies progressive tax brackets to [income].
+  /// [brackets] is a list of (upperBound, rate) pairs in ascending order;
+  /// the last entry's upperBound is ignored (treated as infinity).
+  static double _progressive(
+      double income, List<(double upper, double rate)> brackets) {
+    double tax = 0;
+    double prev = 0;
+    for (int i = 0; i < brackets.length; i++) {
+      final upper =
+          i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
+      final rate = brackets[i].$2;
+      if (income <= prev) break;
+      final taxable = (income < upper ? income : upper) - prev;
+      tax += taxable * rate;
+      prev = upper;
+    }
+    return tax;
+  }
+
+  /// State income tax — progressive brackets where applicable (2025, single filer).
   static double stateTax(double grossAnnual, String state) {
-    const rates = <String, double>{
-      'CA': 0.093, 'NY': 0.0685, 'TX': 0.0, 'FL': 0.0,
-      'WA': 0.0,   'NV': 0.0,   'IL': 0.0495, 'PA': 0.0307,
-      'OH': 0.04,  'GA': 0.055, 'NC': 0.0475, 'VA': 0.0575,
-      'MA': 0.05,  'NJ': 0.0637,'CO': 0.044,  'AZ': 0.025,
-      'MN': 0.0985,'WI': 0.0765,'OR': 0.099,  'MD': 0.0575,
-      'MI': 0.0425,'IN': 0.0323,'KY': 0.045,  'MO': 0.0495,
-      'AL': 0.05,  'SC': 0.07,  'LA': 0.0425, 'AR': 0.059,
-      'MS': 0.05,  'ID': 0.058, 'NM': 0.059,  'MT': 0.0675,
-      'UT': 0.0465,'ND': 0.029, 'SD': 0.0,    'WY': 0.0,
-      'AK': 0.0,   'HI': 0.11,  'VT': 0.0875, 'ME': 0.0715,
-      'NH': 0.0,   'CT': 0.0699,'RI': 0.0599, 'DE': 0.066,
-      'DC': 0.0895,'WV': 0.065, 'TN': 0.0,    'KS': 0.057,
-      'NE': 0.0664,'IA': 0.06,  'OK': 0.0475,
-    };
-    return grossAnnual * (rates[state] ?? 0.05);
+    switch (state) {
+      // ── No state income tax ──────────────────────────────────────────────
+      case 'TX':
+      case 'FL':
+      case 'NV':
+      case 'WA':
+      case 'AK':
+      case 'SD':
+      case 'WY':
+      case 'NH': // only taxes interest/dividends, not wages
+      case 'TN': // Hall tax fully repealed
+        return 0;
+
+      // ── Progressive states ───────────────────────────────────────────────
+
+      // California: 9 brackets + 1 % mental-health surcharge above $1 M
+      case 'CA':
+        final baseTax = _progressive(grossAnnual, [
+          (10756,   0.01),
+          (25499,   0.02),
+          (40245,   0.04),
+          (55866,   0.06),
+          (70606,   0.08),
+          (360659,  0.093),
+          (432787,  0.103),
+          (721314,  0.113),
+          (double.infinity, 0.123),
+        ]);
+        final surcharge = grossAnnual > 1000000 ? (grossAnnual - 1000000) * 0.01 : 0.0;
+        return baseTax + surcharge;
+
+      // New York: 9 brackets
+      case 'NY':
+        return _progressive(grossAnnual, [
+          (17150,      0.04),
+          (23600,      0.045),
+          (27900,      0.0525),
+          (161550,     0.0585),
+          (323200,     0.0625),
+          (2155350,    0.0685),
+          (5000000,    0.0965),
+          (25000000,   0.103),
+          (double.infinity, 0.109),
+        ]);
+
+      // New Jersey: 7 brackets
+      case 'NJ':
+        return _progressive(grossAnnual, [
+          (20000,      0.014),
+          (35000,      0.0175),
+          (40000,      0.035),
+          (75000,      0.05525),
+          (500000,     0.0637),
+          (1000000,    0.0897),
+          (double.infinity, 0.1075),
+        ]);
+
+      // Minnesota: 4 brackets
+      case 'MN':
+        return _progressive(grossAnnual, [
+          (31690,      0.0535),
+          (104090,     0.068),
+          (193240,     0.0785),
+          (double.infinity, 0.0985),
+        ]);
+
+      // Oregon: 4 brackets
+      case 'OR':
+        return _progressive(grossAnnual, [
+          (4050,       0.0475),
+          (10200,      0.0675),
+          (125000,     0.0875),
+          (double.infinity, 0.099),
+        ]);
+
+      // Wisconsin: 4 brackets
+      case 'WI':
+        return _progressive(grossAnnual, [
+          (14320,      0.035),
+          (28640,      0.044),
+          (315310,     0.053),
+          (double.infinity, 0.0765),
+        ]);
+
+      // ── Flat-rate states ─────────────────────────────────────────────────
+      case 'IL': return grossAnnual * 0.0495;
+      case 'PA': return grossAnnual * 0.0307;
+      case 'OH': return grossAnnual * 0.04;
+      case 'GA': return grossAnnual * 0.055;
+      case 'NC': return grossAnnual * 0.0475;
+      case 'VA': return grossAnnual * 0.0575;
+      case 'MA': return grossAnnual * 0.05;
+      case 'CO': return grossAnnual * 0.044;
+      case 'AZ': return grossAnnual * 0.025;
+      case 'MD': return grossAnnual * 0.0575;
+      case 'MI': return grossAnnual * 0.0425;
+      case 'IN': return grossAnnual * 0.0323;
+      case 'KY': return grossAnnual * 0.045;
+      case 'MO': return grossAnnual * 0.0495;
+      case 'AL': return grossAnnual * 0.05;
+      case 'SC': return grossAnnual * 0.07;
+      case 'LA': return grossAnnual * 0.0425;
+      case 'AR': return grossAnnual * 0.059;
+      case 'MS': return grossAnnual * 0.05;
+      case 'ID': return grossAnnual * 0.058;
+      case 'NM': return grossAnnual * 0.059;
+      case 'MT': return grossAnnual * 0.0675;
+      case 'UT': return grossAnnual * 0.0465;
+      case 'ND': return grossAnnual * 0.029;
+      case 'HI': return grossAnnual * 0.11;
+      case 'VT': return grossAnnual * 0.0875;
+      case 'ME': return grossAnnual * 0.0715;
+      case 'CT': return grossAnnual * 0.0699;
+      case 'RI': return grossAnnual * 0.0599;
+      case 'DE': return grossAnnual * 0.066;
+      case 'DC': return grossAnnual * 0.0895;
+      case 'WV': return grossAnnual * 0.065;
+      case 'KS': return grossAnnual * 0.057;
+      case 'NE': return grossAnnual * 0.0664;
+      case 'IA': return grossAnnual * 0.06;
+      case 'OK': return grossAnnual * 0.0475;
+      default:   return grossAnnual * 0.05;
+    }
   }
 
   static SalaryResult calculate(double grossAnnual, String state) {

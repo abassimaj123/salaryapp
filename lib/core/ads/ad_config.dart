@@ -45,6 +45,6 @@ class AdConfig {
       : 'ca-app-pub-3940256099942544/1712485313';
 
   // ── Gate settings ─────────────────────────────────────────────────────────────
-  static const int calcThreshold = 5; // interstitial every N calcs
+  static const int calcThreshold = 8; // interstitial every N calcs
   static const int cooldownMinutes = 5; // min between interstitials
 }

@@ -30,10 +30,10 @@ class ResultCard extends StatelessWidget {
   }
 
   Widget _content(Color primary, Color secondary) => Row(children: [
-    if (icon != null) ...[Icon(icon, color: primary.withValues(alpha: 0.8), size: 22), const SizedBox(width: 12)],
+    if (icon != null) ...[Icon(icon, color: primary.withValues(alpha: 0.8), size: 22), SizedBox(width: 12)],
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: TextStyle(color: secondary, fontSize: 12, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 2),
+      SizedBox(height: 2),
       Text(value, style: TextStyle(color: primary, fontSize: 22, fontWeight: FontWeight.bold)),
       if (subtitle != null) Text(subtitle!, style: TextStyle(color: secondary, fontSize: 12)),
     ])),
@@ -48,7 +48,7 @@ class MetricRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: const TextStyle(color: AppTheme.labelGray, fontSize: 14)),
+      Text(label, style: TextStyle(color: AppTheme.labelGray, fontSize: 14)),
       Text(value, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14,
           color: valueColor ?? Theme.of(context).textTheme.bodyLarge!.color)),
     ]),

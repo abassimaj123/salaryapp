@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
 import '../freemium/freemium_service.dart';
+import '../analytics/analytics_service.dart';
 
 class AdService {
   static final instance = AdService._();
@@ -51,7 +52,10 @@ class AdService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (a) => _rewarded = a,
-        onAdFailedToLoad: (_) => _rewarded = null,
+        onAdFailedToLoad: (_) {
+          _rewarded = null;
+          AnalyticsService.instance.logRewardedAdFailed();
+        },
       ),
     );
   }
@@ -88,7 +92,9 @@ class AdService {
     _inter!.show();
   }
 
-  bool get isRewardedReady => _rewarded != null;
+  bool get isRewardedReady => _rewarded != null &&
+    !freemiumService.isPremium &&
+    !freemiumService.isRewarded;
 
   Future<bool> showRewarded({VoidCallback? onRewarded}) async {
     if (_rewarded == null) return false;

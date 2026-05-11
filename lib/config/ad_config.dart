@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 class AdConfig {
   AdConfig._();
   static const bool adsEnabled     = true;
-  static const int  calcThreshold  = 5;
+  static const int  calcThreshold  = 8;
   static const int  cooldownMinutes = 5;
 
   static String get bannerAndroid => kReleaseMode

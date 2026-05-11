@@ -1,0 +1,267 @@
+import '../core/ads/ad_footer.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../core/analytics/analytics_service.dart';
+import '../core/db/database_service.dart';
+import '../core/flavor_config.dart';
+import '../core/freemium/freemium_service.dart';
+import '../core/salary_engine.dart';
+import '../core/theme/app_theme.dart';
+import '../main.dart' show isSpanishNotifier;
+
+class HistoryDetailScreen extends StatelessWidget {
+  final HistoryEntry entry;
+
+  const HistoryDetailScreen({super.key, required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSpanishNotifier,
+      builder: (context, useAlt, _) {
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+
+        final currencySymbol = entry.flavor == 'uk'
+            ? '£'
+            : (entry.flavor == 'ca' ? 'CA\$' : '\$');
+        final fmtMoney = NumberFormat.currency(
+            symbol: currencySymbol, decimalDigits: 2);
+        final fmtDate = DateFormat('MMMM d, yyyy  HH:mm');
+
+        final l = _Labels(fr: fr, es: es);
+        final r = entry.result;
+
+        final federalLabel = entry.flavor == 'uk'
+            ? (fr ? 'Impôt sur le revenu' : 'Income Tax')
+            : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
+        final ficaLabel = entry.flavor == 'us'
+            ? 'FICA (SS + Medicare)'
+            : (entry.flavor == 'uk'
+                ? 'National Insurance'
+                : (fr ? 'RPC + AE' : 'CPP + EI'));
+        final stateLabel = entry.flavor == 'us'
+            ? (es ? 'Impuesto estatal' : 'State Tax')
+            : (fr ? 'Impôt provincial' : 'Provincial Tax');
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(l.title),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.share_outlined),
+                tooltip: l.share,
+                onPressed: () {
+                  analyticsService.logShareResult();
+                  _shareText(context, r, fmtMoney, fmtDate, l, fr, es);
+                },
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Date & region
+                    _DetailCard(
+                        icon: Icons.schedule,
+                        label: l.date,
+                        value: fmtDate.format(entry.timestamp)),
+                    if (entry.region.isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      _DetailCard(
+                          icon: Icons.location_on_outlined,
+                          label: l.region,
+                          value: entry.region),
+                    ],
+                    SizedBox(height: 16),
+
+                    // Salary breakdown
+                    _SectionHeader(l.breakdown),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: l.grossAnnual,
+                        value: fmtMoney.format(r.grossAnnual),
+                        valueColor: AppTheme.primary),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.trending_down,
+                        label: federalLabel,
+                        value: fmtMoney.format(r.federalTax),
+                        valueColor: Colors.redAccent),
+                    if (r.ficaTax > 0) ...[
+                      SizedBox(height: 8),
+                      _DetailCard(
+                          icon: Icons.trending_down,
+                          label: ficaLabel,
+                          value: fmtMoney.format(r.ficaTax),
+                          valueColor: Colors.orange),
+                    ],
+                    if (entry.flavor != 'uk' && r.stateTax > 0) ...[
+                      SizedBox(height: 8),
+                      _DetailCard(
+                          icon: Icons.trending_down,
+                          label: stateLabel,
+                          value: fmtMoney.format(r.stateTax),
+                          valueColor: Colors.deepOrange),
+                    ],
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.receipt_long_outlined,
+                        label: l.totalTax,
+                        value: fmtMoney.format(r.totalTax),
+                        valueColor: Colors.red),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.percent,
+                        label: l.effectiveRate,
+                        value: '${r.effectiveRate.toStringAsFixed(1)}%',
+                        valueColor: Colors.red.shade700),
+                    SizedBox(height: 16),
+
+                    // Net pay breakdown
+                    _SectionHeader(l.netPay),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.star_outlined,
+                        label: l.netAnnual,
+                        value: fmtMoney.format(r.netAnnual),
+                        valueColor: AppTheme.success),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.calendar_month_outlined,
+                        label: l.netMonthly,
+                        value: fmtMoney.format(r.netMonthly),
+                        valueColor: AppTheme.success),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.date_range_outlined,
+                        label: l.netBiWeekly,
+                        value: fmtMoney.format(r.netBiWeekly)),
+                    SizedBox(height: 8),
+                    _DetailCard(
+                        icon: Icons.view_week_outlined,
+                        label: l.netWeekly,
+                        value: fmtMoney.format(r.netWeekly)),
+                    SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: freemiumService.isPremiumNotifier,
+                builder: (_, isPremium, __) =>
+                    isPremium ? const SizedBox.shrink() : const AdFooter(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _shareText(
+    BuildContext context,
+    SalaryResult r,
+    NumberFormat fmtMoney,
+    DateFormat fmtDate,
+    _Labels l,
+    bool fr,
+    bool es,
+  ) {
+    final buf = StringBuffer();
+    buf.writeln('${l.title} — ${fmtDate.format(entry.timestamp)}');
+    if (entry.region.isNotEmpty) buf.writeln('${l.region}: ${entry.region}');
+    buf.writeln('${l.grossAnnual}: ${fmtMoney.format(r.grossAnnual)}');
+    buf.writeln('${l.totalTax}: ${fmtMoney.format(r.totalTax)}');
+    buf.writeln('${l.effectiveRate}: ${r.effectiveRate.toStringAsFixed(1)}%');
+    buf.writeln('${l.netAnnual}: ${fmtMoney.format(r.netAnnual)}');
+    buf.writeln('${l.netMonthly}: ${fmtMoney.format(r.netMonthly)}');
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(fr
+          ? 'Résumé copié'
+          : (es ? 'Resumen copiado' : 'Summary ready — use share button')),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String text;
+  const _SectionHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.labelGray),
+      );
+}
+
+// ─── Detail card widget ───────────────────────────────────────────────────────
+
+class _DetailCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _DetailCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Icon(icon, size: 20, color: AppTheme.primary),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13, color: AppTheme.labelGray)),
+          ),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─── Labels ───────────────────────────────────────────────────────────────────
+
+class _Labels {
+  final bool fr, es;
+  _Labels({required this.fr, required this.es});
+
+  String get title        => fr ? 'Détail du calcul'          : (es ? 'Detalle del cálculo'       : 'Calculation Detail');
+  String get share        => fr ? 'Partager'                  : (es ? 'Compartir'                 : 'Share');
+  String get date         => fr ? 'Date'                      : (es ? 'Fecha'                     : 'Date');
+  String get region       => fr ? 'Province'                  : (es ? 'Estado'                    : 'Region');
+  String get breakdown    => fr ? 'Répartition fiscale'        : (es ? 'Desglose fiscal'            : 'Tax Breakdown');
+  String get netPay       => fr ? 'Salaire net'               : (es ? 'Salario neto'              : 'Net Pay');
+  String get grossAnnual  => fr ? 'Salaire brut annuel'       : (es ? 'Salario bruto anual'       : 'Gross Annual Salary');
+  String get totalTax     => fr ? 'Total impôts'              : (es ? 'Total impuestos'           : 'Total Tax');
+  String get effectiveRate=> fr ? 'Taux effectif'             : (es ? 'Tasa efectiva'             : 'Effective Tax Rate');
+  String get netAnnual    => fr ? 'Net annuel'                : (es ? 'Neto anual'                : 'Annual Net');
+  String get netMonthly   => fr ? 'Mensuel'                   : (es ? 'Mensual'                   : 'Monthly Net');
+  String get netBiWeekly  => fr ? 'Bimensuel'                 : (es ? 'Quincenal'                 : 'Bi-Weekly Net');
+  String get netWeekly    => fr ? 'Hebdomadaire'              : (es ? 'Semanal'                   : 'Weekly Net');
+}

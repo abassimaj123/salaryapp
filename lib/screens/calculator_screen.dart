@@ -1,21 +1,35 @@
+import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:calcwise_core/calcwise_core.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
+import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/db/database_service.dart';
 import '../core/ads/ad_service.dart';
 import '../core/freemium/freemium_service.dart';
+import '../main.dart' show paywallSession;
 import '../core/theme/app_theme.dart';
+import '../widgets/paywall_soft.dart';
+import '../widgets/paywall_hard.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../widgets/banner_ad_widget.dart';
 import '../widgets/premium_cta_widget.dart';
 import '../widgets/result_card.dart';
-import '../main.dart' show altLanguageNotifier;
+import '../widgets/insight_card.dart';
+import '../core/insight_engine.dart';
+import '../main.dart' show isSpanishNotifier;
+import '../core/services/review_service.dart';
+import 'raise_screen.dart';
+import 'tax_breakdown_screen.dart';
+import 'w4_wizard_screen.dart';
+import 'bonus_calculator_screen.dart';
 
 // ─── Pay-frequency enum ───────────────────────────────────────────────────────
 
@@ -98,6 +112,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
   void _calculate() {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
 
     final rawText = _salaryCtrl.text;
@@ -130,8 +145,18 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     // Persist to history (respects freemium limit)
     _saveToHistory(res);
 
+    // Log analytics calculation event
+    analyticsService.logCalculation(
+      grossSalary: res.grossAnnual,
+      netSalary: res.netAnnual,
+      frequency: _frequency.name,
+    );
+
     // Maybe show interstitial
     AdService.instance.onCalculation();
+
+    // Maybe show paywall
+    _checkPaywall();
 
     // Scroll to results after next frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -143,6 +168,16 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         );
       }
     });
+  }
+
+  Future<void> _checkPaywall() async {
+    final type = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (type == PaywallTrigger.hard) {
+      await PaywallHard.show(context);
+    } else if (type == PaywallTrigger.soft) {
+      await PaywallSoft.show(context);
+    }
   }
 
   Future<void> _saveToHistory(SalaryResult res) async {
@@ -157,6 +192,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       timestamp: DateTime.now(),
       result: res,
     ));
+    try { analyticsService.logSave(); } catch (_) {}
+    await ReviewService.instance.requestAfterSave();
   }
 
   void _reset() {
@@ -174,7 +211,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: altLanguageNotifier,
+      valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
@@ -204,9 +241,73 @@ class _CalculatorScreenState extends State<CalculatorScreen>
           appBar: AppBar(
             title: Text(appBarTitle),
             actions: [
+              IconButton(
+                icon: Icon(Icons.trending_up_rounded),
+                tooltip: es
+                    ? 'Calculadora de aumento'
+                    : (fr ? 'Augmentation' : 'Raise Calculator'),
+                onPressed: () => Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => RaiseScreen(
+                      initialSalary: _result?.grossAnnual,),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: const Duration(milliseconds: 250),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.pie_chart_outline),
+                tooltip: es
+                    ? 'Tramos del impuesto'
+                    : (fr ? 'Tranches d\'imposition' : 'Tax Bracket Breakdown'),
+                onPressed: () => Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => TaxBreakdownScreen(
+                      initialSalary: _result?.grossAnnual,),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: const Duration(milliseconds: 250),
+                  ),
+                ),
+              ),
+              // Bonus Calculator — all flavors
+              IconButton(
+                icon: const Icon(Icons.card_giftcard_outlined),
+                tooltip: es
+                    ? 'Calculadora de bonificación'
+                    : (fr ? 'Calculateur de prime' : 'Bonus Calculator'),
+                onPressed: () => Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) =>
+                        const BonusCalculatorScreen(),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: const Duration(milliseconds: 250),
+                  ),
+                ),
+              ),
+              // W-4 Wizard — US flavor only
+              if (FlavorConfig.isUS)
+                IconButton(
+                  icon: const Icon(Icons.assignment_outlined),
+                  tooltip: es ? 'Asistente W-4' : 'W-4 Withholding Wizard',
+                  onPressed: () => Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (_, __, ___) => const W4WizardScreen(),
+                      transitionsBuilder: (_, anim, __, child) =>
+                          FadeTransition(opacity: anim, child: child),
+                      transitionDuration: const Duration(milliseconds: 250),
+                    ),
+                  ),
+                ),
               if (_showResults)
                 IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: Icon(Icons.refresh),
                   tooltip: resetLabel,
                   onPressed: _reset,
                 ),
@@ -218,26 +319,34 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                 child: SingleChildScrollView(
                   controller: _scrollCtrl,
                   padding: const EdgeInsets.all(16),
-                  child: Form(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SalaryInputCard(
+                        CalcwiseStaggerItem(
+                          index: 0,
+                          child: _SalaryInputCard(
                           controller: _salaryCtrl,
                           frequency: _frequency,
                           useAlt: useAlt,
                           es: es,
                           fr: fr,
-                        ),
-                        const SizedBox(height: 16),
+                        )),
+                        SizedBox(height: 16),
+                        CalcwiseStaggerItem(
+                          index: 1,
+                          child: Column(children: [
                         _FrequencyChips(
                           selected: _frequency,
                           useAlt: useAlt,
                           onChanged: (f) => setState(() => _frequency = f),
                         ),
                         if (FlavorConfig.isUS) ...[
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           _StateDropdown(
                             value: _usState,
                             useAlt: useAlt,
@@ -245,7 +354,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                           ),
                         ],
                         if (FlavorConfig.isCA) ...[
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           _ProvinceDropdown(
                             value: _caProvince,
                             useAlt: useAlt,
@@ -253,15 +362,18 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                 setState(() => _caProvince = v!),
                           ),
                         ],
-                        const SizedBox(height: 24),
-                        ElevatedButton(
+                          ])),
+                        SizedBox(height: 24),
+                        CalcwiseStaggerItem(
+                          index: 2,
+                          child: ElevatedButton(
                           onPressed: _calculate,
                           child: Text(calcLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w700)),
-                        ),
+                        )),
                         if (_showResults && _result != null) ...[
-                          const SizedBox(height: 28),
+                          SizedBox(height: 28),
                           SlideTransition(
                             position: _slideAnim,
                             child: FadeTransition(
@@ -276,13 +388,15 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                             ),
                           ),
                         ],
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                       ],
+                    ),
+                  ),
                     ),
                   ),
                 ),
               ),
-              const BannerAdWidget(),
+              const AdFooter(),
             ],
           ),
         );
@@ -331,7 +445,7 @@ class _SalaryInputCard extends StatelessWidget {
                 .titleMedium
                 ?.copyWith(color: AppTheme.primary),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           TextFormField(
             controller: controller,
             keyboardType:
@@ -341,12 +455,12 @@ class _SalaryInputCard extends StatelessWidget {
             ],
             decoration: InputDecoration(
               prefixText: '${FlavorConfig.currencySymbol} ',
-              prefixStyle: const TextStyle(
+              prefixStyle: TextStyle(
                   fontSize: 18, fontWeight: FontWeight.w600),
               labelText: _fieldLabel,
               hintText: '0.00',
             ),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             validator: (v) {
               if (v == null || v.trim().isEmpty) {
                 return fr
@@ -424,10 +538,10 @@ class _StateDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final es = FlavorConfig.isUS && useAlt;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: es ? 'Estado' : 'State',
-        prefixIcon: const Icon(Icons.location_on_outlined),
+        prefixIcon: Icon(Icons.location_on_outlined),
       ),
       items: UsSalaryEngine.states
           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -454,10 +568,10 @@ class _ProvinceDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final fr = FlavorConfig.isCA && useAlt;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: fr ? 'Province' : 'Province',
-        prefixIcon: const Icon(Icons.location_on_outlined),
+        prefixIcon: Icon(Icons.location_on_outlined),
       ),
       items: CaSalaryEngine.provinces
           .map((p) => DropdownMenuItem(value: p, child: Text(p)))
@@ -537,7 +651,7 @@ class _ResultsSection extends StatelessWidget {
                 .textTheme
                 .titleMedium
                 ?.copyWith(color: AppTheme.primary)),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         // Net take-home highlight card
         ResultCard(
@@ -546,21 +660,21 @@ class _ResultsSection extends StatelessWidget {
           icon: Icons.account_balance_wallet_outlined,
           highlight: true,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
 
         // Monthly / Bi-weekly / Weekly row
         Row(children: [
           Expanded(
               child: ResultCard(
                   label: monthlyLabel, value: _fmt(result.netMonthly))),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
               child: ResultCard(
                   label: biWeeklyLabel, value: _fmt(result.netBiWeekly))),
         ]),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         ResultCard(label: weeklyLabel, value: _fmt(result.netWeekly)),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Pie chart
         Card(
@@ -574,7 +688,7 @@ class _ResultsSection extends StatelessWidget {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontSize: 15)),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 SizedBox(
                   height: 200,
                   child: _TaxPieChart(
@@ -584,9 +698,9 @@ class _ResultsSection extends StatelessWidget {
                     stateLabel: stateLabel,
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Divider(color: AppTheme.divider),
-                const SizedBox(height: 8),
+                SizedBox(height: 16),
+                Divider(color: AppTheme.divider),
+                SizedBox(height: 8),
                 MetricRow(
                     label: grossLabel, value: _fmt(result.grossAnnual)),
                 MetricRow(
@@ -618,12 +732,35 @@ class _ResultsSection extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
+
+        // Smart Insights
+        if (FlavorConfig.isUS)
+          InsightCard(
+            insights: InsightEngine.generate(
+              grossAnnual:       result.grossAnnual,
+              netAnnual:         result.netAnnual,
+              federalTax:        result.federalTax,
+              stateTax:          result.stateTax,
+              ficaTax:           result.ficaTax,
+              federalBracketPct: InsightEngine.usFederalBracketPct(result.grossAnnual),
+              isEs: es,
+              isFr: fr,
+            ),
+            isSpanish: es,
+          ),
+
+        SizedBox(height: 16),
 
         // Benefits & deductions estimator
         _BenefitsCard(result: result, fr: fr, es: es),
 
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
+
+        // Pay Rate Converter
+        _PayRateConverter(result: result, fr: fr, es: es),
+
+        SizedBox(height: 16),
 
         // Premium CTA if user is free
         ValueListenableBuilder<bool>(
@@ -638,6 +775,11 @@ class _ResultsSection extends StatelessWidget {
                           : 'Unlimited History & PDF'),
                 ),
         ),
+
+        SizedBox(height: 12),
+
+        // PDF export button
+        _PdfExportButton(result: result, fr: fr, es: es),
       ],
     );
   }
@@ -713,36 +855,36 @@ class _BenefitsCardState extends State<_BenefitsCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Icon(Icons.health_and_safety_outlined, size: 18, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
+              Icon(Icons.health_and_safety_outlined, size: 18, color: AppTheme.primary),
+              SizedBox(width: 8),
+              Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
             ]),
-            const SizedBox(height: 4),
-            Text(pctHint, style: const TextStyle(fontSize: 11, color: AppTheme.labelGray)),
-            const SizedBox(height: 12),
+            SizedBox(height: 4),
+            Text(pctHint, style: TextStyle(fontSize: 11, color: AppTheme.labelGray)),
+            SizedBox(height: 12),
             _BenefitRow(label: insLabel, controller: _insCtrl,
               amount: _insAmt, onChanged: () => _update(_insCtrl, (v) => _insurancePct = v)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             _BenefitRow(label: retLabel, controller: _retCtrl,
               amount: _retAmt, onChanged: () => _update(_retCtrl, (v) => _retirementPct = v)),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             _BenefitRow(label: uniLabel, controller: _uniCtrl,
               amount: _uniAmt, onChanged: () => _update(_uniCtrl, (v) => _unionPct = v)),
-            const Divider(height: 20),
+            Divider(height: 20),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(netLabel, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(netLabel, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
               Text(_fmt(_netAfter),
                 style: TextStyle(
                   fontWeight: FontWeight.bold, fontSize: 15,
                   color: _netAfter > 0 ? AppTheme.success : Colors.red),
               ),
             ]),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text(fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
-                style: const TextStyle(fontSize: 12, color: AppTheme.labelGray)),
+                style: TextStyle(fontSize: 12, color: AppTheme.labelGray)),
               Text(_fmt(_netAfter / 12),
-                style: const TextStyle(fontSize: 12, color: AppTheme.labelGray, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: 12, color: AppTheme.labelGray, fontWeight: FontWeight.w500)),
             ]),
           ],
         ),
@@ -761,14 +903,14 @@ class _BenefitRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Expanded(flex: 4, child: Text(label, style: const TextStyle(fontSize: 12))),
+      Expanded(flex: 4, child: Text(label, style: TextStyle(fontSize: 12))),
       SizedBox(
         width: 60,
         child: TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13),
           decoration: const InputDecoration(
             suffixText: '%', contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             isDense: true,
@@ -776,13 +918,13 @@ class _BenefitRow extends StatelessWidget {
           onChanged: (_) => onChanged(),
         ),
       ),
-      const SizedBox(width: 8),
+      SizedBox(width: 8),
       SizedBox(
         width: 80,
         child: Text(
           NumberFormat.currency(symbol: FlavorConfig.currencySymbol, decimalDigits: 0).format(amount),
           textAlign: TextAlign.right,
-          style: const TextStyle(fontSize: 12, color: AppTheme.labelGray),
+          style: TextStyle(fontSize: 12, color: AppTheme.labelGray),
         ),
       ),
     ]);
@@ -872,7 +1014,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           flex: 4,
           child: Column(
@@ -888,11 +1030,11 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                     decoration: BoxDecoration(
                         color: s.color, shape: BoxShape.circle),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       s.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, color: AppTheme.labelGray),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -912,4 +1054,267 @@ class _Slice {
   final double value;
   final Color color;
   const _Slice({required this.label, required this.value, required this.color});
+}
+
+// ─── PDF Export Button ────────────────────────────────────────────────────────
+
+class _PdfExportButton extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _PdfExportButton({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  String get _label => fr ? 'Exporter PDF' : (es ? 'Exportar PDF' : 'Export PDF');
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: freemiumService.isPremiumNotifier,
+      builder: (context, isPremium, _) {
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: Icon(Icons.picture_as_pdf_outlined),
+            label: Text(_label),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              side: BorderSide(color: AppTheme.primary),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () async {
+              if (!isPremium) {
+                await PaywallHard.show(context);
+                return;
+              }
+              await _exportPdf(context);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportPdf(BuildContext context) async {
+    final symbol = FlavorConfig.currencySymbol;
+    final fmtCurrency = NumberFormat.currency(symbol: symbol, decimalDigits: 2);
+    final fmtPct      = (double v) => '${v.toStringAsFixed(1)}%';
+
+    final federalLabel = FlavorConfig.isUK
+        ? 'Income Tax'
+        : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
+    final ficaLabel = FlavorConfig.isUS
+        ? 'FICA (SS + Medicare)'
+        : (FlavorConfig.isUK
+            ? 'National Insurance'
+            : (fr ? 'RPC + AE' : 'CPP + EI'));
+    final stateLabel = FlavorConfig.isUS
+        ? (es ? 'Impuesto estatal' : 'State Tax')
+        : (fr ? 'Impôt provincial' : 'Provincial Tax');
+    final grossLabel  = fr ? 'Salaire brut'   : (es ? 'Salario bruto'   : 'Gross Salary');
+    final netLabel    = fr ? 'Salaire net'     : (es ? 'Salario neto'    : 'Net Salary (Annual)');
+    final totalLabel  = fr ? 'Total impôts'    : (es ? 'Total impuestos' : 'Total Tax');
+    final rateLabel   = fr ? 'Taux effectif'   : (es ? 'Tasa efectiva'   : 'Effective Tax Rate');
+    final monthLabel  = fr ? 'Mensuel'         : (es ? 'Mensual'         : 'Monthly');
+    final titleText   = fr ? 'Analyse salariale' : (es ? 'Análisis salarial' : 'Salary Analysis');
+
+    final doc = pw.Document();
+    doc.addPage(pw.Page(
+      build: (ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(titleText,
+              style: pw.TextStyle(
+                  fontSize: 22, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 4),
+          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              style: const pw.TextStyle(fontSize: 11)),
+          pw.Divider(height: 20),
+          _pdfRow(grossLabel, fmtCurrency.format(result.grossAnnual)),
+          _pdfRow(federalLabel, fmtCurrency.format(result.federalTax)),
+          if (result.ficaTax > 0)
+            _pdfRow(ficaLabel, fmtCurrency.format(result.ficaTax)),
+          if (!FlavorConfig.isUK && result.stateTax > 0)
+            _pdfRow(stateLabel, fmtCurrency.format(result.stateTax)),
+          _pdfRow(totalLabel, fmtCurrency.format(result.totalTax)),
+          _pdfRow(rateLabel, fmtPct(result.effectiveRate)),
+          pw.Divider(height: 20),
+          _pdfRow(netLabel, fmtCurrency.format(result.netAnnual)),
+          _pdfRow(monthLabel, fmtCurrency.format(result.netMonthly)),
+        ],
+      ),
+    ));
+
+    await Printing.sharePdf(
+        bytes: await doc.save(),
+        filename: 'salary_summary_${DateTime.now().millisecondsSinceEpoch}.pdf');
+
+    analyticsService.logPdfExported();
+  }
+
+  pw.Widget _pdfRow(String label, String value) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label, style: const pw.TextStyle(fontSize: 12)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+      );
+}
+
+// ─── Pay Rate Converter ───────────────────────────────────────────────────────
+
+class _PayRateConverter extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _PayRateConverter({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  static const _workingDays = 260.0;
+  static const _workingHours = 2080.0;
+
+  String _fmt(double v) => NumberFormat.currency(
+        symbol: FlavorConfig.currencySymbol,
+        decimalDigits: 2,
+      ).format(v);
+
+  @override
+  Widget build(BuildContext context) {
+    final gross = result.grossAnnual;
+    // Use the actual calculated effective tax rate instead of a flat 25% estimate
+    final effRate = result.effectiveRate / 100.0;
+    final effPct = result.effectiveRate.toStringAsFixed(1);
+    final title = fr
+        ? 'Répartition salariale'
+        : (es ? 'Desglose de salario' : 'Pay Rate Breakdown');
+    final grossLabel = fr ? 'Brut' : (es ? 'Bruto' : 'Gross');
+    final netLabel = fr ? 'Net estimé*' : (es ? 'Neto estimado*' : 'Est. Net*');
+    final periodLabel = fr ? 'Période' : (es ? 'Período' : 'Period');
+    final taxNote = fr
+        ? '* Estimation après $effPct % de taux effectif'
+        : (es
+            ? '* Estimación con tasa efectiva de $effPct %'
+            : '* Estimated after $effPct% effective tax rate');
+
+    final rows = <_RateRow>[
+      _RateRow(
+        period: fr ? 'Annuel' : (es ? 'Anual' : 'Annual'),
+        gross: gross,
+        net: gross * (1 - effRate),
+      ),
+      _RateRow(
+        period: fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
+        gross: gross / 12,
+        net: gross * (1 - effRate) / 12,
+      ),
+      _RateRow(
+        period: fr ? 'Bimensuel' : (es ? 'Quincenal' : 'Bi-weekly'),
+        gross: gross / 26,
+        net: gross * (1 - effRate) / 26,
+      ),
+      _RateRow(
+        period: fr ? 'Hebdomadaire' : (es ? 'Semanal' : 'Weekly'),
+        gross: gross / 52,
+        net: gross * (1 - effRate) / 52,
+      ),
+      _RateRow(
+        period: fr ? 'Journalier (÷260)' : (es ? 'Diario (÷260)' : 'Daily (÷260)'),
+        gross: gross / _workingDays,
+        net: gross * (1 - effRate) / _workingDays,
+      ),
+      _RateRow(
+        period: fr ? 'Horaire (÷2080)' : (es ? 'Por hora (÷2080)' : 'Hourly (÷2080)'),
+        gross: gross / _workingHours,
+        net: gross * (1 - effRate) / _workingHours,
+      ),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Icons.swap_horiz_rounded,
+                  size: 18, color: AppTheme.primary),
+              SizedBox(width: 8),
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600)),
+            ]),
+            SizedBox(height: 14),
+            Table(
+              columnWidths: const {
+                0: FlexColumnWidth(3),
+                1: FlexColumnWidth(3),
+                2: FlexColumnWidth(3),
+              },
+              children: [
+                TableRow(
+                  decoration: BoxDecoration(
+                      border: Border(
+                          bottom: BorderSide(color: AppTheme.divider))),
+                  children: [
+                    _th(periodLabel),
+                    _th(grossLabel),
+                    _th(netLabel),
+                  ],
+                ),
+                for (final row in rows)
+                  TableRow(children: [
+                    _td(row.period),
+                    _td(_fmt(row.gross)),
+                    _td(_fmt(row.net), color: AppTheme.success),
+                  ]),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(taxNote,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.labelGray,
+                    fontStyle: FontStyle.italic)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _th(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.labelGray)),
+      );
+
+  Widget _td(String text, {Color? color}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color)),
+      );
+}
+
+class _RateRow {
+  final String period;
+  final double gross, net;
+  const _RateRow({required this.period, required this.gross, required this.net});
 }
