@@ -1,18 +1,19 @@
-﻿import 'dart:async';
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import 'package:calcwise_core/calcwise_core.dart' show themeModeService, PaywallSessionService;
+import 'package:calcwise_core/calcwise_core.dart' show themeModeService, PaywallSessionService, CalcwiseAdService, CalcwiseAdConfig,
+         requestCalcwiseConsent, CalcwiseAdFooter, CalcwiseRewardAdSheet,
+         PaywallTrigger, PaywallHard, PaywallSoft, AppDuration;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';
 import 'core/services/crashlytics_service.dart';
 import 'core/freemium/freemium_service.dart';
 import 'core/freemium/iap_service.dart';
-import 'core/ads/ad_service.dart';
+import 'core/ads/ad_config.dart';
 import 'core/flavor_config.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/strings_en.dart';
@@ -20,10 +21,24 @@ import 'l10n/strings_es.dart';
 import 'l10n/strings_fr.dart';
 import 'screens/splash_screen.dart';
 import 'screens/calculator_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/tools_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 
 final paywallSession = PaywallSessionService(appKey: 'salaryapp');
+
+final adService = CalcwiseAdService(
+  config: CalcwiseAdConfig(
+    bannerAndroid:       AdConfig.bannerAndroid,
+    interstitialAndroid: AdConfig.interstitialAndroid,
+    rewardedAndroid:     AdConfig.rewardedAndroid,
+    calcThreshold:       AdConfig.calcThreshold,
+    cooldownMinutes:     AdConfig.cooldownMinutes,
+  ),
+  freemium:  freemiumService,
+  analytics: analyticsService,
+);
 
 // ─── Global language notifier ─────────────────────────────────────────────────
 // For US: true = Spanish  |  For CA: true = French  |  For UK: ignored
@@ -41,9 +56,9 @@ void main() async {
   await freemiumService.initialize();
   await paywallSession.initialize();
   await IAPService.instance.initialize();
-  await _requestConsent();
+  await requestCalcwiseConsent();
   await MobileAds.instance.initialize();
-  await AdService.instance.initialize();
+  if (AdConfig.adsEnabled) await adService.initialize();
   await themeModeService.initialize();
 
   // Auto-detect preferred alternate language at startup
@@ -71,6 +86,17 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
+  CalcwiseAdFooter.configure(
+    adService: adService,
+    freemium: freemiumService,
+    isSpanishNotifier: isSpanishNotifier,
+    onGetPremium: () => IAPService.instance.buy(),
+  );
+  CalcwiseRewardAdSheet.configure(
+    adService: adService,
+    freemium: freemiumService,
+    isSpanishNotifier: isSpanishNotifier,
+  );
   runApp(const SalaryApp());
 }
 
@@ -100,7 +126,7 @@ class SalaryApp extends StatelessWidget {
           pageBuilder: (_, __, ___) => page,
           transitionsBuilder: (_, anim, __, child) =>
               FadeTransition(opacity: anim, child: child),
-          transitionDuration:        const Duration(milliseconds: 250),
+          transitionDuration:        AppDuration.base,
           reverseTransitionDuration: const Duration(milliseconds: 200),
         );
       },
@@ -123,7 +149,8 @@ class _MainShellState extends State<MainShell> {
 
   static const _pages = <Widget>[
     CalculatorScreen(),
-    SettingsScreen(),
+    ReportsScreen(),
+    ToolsScreen(),
     HistoryScreen(),
   ];
 
@@ -143,23 +170,37 @@ class _MainShellState extends State<MainShell> {
           body: IndexedStack(index: _index, children: _pages),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
-            onDestinationSelected: (i) {
+            onDestinationSelected: (i) async {
               analyticsService.logTabSwitch(i);
               setState(() => _index = i);
+              final trigger = await paywallSession.recordAction();
+              if (!mounted) return;
+              if (trigger == PaywallTrigger.hard) {
+                analyticsService.logPaywallViewed('session_hard');
+                PaywallHard.show(context);
+              } else if (trigger == PaywallTrigger.soft) {
+                analyticsService.logPaywallViewed('session_soft');
+                PaywallSoft.show(context, featureTitle: 'Unlimited Saves');
+              }
             },
             destinations: [
               NavigationDestination(
-                icon: const Icon(Icons.calculate_outlined),
+                icon: const Icon(Icons.calculate_rounded),
                 selectedIcon: const Icon(Icons.calculate),
                 label: s.calculator,
               ),
               NavigationDestination(
-                icon: const Icon(Icons.settings_outlined),
-                selectedIcon: const Icon(Icons.settings),
-                label: s.settings,
+                icon: const Icon(Icons.bar_chart_rounded),
+                selectedIcon: const Icon(Icons.bar_chart_rounded),
+                label: useAlt ? 'Reportes' : 'Reports',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.history_outlined),
+                icon: const Icon(Icons.build_rounded),
+                selectedIcon: const Icon(Icons.build),
+                label: useAlt ? 'Herramientas' : 'Tools',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.history_rounded),
                 selectedIcon: const Icon(Icons.history),
                 label: s.history,
               ),
@@ -201,27 +242,4 @@ _S _strings(bool useAlt) {
   if (FlavorConfig.isUS && useAlt) return _SES();
   if (FlavorConfig.isCA && useAlt) return _SFR();
   return _SEN();
-}
-
-
-/// Request GDPR/PIPEDA consent via Google UMP SDK.
-/// Resolves on success, timeout, or error so the app always launches.
-/// On non-EEA/UK devices the UMP SDK completes immediately without showing a form.
-Future<void> _requestConsent() async {
-  final completer = Completer<void>();
-  ConsentInformation.instance.requestConsentInfoUpdate(
-    ConsentRequestParameters(),
-    () async {
-      // Consent info updated — show form only if required
-      if (await ConsentInformation.instance.isConsentFormAvailable()) {
-        ConsentForm.loadAndShowConsentFormIfRequired(
-          (_) { if (!completer.isCompleted) completer.complete(); },
-        );
-      } else {
-        if (!completer.isCompleted) completer.complete();
-      }
-    },
-    (_) { if (!completer.isCompleted) completer.complete(); },
-  );
-  return completer.future;
 }
