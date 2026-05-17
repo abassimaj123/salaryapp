@@ -16,7 +16,9 @@ import 'package:calcwise_core/calcwise_core.dart'
         PaywallTrigger,
         PaywallHard,
         PaywallSoft,
-        AppDuration;
+        AppDuration,
+        iapErrorNotifier,
+        showIapErrorSnackBar;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';
@@ -162,6 +164,25 @@ class _MainShellState extends State<MainShell> {
     ToolsScreen(),
     HistoryScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    iapErrorNotifier.addListener(_onIapError);
+  }
+
+  @override
+  void dispose() {
+    iapErrorNotifier.removeListener(_onIapError);
+    super.dispose();
+  }
+
+  void _onIapError() {
+    final msg = iapErrorNotifier.value;
+    if (msg == null || !mounted) return;
+    showIapErrorSnackBar(context, msg);
+    iapErrorNotifier.value = null;
+  }
 
   @override
   Widget build(BuildContext context) {
