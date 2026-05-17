@@ -32,3 +32,6 @@ ios/Podfile.lock
 ios/build/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+
+# Gradle local build cache
+android/.gradle/
