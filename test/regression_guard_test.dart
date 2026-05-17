@@ -27,7 +27,8 @@ void main() {
                 children: const [
                   Text('Net Monthly'),
                   Text(r'$4,850.00',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

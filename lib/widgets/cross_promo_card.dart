@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/flavor_config.dart';
 import '../main.dart';
+import 'package:calcwise_core/calcwise_core.dart';
 
 // ── Cross-promo: AutoLoan ───────────────────────────────────────────────────
 // Shown to free users only. Dismissible, remembers dismissal for 7 days.
@@ -16,16 +17,16 @@ class CrossPromoCard extends StatefulWidget {
 
 class _CrossPromoCardState extends State<CrossPromoCard> {
   bool _dismissed = false;
-  bool _checked   = false;
+  bool _checked = false;
 
-  static const _prefKey       = 'cross_promo_dismissed_salaryapp';
-  static const _targetName    = 'Auto Loan Calculator';
-  static const _targetTagline   = 'Best car loan deal — fast';
+  static const _prefKey = 'cross_promo_dismissed_salaryapp';
+  static const _targetName = 'Auto Loan Calculator';
+  static const _targetTagline = 'Best car loan deal — fast';
   static const _targetTaglineEs = 'El mejor préstamo de auto — rápido';
   static const _targetTaglineFr = 'Meilleur prêt auto — rapide';
 
-  static const _targetId      = 'com.calcwise.autoloan';
-  static const _accentColor   = Color(0xFF0B5C2E);
+  static const _targetId = 'com.calcwise.autoloan';
+  static const _accentColor = Color(0xFF0B5C2E);
 
   @override
   void initState() {
@@ -37,7 +38,11 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
     final prefs = await SharedPreferences.getInstance();
     final ts = prefs.getInt(_prefKey) ?? 0;
     final age = DateTime.now().millisecondsSinceEpoch - ts;
-    if (mounted) setState(() { _dismissed = age < 7 * 24 * 3600 * 1000; _checked = true; });
+    if (mounted)
+      setState(() {
+        _dismissed = age < 7 * 24 * 3600 * 1000;
+        _checked = true;
+      });
   }
 
   Future<void> _dismiss() async {
@@ -47,8 +52,10 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
   }
 
   Future<void> _open() async {
-    final uri = Uri.parse('https://play.google.com/store/apps/details?id=$_targetId');
-    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final uri =
+        Uri.parse('https://play.google.com/store/apps/details?id=$_targetId');
+    if (await canLaunchUrl(uri))
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   String _altLabel(String en, String es, String fr) {
@@ -58,51 +65,66 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_checked || _dismissed || widget.isPremium) return const SizedBox.shrink();
+    if (!_checked || _dismissed || widget.isPremium)
+      return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: _accentColor.withValues(alpha: 0.06),
         border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
       child: Row(children: [
         Container(
-          width: 40, height: 40,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             color: _accentColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.mdPlus),
           ),
-          child: Icon(Icons.directions_car_outlined, color: _accentColor, size: 22),
+          child:
+              Icon(Icons.directions_car_rounded, color: _accentColor, size: 22),
         ),
         const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: _accentColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
-              child: const Text('CalqWise', style: TextStyle(
-                  color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+              child: const Text('CalqWise',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 6),
-            Text(_altLabel('Also from us', 'También de nosotros', 'Aussi de nous'),
+            Text(
+                _altLabel(
+                    'Also from us', 'También de nosotros', 'Aussi de nous'),
                 style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
           ]),
           const SizedBox(height: 2),
-          const Text(_targetName, style: TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+          const Text(_targetName,
+              style: TextStyle(
+                  fontSize: AppTextSize.md,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B))),
           Text(_altLabel(_targetTagline, _targetTaglineEs, _targetTaglineFr),
-              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+              style: const TextStyle(
+                  fontSize: AppTextSize.xs, color: Color(0xFF64748B))),
         ])),
         const SizedBox(width: 8),
         Column(children: [
           GestureDetector(
             onTap: _dismiss,
-            child: const Icon(Icons.close, size: 16, color: Color(0xFF94A3B8)),
+            child: const Icon(Icons.close_rounded,
+                size: 16, color: Color(0xFF94A3B8)),
           ),
           const SizedBox(height: 8),
           GestureDetector(
@@ -111,10 +133,13 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: _accentColor,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Text(_altLabel('Free', 'Gratis', 'Gratuit'),
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: AppTextSize.xs,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         ]),

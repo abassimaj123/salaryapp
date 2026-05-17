@@ -4,8 +4,8 @@ import '../salary_engine.dart';
 
 class HistoryEntry {
   final int? id;
-  final String flavor;      // 'us' | 'uk' | 'ca'
-  final String region;      // state / province / '' for UK
+  final String flavor; // 'us' | 'uk' | 'ca'
+  final String region; // state / province / '' for UK
   final DateTime timestamp;
   final SalaryResult result;
 
@@ -83,8 +83,7 @@ class DatabaseService {
 
   Future<int> count() async {
     final db = await _database;
-    final result =
-        await db.rawQuery('SELECT COUNT(*) as cnt FROM history');
+    final result = await db.rawQuery('SELECT COUNT(*) as cnt FROM history');
     return (result.first['cnt'] as int?) ?? 0;
   }
 

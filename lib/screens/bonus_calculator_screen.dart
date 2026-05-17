@@ -1,4 +1,3 @@
-import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +7,8 @@ import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
+import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Bonus / Supplemental Pay Calculator (all flavors) ───────────────────────
 //
@@ -171,9 +172,7 @@ class BonusEngine {
 class _UsFlatResult {
   final double federalTax, stateTax, total;
   const _UsFlatResult(
-      {required this.federalTax,
-      required this.stateTax,
-      required this.total});
+      {required this.federalTax, required this.stateTax, required this.total});
 }
 
 class _UsAggregateResult {
@@ -211,9 +210,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   }
 
   double _parse(TextEditingController c) {
-    final raw = c.text
-        .replaceAll(',', '')
-        .replaceAll(RegExp(r'[^\d.]'), '');
+    final raw = c.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     return double.tryParse(raw) ?? 0;
   }
 
@@ -241,7 +238,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
+          duration: AppDuration.slow,
           curve: Curves.easeOut,
         );
       }
@@ -261,8 +258,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
         final title = fr
             ? 'Calculateur de prime'
             : (es ? 'Calculadora de bonificación' : 'Bonus Calculator');
-        final calcLabel =
-            fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
+        final calcLabel = fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
@@ -271,7 +267,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scrollCtrl,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -285,8 +281,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           payPeriods: _payPeriods,
                           es: es,
                           fr: fr,
-                          onStateChanged: (v) =>
-                              setState(() => _usState = v!),
+                          onStateChanged: (v) => setState(() => _usState = v!),
                           onProvinceChanged: (v) =>
                               setState(() => _caProvince = v!),
                           onPayPeriodsChanged: (v) =>
@@ -297,12 +292,12 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           onPressed: _calculate,
                           child: Text(calcLabel,
                               style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w700)),
+                                  fontSize: AppTextSize.bodyLg,
+                                  fontWeight: FontWeight.w700)),
                         ),
                         if (_result != null) ...[
                           const SizedBox(height: 28),
-                          _ResultsSection(
-                              result: _result!, es: es, fr: fr),
+                          _ResultsSection(result: _result!, es: es, fr: fr),
                         ],
                         const SizedBox(height: 16),
                       ],
@@ -310,7 +305,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                   ),
                 ),
               ),
-              const AdFooter(),
+              const CalcwiseAdFooter(),
             ],
           ),
         );
@@ -371,7 +366,7 @@ class _InputCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -387,13 +382,12 @@ class _InputCard extends StatelessWidget {
                 prefixText: '$symbol ',
                 hintText: '75000',
               ),
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return reqMsg;
-                final val = double.tryParse(v
-                    .replaceAll(',', '')
-                    .replaceAll(RegExp(r'[^\d.]'), ''));
+                final val = double.tryParse(
+                    v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) return invalidMsg;
                 return null;
               },
@@ -416,13 +410,12 @@ class _InputCard extends StatelessWidget {
                         : '22% federal supplemental rate (37% if > \$1M)')
                     : null,
               ),
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return reqMsg;
-                final val = double.tryParse(v
-                    .replaceAll(',', '')
-                    .replaceAll(RegExp(r'[^\d.]'), ''));
+                final val = double.tryParse(
+                    v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) return invalidMsg;
                 return null;
               },
@@ -433,11 +426,10 @@ class _InputCard extends StatelessWidget {
                 value: usState,
                 decoration: InputDecoration(
                   labelText: es ? 'Estado' : 'State',
-                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  prefixIcon: const Icon(Icons.location_on_rounded),
                 ),
                 items: UsSalaryEngine.states
-                    .map((s) =>
-                        DropdownMenuItem(value: s, child: Text(s)))
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                     .toList(),
                 onChanged: onStateChanged,
               ),
@@ -445,7 +437,7 @@ class _InputCard extends StatelessWidget {
               Text(
                 es ? 'Frecuencia de pago' : 'Pay Frequency',
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppTextSize.md,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.labelGray),
               ),
@@ -461,13 +453,11 @@ class _InputCard extends StatelessWidget {
                     selectedColor: AppTheme.primary,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppTheme.labelGray,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: AppTextSize.sm,
                     ),
-                    onSelected: (_) =>
-                        onPayPeriodsChanged(_periodOptions[i]),
+                    onSelected: (_) => onPayPeriodsChanged(_periodOptions[i]),
                   );
                 }),
               ),
@@ -478,11 +468,10 @@ class _InputCard extends StatelessWidget {
                 value: caProvince,
                 decoration: InputDecoration(
                   labelText: fr ? 'Province' : 'Province',
-                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  prefixIcon: const Icon(Icons.location_on_rounded),
                 ),
                 items: CaSalaryEngine.provinces
-                    .map((p) =>
-                        DropdownMenuItem(value: p, child: Text(p)))
+                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                     .toList(),
                 onChanged: onProvinceChanged,
               ),
@@ -523,7 +512,8 @@ class _ResultsSection extends StatelessWidget {
 
     final flatTitle = es ? 'Método tasa fija' : 'Flat Rate Method';
     final aggTitle = es ? 'Método agregado' : 'Aggregate Method';
-    final federalLabel = es ? 'Impuesto federal suplementario' : 'Supplemental Federal Tax';
+    final federalLabel =
+        es ? 'Impuesto federal suplementario' : 'Supplemental Federal Tax';
     final stateLabel = es ? 'Impuesto estatal' : 'State Tax';
     final totalTaxLabel = es ? 'Total impuesto retenido' : 'Total Tax Withheld';
     final netLabel = es ? 'Pago neto de bonificación' : 'Net Bonus Pay';
@@ -536,8 +526,9 @@ class _ResultsSection extends StatelessWidget {
         ? 'Nómina regular + bono → calcular impuesto diferencial'
         : 'Add bonus to one regular paycheck → marginal tax on combined';
 
-    final verdictMethod =
-        flatBetter ? (es ? 'Tasa fija' : 'Flat Rate') : (es ? 'Método agregado' : 'Aggregate Method');
+    final verdictMethod = flatBetter
+        ? (es ? 'Tasa fija' : 'Flat Rate')
+        : (es ? 'Método agregado' : 'Aggregate Method');
     final verdictSavings = (r.usAggregateNetBonus! - r.usFlatNetBonus!).abs();
     final verdictText = flatBetter
         ? (es
@@ -553,11 +544,14 @@ class _ResultsSection extends StatelessWidget {
         // Highlight: net bonus for better method
         ResultCard(
           label: flatBetter
-              ? (es ? 'Mejor bono neto (tasa fija)' : 'Best Net Bonus (Flat Rate)')
-              : (es ? 'Mejor bono neto (método agregado)' : 'Best Net Bonus (Aggregate)'),
-          value: _fmt(
-              flatBetter ? r.usFlatNetBonus! : r.usAggregateNetBonus!),
-          icon: Icons.monetization_on_outlined,
+              ? (es
+                  ? 'Mejor bono neto (tasa fija)'
+                  : 'Best Net Bonus (Flat Rate)')
+              : (es
+                  ? 'Mejor bono neto (método agregado)'
+                  : 'Best Net Bonus (Aggregate)'),
+          value: _fmt(flatBetter ? r.usFlatNetBonus! : r.usAggregateNetBonus!),
+          icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
         const SizedBox(height: 20),
@@ -576,10 +570,8 @@ class _ResultsSection extends StatelessWidget {
                       Colors.redAccent),
                   _MRow(stateLabel, _fmt(r.usFlatStateTax!),
                       Colors.deepOrangeAccent),
-                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!),
-                      Colors.red),
-                  _MRow(netLabel, _fmt(r.usFlatNetBonus!),
-                      AppTheme.success),
+                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!), Colors.red),
+                  _MRow(netLabel, _fmt(r.usFlatNetBonus!), AppTheme.success),
                 ],
               ),
             ),
@@ -590,10 +582,10 @@ class _ResultsSection extends StatelessWidget {
                 subtitle: aggDesc,
                 isBetter: !flatBetter,
                 rows: [
-                  _MRow(totalTaxLabel, _fmt(r.usAggregateTotalTax!),
-                      Colors.red),
-                  _MRow(netLabel, _fmt(r.usAggregateNetBonus!),
-                      AppTheme.success),
+                  _MRow(
+                      totalTaxLabel, _fmt(r.usAggregateTotalTax!), Colors.red),
+                  _MRow(
+                      netLabel, _fmt(r.usAggregateNetBonus!), AppTheme.success),
                 ],
               ),
             ),
@@ -603,16 +595,15 @@ class _ResultsSection extends StatelessWidget {
 
         // Verdict card
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: AppTheme.success.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: AppTheme.success.withValues(alpha: 0.4)),
           ),
           child: Row(
             children: [
-              Icon(Icons.lightbulb_outline,
-                  color: AppTheme.success, size: 22),
+              Icon(Icons.lightbulb_outline, color: AppTheme.success, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -621,7 +612,7 @@ class _ResultsSection extends StatelessWidget {
                     Text(
                       verdictLabel,
                       style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTextSize.sm,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.success),
                     ),
@@ -629,16 +620,15 @@ class _ResultsSection extends StatelessWidget {
                     Text(
                       '${es ? "Recomendado" : "Recommended"}: $verdictMethod',
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.success),
                     ),
                     const SizedBox(height: 4),
                     Text(verdictText,
                         style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.success
-                                .withValues(alpha: 0.85))),
+                            fontSize: AppTextSize.sm,
+                            color: AppTheme.success.withValues(alpha: 0.85))),
                   ],
                 ),
               ),
@@ -653,7 +643,7 @@ class _ResultsSection extends StatelessWidget {
                 ? '* El método preferido depende de sus preferencias de flujo de caja. Ambos importes anuales son iguales si su tasa marginal real coincide con la tasa suplementaria.'
                 : '* The preferred method depends on cash-flow preference. Both yield equal annual tax if your marginal rate equals the supplemental rate.',
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 color: AppTheme.labelGray,
                 fontStyle: FontStyle.italic),
           ),
@@ -664,8 +654,10 @@ class _ResultsSection extends StatelessWidget {
 
   Widget _buildCA(BuildContext context) {
     final r = result;
-    final federalLabel = fr ? 'Impôt fédéral sur la prime' : 'Federal Tax on Bonus';
-    final provLabel = fr ? 'Impôt provincial sur la prime' : 'Provincial Tax on Bonus';
+    final federalLabel =
+        fr ? 'Impôt fédéral sur la prime' : 'Federal Tax on Bonus';
+    final provLabel =
+        fr ? 'Impôt provincial sur la prime' : 'Provincial Tax on Bonus';
     final totalLabel = fr ? 'Total retenu sur la prime' : 'Total Tax Withheld';
     final netLabel = fr ? 'Prime nette' : 'Net Bonus Pay';
     final effLabel = fr ? 'Taux effectif' : 'Effective Rate on Bonus';
@@ -680,13 +672,13 @@ class _ResultsSection extends StatelessWidget {
         ResultCard(
           label: netLabel,
           value: _fmt(r.caNetBonus!),
-          icon: Icons.monetization_on_outlined,
+          icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
         const SizedBox(height: 16),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
                 MetricRow(
@@ -719,7 +711,7 @@ class _ResultsSection extends StatelessWidget {
           child: Text(
             caNote,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 color: AppTheme.labelGray,
                 fontStyle: FontStyle.italic),
           ),
@@ -743,17 +735,16 @@ class _ResultsSection extends StatelessWidget {
         ResultCard(
           label: netLabel,
           value: _fmt(r.ukNetBonus!),
-          icon: Icons.monetization_on_outlined,
+          icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
         const SizedBox(height: 16),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
-                MetricRow(
-                    label: 'Gross Bonus', value: _fmt(r.bonusAmount)),
+                MetricRow(label: 'Gross Bonus', value: _fmt(r.bonusAmount)),
                 MetricRow(
                     label: taxLabel,
                     value: _fmt(r.ukExtraTax!),
@@ -773,7 +764,7 @@ class _ResultsSection extends StatelessWidget {
           child: Text(
             ukNote,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 color: AppTheme.labelGray,
                 fontStyle: FontStyle.italic),
           ),
@@ -809,11 +800,9 @@ class _MethodCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: isBetter
-              ? AppTheme.success
-              : AppTheme.divider,
+          color: isBetter ? AppTheme.success : AppTheme.divider,
           width: isBetter ? 2 : 1,
         ),
       ),
@@ -826,19 +815,19 @@ class _MethodCard extends StatelessWidget {
               color: isBetter
                   ? AppTheme.success.withValues(alpha: 0.12)
                   : Colors.transparent,
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(11)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(11)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isBetter)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppTheme.success,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                     child: const Text('BEST',
                         style: TextStyle(
@@ -850,17 +839,15 @@ class _MethodCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(title,
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
+                        fontSize: AppTextSize.md, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: AppTheme.labelGray)),
+                    style: TextStyle(fontSize: 10, color: AppTheme.labelGray)),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               children: rows.map((row) {
                 return Padding(
@@ -869,10 +856,11 @@ class _MethodCard extends StatelessWidget {
                     children: [
                       Expanded(
                           child: Text(row.label,
-                              style: const TextStyle(fontSize: 11))),
+                              style:
+                                  const TextStyle(fontSize: AppTextSize.xs))),
                       Text(row.value,
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTextSize.sm,
                               fontWeight: FontWeight.w600,
                               color: row.color)),
                     ],

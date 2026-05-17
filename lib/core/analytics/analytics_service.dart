@@ -1,64 +1,49 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
+import 'package:calcwise_core/calcwise_core.dart';
 
-class AnalyticsService {
-  AnalyticsService._();
-  static final instance = AnalyticsService._();
-  FirebaseAnalytics? _analytics;
+/// Firebase Analytics wrapper for SalaryApp.
+/// Common events inherited from CalcwiseAnalytics.
+/// SalaryApp-specific events (salary calc, paywall variants, tab switch) kept here.
+class AnalyticsService extends CalcwiseAnalytics {
+  AnalyticsService._() : super(appName: 'SalaryApp');
+  static final AnalyticsService instance = AnalyticsService._();
 
-  Future<void> initialize() async {
-    try {
-      _analytics = FirebaseAnalytics.instance;
-    } catch (e) {
-      debugPrint('Analytics init: $e');
-    }
-  }
-
-
-  // ── Error & limit tracking ──────────────────────────────────────────────
-  Future<void> logRewardedAdFailed() => _log('rewarded_ad_failed');
-  Future<void> logRewardedDailyLimit() => _log('rewarded_daily_limit_reached');
-  Future<void> logPurchaseFailed() => _log('purchase_failed');
-  Future<void> logBannerFailed() => _log('banner_ad_failed');
-
-  Future<void> _log(String name, [Map<String, Object>? params]) async {
-    try {
-      final merged = {'app_name': 'SalaryApp', ...?params};
-      await _analytics?.logEvent(name: name, parameters: merged);
-    } catch (e) {
-      debugPrint('Analytics $name: $e');
-    }
-  }
-
-  Future<void> logAppOpen() => _log('app_open');
+  // ── Calculator (SalaryApp-specific) ──────────────────────────────────────
 
   Future<void> logCalculation({
     required double grossSalary,
     required double netSalary,
     required String frequency,
   }) =>
-      _log('salary_calculated', {
+      log('salary_calculated', {
         'gross_salary': grossSalary.round(),
         'net_salary': netSalary.round(),
         'frequency': frequency,
       });
 
-  Future<void> logSave() => _log('calculation_saved');
+  Future<void> logSave() => log('calculation_saved');
 
-  Future<void> logPdfExported() => _log('pdf_exported');
-  Future<void> logPaywallSoftShown() => _log('paywall_soft_shown');
-  Future<void> logPaywallHardShown() => _log('paywall_hard_shown');
-  Future<void> logPaywallBuyTapped() => _log('paywall_buy_tapped');
-  Future<void> logPaywallDismissed() => _log('paywall_dismissed');
-  Future<void> logPurchaseStarted() => _log('iap_purchase_started');
-  Future<void> logPurchaseSuccess() => _log('iap_purchase_success');
+  // ── App-specific events ───────────────────────────────────────────────────
+
+  Future<void> logTabSwitch(int i) => log('tab_switched', {'tab_index': i});
+  Future<void> logPaywallSoftShown() => log('paywall_soft_shown');
+  Future<void> logPaywallHardShown() => log('paywall_hard_shown');
+  Future<void> logPaywallBuyTapped() => log('paywall_buy_tapped');
+  Future<void> logPurchaseSuccess() => log('iap_purchase_success');
   Future<void> logPurchaseError(String r) =>
-      _log('iap_purchase_error', {'reason': r});
-  Future<void> logRewardedVideoWatched() => _log('rewarded_video_watched');
-  Future<void> logShareResult() => _log('share_result');
-  Future<void> logTabSwitch(int i) =>
-      _log('tab_switched', {'tab_index': i});
-  Future<void> logHistoryViewed() => _log('history_viewed');
+      log('iap_purchase_error', {'reason': r});
+  Future<void> logRewardedVideoWatched() => log('rewarded_video_watched');
+  Future<void> logShareResult() => log('share_result');
+
+  // ── Canonical taxonomy (MortgageUS reference) ────────────────────────────
+
+  Future<void> logCalculationCompleted({Map<String, Object>? params}) =>
+      log('calculation_completed', params);
+  Future<void> logResultSaved() => log('result_saved');
+  Future<void> logResultShared() => log('result_shared');
+  Future<void> logPaywallViewed(String trigger) =>
+      log('paywall_viewed', {'trigger': trigger});
+  Future<void> logPaywallConverted(String source) =>
+      log('paywall_converted', {'source': source});
 }
 
 final analyticsService = AnalyticsService.instance;

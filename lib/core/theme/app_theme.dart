@@ -64,6 +64,8 @@ class AppTheme {
     );
   }
 
-  static ThemeData get theme => CalcwiseThemeFactory.buildLight(primary: primary, accent: accent);
-  static ThemeData get dark  => CalcwiseThemeFactory.buildDark(primary: primary, accent: accent);
+  static ThemeData get theme =>
+      CalcwiseThemeFactory.buildLight(primary: primary, accent: accent);
+  static ThemeData get dark =>
+      CalcwiseThemeFactory.buildDark(primary: primary, accent: accent);
 }

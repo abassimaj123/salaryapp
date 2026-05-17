@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAppBarActions, CalcwiseRewardAdSheet, AppDuration;
+import 'package:calcwise_core/calcwise_core.dart'
+    show CalcwiseAppBarActions, CalcwiseRewardAdSheet, AppDuration;
 import '../core/freemium/freemium_service.dart';
 import '../main.dart' show paywallSession;
 import '../screens/settings_screen.dart';

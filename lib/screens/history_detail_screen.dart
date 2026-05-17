@@ -1,4 +1,3 @@
-import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +8,8 @@ import '../core/freemium/freemium_service.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
+import 'package:calcwise_core/calcwise_core.dart';
 
 class HistoryDetailScreen extends StatelessWidget {
   final HistoryEntry entry;
@@ -23,11 +24,10 @@ class HistoryDetailScreen extends StatelessWidget {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
 
-        final currencySymbol = entry.flavor == 'uk'
-            ? '£'
-            : (entry.flavor == 'ca' ? 'CA\$' : '\$');
-        final fmtMoney = NumberFormat.currency(
-            symbol: currencySymbol, decimalDigits: 2);
+        final currencySymbol =
+            entry.flavor == 'uk' ? '£' : (entry.flavor == 'ca' ? 'CA\$' : '\$');
+        final fmtMoney =
+            NumberFormat.currency(symbol: currencySymbol, decimalDigits: 2);
         final fmtDate = DateFormat('MMMM d, yyyy  HH:mm');
 
         final l = _Labels(fr: fr, es: es);
@@ -35,7 +35,9 @@ class HistoryDetailScreen extends StatelessWidget {
 
         final federalLabel = entry.flavor == 'uk'
             ? (fr ? 'Impôt sur le revenu' : 'Income Tax')
-            : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
+            : (fr
+                ? 'Impôt fédéral'
+                : (es ? 'Impuesto federal' : 'Federal Tax'));
         final ficaLabel = entry.flavor == 'us'
             ? 'FICA (SS + Medicare)'
             : (entry.flavor == 'uk'
@@ -50,7 +52,7 @@ class HistoryDetailScreen extends StatelessWidget {
             title: Text(l.title),
             actions: [
               IconButton(
-                icon: Icon(Icons.share_outlined),
+                icon: Icon(Icons.share_rounded),
                 tooltip: l.share,
                 onPressed: () {
                   analyticsService.logShareResult();
@@ -63,7 +65,7 @@ class HistoryDetailScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   children: [
                     // Date & region
                     _DetailCard(
@@ -73,7 +75,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     if (entry.region.isNotEmpty) ...[
                       SizedBox(height: 8),
                       _DetailCard(
-                          icon: Icons.location_on_outlined,
+                          icon: Icons.location_on_rounded,
                           label: l.region,
                           value: entry.region),
                     ],
@@ -83,7 +85,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     _SectionHeader(l.breakdown),
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.account_balance_wallet_outlined,
+                        icon: Icons.account_balance_wallet_rounded,
                         label: l.grossAnnual,
                         value: fmtMoney.format(r.grossAnnual),
                         valueColor: AppTheme.primary),
@@ -111,7 +113,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     ],
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.receipt_long_outlined,
+                        icon: Icons.receipt_long_rounded,
                         label: l.totalTax,
                         value: fmtMoney.format(r.totalTax),
                         valueColor: Colors.red),
@@ -127,24 +129,24 @@ class HistoryDetailScreen extends StatelessWidget {
                     _SectionHeader(l.netPay),
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.star_outlined,
+                        icon: Icons.star_rounded,
                         label: l.netAnnual,
                         value: fmtMoney.format(r.netAnnual),
                         valueColor: AppTheme.success),
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.calendar_month_outlined,
+                        icon: Icons.calendar_month_rounded,
                         label: l.netMonthly,
                         value: fmtMoney.format(r.netMonthly),
                         valueColor: AppTheme.success),
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.date_range_outlined,
+                        icon: Icons.date_range_rounded,
                         label: l.netBiWeekly,
                         value: fmtMoney.format(r.netBiWeekly)),
                     SizedBox(height: 8),
                     _DetailCard(
-                        icon: Icons.view_week_outlined,
+                        icon: Icons.view_week_rounded,
                         label: l.netWeekly,
                         value: fmtMoney.format(r.netWeekly)),
                     SizedBox(height: 16),
@@ -153,8 +155,9 @@ class HistoryDetailScreen extends StatelessWidget {
               ),
               ValueListenableBuilder<bool>(
                 valueListenable: freemiumService.isPremiumNotifier,
-                builder: (_, isPremium, __) =>
-                    isPremium ? const SizedBox.shrink() : const AdFooter(),
+                builder: (_, isPremium, __) => isPremium
+                    ? const SizedBox.shrink()
+                    : const CalcwiseAdFooter(),
               ),
             ],
           ),
@@ -200,7 +203,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: TextStyle(
-            fontSize: 14,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w600,
             color: AppTheme.labelGray),
       );
@@ -232,11 +235,11 @@ class _DetailCard extends StatelessWidget {
           Expanded(
             child: Text(label,
                 style: TextStyle(
-                    fontSize: 13, color: AppTheme.labelGray)),
+                    fontSize: AppTextSize.md, color: AppTheme.labelGray)),
           ),
           Text(value,
               style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   color: valueColor)),
         ]),
@@ -251,17 +254,26 @@ class _Labels {
   final bool fr, es;
   _Labels({required this.fr, required this.es});
 
-  String get title        => fr ? 'Détail du calcul'          : (es ? 'Detalle del cálculo'       : 'Calculation Detail');
-  String get share        => fr ? 'Partager'                  : (es ? 'Compartir'                 : 'Share');
-  String get date         => fr ? 'Date'                      : (es ? 'Fecha'                     : 'Date');
-  String get region       => fr ? 'Province'                  : (es ? 'Estado'                    : 'Region');
-  String get breakdown    => fr ? 'Répartition fiscale'        : (es ? 'Desglose fiscal'            : 'Tax Breakdown');
-  String get netPay       => fr ? 'Salaire net'               : (es ? 'Salario neto'              : 'Net Pay');
-  String get grossAnnual  => fr ? 'Salaire brut annuel'       : (es ? 'Salario bruto anual'       : 'Gross Annual Salary');
-  String get totalTax     => fr ? 'Total impôts'              : (es ? 'Total impuestos'           : 'Total Tax');
-  String get effectiveRate=> fr ? 'Taux effectif'             : (es ? 'Tasa efectiva'             : 'Effective Tax Rate');
-  String get netAnnual    => fr ? 'Net annuel'                : (es ? 'Neto anual'                : 'Annual Net');
-  String get netMonthly   => fr ? 'Mensuel'                   : (es ? 'Mensual'                   : 'Monthly Net');
-  String get netBiWeekly  => fr ? 'Bimensuel'                 : (es ? 'Quincenal'                 : 'Bi-Weekly Net');
-  String get netWeekly    => fr ? 'Hebdomadaire'              : (es ? 'Semanal'                   : 'Weekly Net');
+  String get title => fr
+      ? 'Détail du calcul'
+      : (es ? 'Detalle del cálculo' : 'Calculation Detail');
+  String get share => fr ? 'Partager' : (es ? 'Compartir' : 'Share');
+  String get date => fr ? 'Date' : (es ? 'Fecha' : 'Date');
+  String get region => fr ? 'Province' : (es ? 'Estado' : 'Region');
+  String get breakdown =>
+      fr ? 'Répartition fiscale' : (es ? 'Desglose fiscal' : 'Tax Breakdown');
+  String get netPay => fr ? 'Salaire net' : (es ? 'Salario neto' : 'Net Pay');
+  String get grossAnnual => fr
+      ? 'Salaire brut annuel'
+      : (es ? 'Salario bruto anual' : 'Gross Annual Salary');
+  String get totalTax =>
+      fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax');
+  String get effectiveRate =>
+      fr ? 'Taux effectif' : (es ? 'Tasa efectiva' : 'Effective Tax Rate');
+  String get netAnnual =>
+      fr ? 'Net annuel' : (es ? 'Neto anual' : 'Annual Net');
+  String get netMonthly => fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly Net');
+  String get netBiWeekly =>
+      fr ? 'Bimensuel' : (es ? 'Quincenal' : 'Bi-Weekly Net');
+  String get netWeekly => fr ? 'Hebdomadaire' : (es ? 'Semanal' : 'Weekly Net');
 }

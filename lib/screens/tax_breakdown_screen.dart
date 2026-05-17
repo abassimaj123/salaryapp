@@ -1,4 +1,3 @@
-import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +8,8 @@ import '../core/freemium/freemium_service.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
 import '../widgets/paywall_hard.dart';
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
+import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── 2024 US Federal Tax Brackets (single filer) ─────────────────────────────
 
@@ -66,8 +67,8 @@ List<_BracketResult> _computeBrackets(double grossAnnual) {
   final results = <_BracketResult>[];
   for (final b in _kBrackets) {
     if (taxable <= b.min) break;
-    final inBracket = (taxable - b.min).clamp(
-        0.0, b.max == double.infinity ? double.infinity : b.max - b.min);
+    final inBracket = (taxable - b.min)
+        .clamp(0.0, b.max == double.infinity ? double.infinity : b.max - b.min);
     if (inBracket <= 0) continue;
     results.add(_BracketResult(
       min: b.min,
@@ -124,9 +125,8 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     if (!_formKey.currentState!.validate()) return;
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
-    final raw = _salaryCtrl.text
-        .replaceAll(',', '.')
-        .replaceAll(RegExp(r'[^\d.]'), '');
+    final raw =
+        _salaryCtrl.text.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '');
     final v = double.tryParse(raw) ?? 0;
     if (v > 0) _run(v);
   }
@@ -150,24 +150,22 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SalaryInput(
-                            controller: _salaryCtrl, es: es, fr: fr),
+                        _SalaryInput(controller: _salaryCtrl, es: es, fr: fr),
                         SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _calculate,
                           child: Text(calcLabel,
                               style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: AppTextSize.bodyLg,
                                   fontWeight: FontWeight.w700)),
                         ),
-                        if (_grossAnnual != null &&
-                            _brackets.isNotEmpty) ...[
+                        if (_grossAnnual != null && _brackets.isNotEmpty) ...[
                           SizedBox(height: 28),
                           _TaxBreakdownSection(
                             grossAnnual: _grossAnnual!,
@@ -182,7 +180,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                   ),
                 ),
               ),
-              const AdFooter(),
+              const CalcwiseAdFooter(),
             ],
           ),
         );
@@ -208,7 +206,7 @@ class _SalaryInput extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -217,22 +215,19 @@ class _SalaryInput extends StatelessWidget {
           ],
           decoration: InputDecoration(
             prefixText: '\$ ',
-            prefixStyle:
-                const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            prefixStyle: const TextStyle(
+                fontSize: AppTextSize.subtitle, fontWeight: FontWeight.w600),
             labelText: label,
             hintText: '75000',
           ),
-          style:
-              const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              fontSize: AppTextSize.subtitle, fontWeight: FontWeight.w600),
           validator: (v) {
             if (v == null || v.trim().isEmpty) {
-              return fr
-                  ? 'Requis'
-                  : (es ? 'Requerido' : 'Required');
+              return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
             }
-            final val = double.tryParse(v
-                .replaceAll(',', '.')
-                .replaceAll(RegExp(r'[^\d.]'), ''));
+            final val = double.tryParse(
+                v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
             if (val == null || val <= 0) {
               return fr
                   ? 'Montant invalide'
@@ -272,8 +267,7 @@ class _TaxBreakdownSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalFederal =
-        brackets.fold(0.0, (sum, b) => sum + b.taxOwed);
+    final totalFederal = brackets.fold(0.0, (sum, b) => sum + b.taxOwed);
     final taxable =
         (grossAnnual - _kStandardDeduction).clamp(0.0, double.infinity);
     final effectiveRate =
@@ -282,12 +276,9 @@ class _TaxBreakdownSection extends StatelessWidget {
 
     final deductionLabel = fr
         ? 'Déduction standard (célibataire)'
-        : (es
-            ? 'Deducción estándar (soltero)'
-            : 'Standard Deduction (Single)');
-    final taxableLabel = fr
-        ? 'Revenu imposable'
-        : (es ? 'Ingreso imponible' : 'Taxable Income');
+        : (es ? 'Deducción estándar (soltero)' : 'Standard Deduction (Single)');
+    final taxableLabel =
+        fr ? 'Revenu imposable' : (es ? 'Ingreso imponible' : 'Taxable Income');
     final federalLabel = fr
         ? 'Impôt fédéral total'
         : (es ? 'Impuesto federal total' : 'Total Federal Tax');
@@ -301,13 +292,11 @@ class _TaxBreakdownSection extends StatelessWidget {
     final bracketsTitle = fr
         ? 'Tranche par tranche'
         : (es ? 'Tramo por tramo' : '2024 Federal Tax Brackets');
-    final bracketLabel =
-        fr ? 'Tranche' : (es ? 'Tramo' : 'Bracket');
+    final bracketLabel = fr ? 'Tranche' : (es ? 'Tramo' : 'Bracket');
     final rateLabel = fr ? 'Taux' : (es ? 'Tasa' : 'Rate');
     final inBracketLabel =
         fr ? 'Dans la tranche' : (es ? 'En el tramo' : 'In Bracket');
-    final taxOwedLabel =
-        fr ? 'Impôt dû' : (es ? 'Impuesto' : 'Tax Owed');
+    final taxOwedLabel = fr ? 'Impôt dû' : (es ? 'Impuesto' : 'Tax Owed');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +305,7 @@ class _TaxBreakdownSection extends StatelessWidget {
         ResultCard(
           label: federalLabel,
           value: _fmt(totalFederal),
-          icon: Icons.account_balance_outlined,
+          icon: Icons.account_balance_rounded,
           highlight: true,
         ),
         SizedBox(height: 12),
@@ -333,8 +322,7 @@ class _TaxBreakdownSection extends StatelessWidget {
         Row(children: [
           Expanded(
               child: ResultCard(
-                  label: deductionLabel,
-                  value: _fmt(_kStandardDeduction))),
+                  label: deductionLabel, value: _fmt(_kStandardDeduction))),
           SizedBox(width: 10),
           Expanded(
               child: ResultCard(label: taxableLabel, value: _fmt(taxable))),
@@ -348,17 +336,18 @@ class _TaxBreakdownSection extends StatelessWidget {
         // Bracket table
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Icon(Icons.table_chart_outlined,
+                  Icon(Icons.table_chart_rounded,
                       size: 18, color: AppTheme.primary),
                   SizedBox(width: 8),
                   Text(bracketsTitle,
                       style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                          fontSize: AppTextSize.bodyMd,
+                          fontWeight: FontWeight.w600)),
                 ]),
                 SizedBox(height: 14),
                 Table(
@@ -372,8 +361,7 @@ class _TaxBreakdownSection extends StatelessWidget {
                     TableRow(
                       decoration: BoxDecoration(
                           border: Border(
-                              bottom:
-                                  BorderSide(color: AppTheme.divider))),
+                              bottom: BorderSide(color: AppTheme.divider))),
                       children: [
                         _th(bracketLabel),
                         _th(rateLabel),
@@ -384,26 +372,22 @@ class _TaxBreakdownSection extends StatelessWidget {
                     for (final b in brackets)
                       TableRow(
                         children: [
-                          _td(
-                              '\$${_shortNum(b.min)}–${b.max == double.infinity ? '∞' : '\$${_shortNum(b.max)}'}'),
+                          _td('\$${_shortNum(b.min)}–${b.max == double.infinity ? '∞' : '\$${_shortNum(b.max)}'}'),
                           _td('${(b.rate * 100).toStringAsFixed(0)}%',
                               color: _bracketColor(b.rate)),
                           _td(_fmt2(b.amountInBracket)),
-                          _td(_fmt2(b.taxOwed),
-                              color: Colors.redAccent),
+                          _td(_fmt2(b.taxOwed), color: Colors.redAccent),
                         ],
                       ),
                     TableRow(
                       decoration: BoxDecoration(
-                          border: Border(
-                              top: BorderSide(color: AppTheme.divider))),
+                          border:
+                              Border(top: BorderSide(color: AppTheme.divider))),
                       children: [
-                        _td('Total',
-                            bold: true),
+                        _td('Total', bold: true),
                         _td(''),
                         _td(''),
-                        _td(_fmt2(totalFederal),
-                            bold: true, color: Colors.red),
+                        _td(_fmt2(totalFederal), bold: true, color: Colors.red),
                       ],
                     ),
                   ],
@@ -418,10 +402,8 @@ class _TaxBreakdownSection extends StatelessWidget {
         ValueListenableBuilder<bool>(
           valueListenable: freemiumService.isPremiumNotifier,
           builder: (context, isPremium, _) => isPremium
-              ? _StateComparisonCard(
-                  grossAnnual: grossAnnual, es: es, fr: fr)
-              : _PremiumStateTeaser(
-                  es: es, fr: fr, context: context),
+              ? _StateComparisonCard(grossAnnual: grossAnnual, es: es, fr: fr)
+              : _PremiumStateTeaser(es: es, fr: fr, context: context),
         ),
       ],
     );
@@ -452,13 +434,11 @@ class _TaxBreakdownSection extends StatelessWidget {
                 color: AppTheme.labelGray)),
       );
 
-  Widget _td(String text,
-          {Color? color, bool bold = false}) =>
-      Padding(
+  Widget _td(String text, {Color? color, bool bold = false}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Text(text,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                 color: color)),
       );
@@ -485,30 +465,29 @@ class _BracketProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalFederal =
-        brackets.fold(0.0, (sum, b) => sum + b.taxOwed);
+    final totalFederal = brackets.fold(0.0, (sum, b) => sum + b.taxOwed);
     final takeHome = grossAnnual - totalFederal;
     final total = grossAnnual;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Icon(Icons.bar_chart_rounded,
-                  size: 18, color: AppTheme.primary),
+              Icon(Icons.bar_chart_rounded, size: 18, color: AppTheme.primary),
               SizedBox(width: 8),
               Text('Tax Visualization',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.w600)),
             ]),
             SizedBox(height: 16),
 
             // Stacked bar
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               child: SizedBox(
                 height: 28,
                 child: Row(
@@ -538,8 +517,7 @@ class _BracketProgressBar extends StatelessWidget {
                 _legendItem(AppTheme.success, 'Net pay'),
                 for (final b in brackets)
                   _legendItem(
-                      _color(b.rate),
-                      '${(b.rate * 100).toStringAsFixed(0)}%'),
+                      _color(b.rate), '${(b.rate * 100).toStringAsFixed(0)}%'),
               ],
             ),
           ],
@@ -554,13 +532,12 @@ class _BracketProgressBar extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration:
-                BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           SizedBox(width: 4),
           Text(label,
               style: TextStyle(
-                  fontSize: 11, color: AppTheme.labelGray)),
+                  fontSize: AppTextSize.xs, color: AppTheme.labelGray)),
         ],
       );
 }
@@ -590,9 +567,8 @@ class _StateComparisonCard extends StatelessWidget {
         fr ? 'Impôt état' : (es ? 'Impuesto estatal' : 'State Tax');
     final totalTaxLabel =
         fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax');
-    final takeHomeLabel = fr
-        ? 'Revenu net'
-        : (es ? 'Ingreso neto' : 'Take-Home');
+    final takeHomeLabel =
+        fr ? 'Revenu net' : (es ? 'Ingreso neto' : 'Take-Home');
 
     // Compute federal tax once
     final federal = _kBrackets.fold(0.0, (sum, b) {
@@ -606,17 +582,18 @@ class _StateComparisonCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Icon(Icons.location_city_outlined,
+              Icon(Icons.location_city_rounded,
                   size: 18, color: AppTheme.primary),
               SizedBox(width: 8),
               Text(title,
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.w600)),
             ]),
             SizedBox(height: 14),
             Table(
@@ -629,8 +606,8 @@ class _StateComparisonCard extends StatelessWidget {
               children: [
                 TableRow(
                   decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(color: AppTheme.divider))),
+                      border:
+                          Border(bottom: BorderSide(color: AppTheme.divider))),
                   children: [
                     _th(stateLabel),
                     _th(stateTaxLabel),
@@ -674,7 +651,7 @@ class _StateComparisonCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Text(text,
             style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTextSize.sm,
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                 color: color)),
       );
@@ -701,12 +678,13 @@ class _PremiumStateTeaser extends StatelessWidget {
         : (es
             ? 'Compara TX, FL, CA, NY, WA para tu salario.'
             : 'See how TX, FL, CA, NY & WA compare for your salary.');
-    final btnLabel =
-        fr ? 'Débloquer Premium' : (es ? 'Desbloquear Premium' : 'Unlock Premium');
+    final btnLabel = fr
+        ? 'Débloquer Premium'
+        : (es ? 'Desbloquear Premium' : 'Unlock Premium');
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -716,12 +694,13 @@ class _PremiumStateTeaser extends StatelessWidget {
               Expanded(
                   child: Text(title,
                       style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600))),
+                          fontSize: AppTextSize.bodyMd,
+                          fontWeight: FontWeight.w600))),
             ]),
             SizedBox(height: 8),
             Text(desc,
                 style: TextStyle(
-                    fontSize: 13, color: AppTheme.labelGray)),
+                    fontSize: AppTextSize.md, color: AppTheme.labelGray)),
             SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

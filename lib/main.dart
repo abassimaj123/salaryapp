@@ -1,12 +1,22 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import 'package:calcwise_core/calcwise_core.dart' show themeModeService, PaywallSessionService, CalcwiseAdService, CalcwiseAdConfig,
-         requestCalcwiseConsent, CalcwiseAdFooter, CalcwiseRewardAdSheet,
-         PaywallTrigger, PaywallHard, PaywallSoft, AppDuration;
+import 'package:calcwise_core/calcwise_core.dart'
+    show
+        themeModeService,
+        PaywallSessionService,
+        CalcwiseAdService,
+        CalcwiseAdConfig,
+        requestCalcwiseConsent,
+        CalcwiseAdFooter,
+        CalcwiseRewardAdSheet,
+        PaywallTrigger,
+        PaywallHard,
+        PaywallSoft,
+        AppDuration;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';
@@ -30,13 +40,13 @@ final paywallSession = PaywallSessionService(appKey: 'salaryapp');
 
 final adService = CalcwiseAdService(
   config: CalcwiseAdConfig(
-    bannerAndroid:       AdConfig.bannerAndroid,
+    bannerAndroid: AdConfig.bannerAndroid,
     interstitialAndroid: AdConfig.interstitialAndroid,
-    rewardedAndroid:     AdConfig.rewardedAndroid,
-    calcThreshold:       AdConfig.calcThreshold,
-    cooldownMinutes:     AdConfig.cooldownMinutes,
+    rewardedAndroid: AdConfig.rewardedAndroid,
+    calcThreshold: AdConfig.calcThreshold,
+    cooldownMinutes: AdConfig.cooldownMinutes,
   ),
-  freemium:  freemiumService,
+  freemium: freemiumService,
   analytics: analyticsService,
 );
 
@@ -47,8 +57,7 @@ final ValueNotifier<bool> isSpanishNotifier = ValueNotifier<bool>(false);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await CrashlyticsService.init();
   await analyticsService.initialize();
@@ -108,28 +117,28 @@ class SalaryApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeService.notifier,
       builder: (_, themeMode, __) => MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: AppStringsEN.appName,
-      theme: AppTheme.theme,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      initialRoute: '/',
-      // Custom route builder: fade transition eliminates the white flash
-      // that the default slide animation exposes.
-      onGenerateRoute: (settings) {
-        final Widget page = switch (settings.name) {
-          '/home' => const MainShell(),
-          _       => const SplashScreen(),
-        };
-        return PageRouteBuilder(
-          settings: settings,
-          pageBuilder: (_, __, ___) => page,
-          transitionsBuilder: (_, anim, __, child) =>
-              FadeTransition(opacity: anim, child: child),
-          transitionDuration:        AppDuration.base,
-          reverseTransitionDuration: const Duration(milliseconds: 200),
-        );
-      },
+        debugShowCheckedModeBanner: false,
+        title: AppStringsEN.appName,
+        theme: AppTheme.theme,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        initialRoute: '/',
+        // Custom route builder: fade transition eliminates the white flash
+        // that the default slide animation exposes.
+        onGenerateRoute: (settings) {
+          final Widget page = switch (settings.name) {
+            '/home' => const MainShell(),
+            _ => const SplashScreen(),
+          };
+          return PageRouteBuilder(
+            settings: settings,
+            pageBuilder: (_, __, ___) => page,
+            transitionsBuilder: (_, anim, __, child) =>
+                FadeTransition(opacity: anim, child: child),
+            transitionDuration: AppDuration.base,
+            reverseTransitionDuration: const Duration(milliseconds: 200),
+          );
+        },
       ),
     );
   }
@@ -221,21 +230,30 @@ abstract class _S {
 }
 
 class _SEN implements _S {
-  @override String get calculator => AppStringsEN.calculator;
-  @override String get history    => AppStringsEN.history;
-  @override String get settings   => AppStringsEN.settings;
+  @override
+  String get calculator => AppStringsEN.calculator;
+  @override
+  String get history => AppStringsEN.history;
+  @override
+  String get settings => AppStringsEN.settings;
 }
 
 class _SES implements _S {
-  @override String get calculator => AppStringsES.calculator;
-  @override String get history    => AppStringsES.history;
-  @override String get settings   => AppStringsES.settings;
+  @override
+  String get calculator => AppStringsES.calculator;
+  @override
+  String get history => AppStringsES.history;
+  @override
+  String get settings => AppStringsES.settings;
 }
 
 class _SFR implements _S {
-  @override String get calculator => AppStringsFR.calculator;
-  @override String get history    => AppStringsFR.history;
-  @override String get settings   => AppStringsFR.settings;
+  @override
+  String get calculator => AppStringsFR.calculator;
+  @override
+  String get history => AppStringsFR.history;
+  @override
+  String get settings => AppStringsFR.settings;
 }
 
 _S _strings(bool useAlt) {

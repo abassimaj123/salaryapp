@@ -122,12 +122,14 @@ void main() {
 
     test('£60,000 — enters 40% band', () {
       // taxable=47430; basic band=37700@20%=7540; higher=(47430-37700)*40%=3892
-      approx(UkSalaryEngine.incomeTax(60000), 7540 + (47430 - 37700) * 0.40, tolerance: 1.0);
+      approx(UkSalaryEngine.incomeTax(60000), 7540 + (47430 - 37700) * 0.40,
+          tolerance: 1.0);
     });
 
     test('£140,000 — enters 45% band', () {
       // taxable=127430; 42384 + (127430-125140)*0.45
-      approx(UkSalaryEngine.incomeTax(140000), 42384 + (127430 - 125140) * 0.45, tolerance: 1.0);
+      approx(UkSalaryEngine.incomeTax(140000), 42384 + (127430 - 125140) * 0.45,
+          tolerance: 1.0);
     });
   });
 
@@ -143,7 +145,8 @@ void main() {
     test('£60,000 — upper rate kicks in above £50,270', () {
       final lower = (50270 - 12570) * 0.08;
       final upper = (60000 - 50270) * 0.02;
-      approx(UkSalaryEngine.nationalInsurance(60000), lower + upper, tolerance: 1.0);
+      approx(UkSalaryEngine.nationalInsurance(60000), lower + upper,
+          tolerance: 1.0);
     });
   });
 
@@ -188,22 +191,30 @@ void main() {
 
     test('\$80,000 — second bracket', () {
       // taxable=64295; 8380.05 + (64295-55867)*0.205
-      approx(CaSalaryEngine.federalTax(80000), 8380.05 + (64295 - 55867) * 0.205, tolerance: 1.0);
+      approx(
+          CaSalaryEngine.federalTax(80000), 8380.05 + (64295 - 55867) * 0.205,
+          tolerance: 1.0);
     });
 
     test('\$130,000 — third bracket', () {
       // taxable=114295; 19832.48 + (114295-111733)*0.26
-      approx(CaSalaryEngine.federalTax(130000), 19832.48 + (114295 - 111733) * 0.26, tolerance: 1.0);
+      approx(CaSalaryEngine.federalTax(130000),
+          19832.48 + (114295 - 111733) * 0.26,
+          tolerance: 1.0);
     });
 
     test('\$180,000 — fourth bracket', () {
       // taxable=164295; 31064.73 + (164295-154906)*0.29
-      approx(CaSalaryEngine.federalTax(180000), 31064.73 + (164295 - 154906) * 0.29, tolerance: 1.0);
+      approx(CaSalaryEngine.federalTax(180000),
+          31064.73 + (164295 - 154906) * 0.29,
+          tolerance: 1.0);
     });
 
     test('\$250,000 — top bracket 33%', () {
       // taxable=234295; 49942.35 + (234295-220000)*0.33
-      approx(CaSalaryEngine.federalTax(250000), 49942.35 + (234295 - 220000) * 0.33, tolerance: 1.0);
+      approx(CaSalaryEngine.federalTax(250000),
+          49942.35 + (234295 - 220000) * 0.33,
+          tolerance: 1.0);
     });
   });
 
@@ -217,7 +228,7 @@ void main() {
     });
 
     test('CPP caps at \$68,500 ceiling', () {
-      final atCap    = CaSalaryEngine.cpp(68500);
+      final atCap = CaSalaryEngine.cpp(68500);
       final aboveCap = CaSalaryEngine.cpp(100000);
       approx(atCap, aboveCap);
     });
@@ -229,7 +240,7 @@ void main() {
     });
 
     test('EI caps at \$63,200', () {
-      final atCap    = CaSalaryEngine.ei(63200);
+      final atCap = CaSalaryEngine.ei(63200);
       final aboveCap = CaSalaryEngine.ei(80000);
       approx(atCap, aboveCap);
     });
@@ -265,13 +276,13 @@ void main() {
 
     test('pay period consistency', () {
       final r = CaSalaryEngine.calculate(65000, 'AB');
-      approx(r.netMonthly,  r.netAnnual / 12);
+      approx(r.netMonthly, r.netAnnual / 12);
       approx(r.netBiWeekly, r.netAnnual / 26);
-      approx(r.netWeekly,   r.netAnnual / 52);
+      approx(r.netWeekly, r.netAnnual / 52);
     });
 
     test('higher income → higher effective rate — ON', () {
-      final low  = CaSalaryEngine.calculate(50000, 'ON');
+      final low = CaSalaryEngine.calculate(50000, 'ON');
       final high = CaSalaryEngine.calculate(200000, 'ON');
       expect(high.effectiveRate, greaterThan(low.effectiveRate));
     });
@@ -283,12 +294,12 @@ void main() {
     test('US result round-trips correctly', () {
       final original = UsSalaryEngine.calculate(80000, 'NY');
       final restored = SalaryResult.fromMap(original.toMap());
-      expect(restored.grossAnnual,   original.grossAnnual);
-      expect(restored.netAnnual,     original.netAnnual);
+      expect(restored.grossAnnual, original.grossAnnual);
+      expect(restored.netAnnual, original.netAnnual);
       expect(restored.effectiveRate, original.effectiveRate);
-      expect(restored.federalTax,    original.federalTax);
-      expect(restored.ficaTax,       original.ficaTax);
-      expect(restored.stateTax,      original.stateTax);
+      expect(restored.federalTax, original.federalTax);
+      expect(restored.ficaTax, original.ficaTax);
+      expect(restored.stateTax, original.stateTax);
     });
 
     test('UK result round-trips correctly', () {

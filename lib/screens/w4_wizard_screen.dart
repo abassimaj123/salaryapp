@@ -1,4 +1,3 @@
-import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +8,8 @@ import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
+import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── W-4 Withholding Wizard (US flavor only) ──────────────────────────────────
 //
@@ -146,8 +147,8 @@ class _W4Engine {
     required String payFrequency,
   }) {
     // Combined household income for MFJ / multiple-jobs
-    final totalIncome =
-        grossAnnual + (multipleJobs && status == _FilingStatus.marriedJointly
+    final totalIncome = grossAnnual +
+        (multipleJobs && status == _FilingStatus.marriedJointly
             ? spouseAnnual
             : 0);
 
@@ -164,7 +165,8 @@ class _W4Engine {
     final step4c = extraWithholdingPerPaycheck;
 
     // ── Estimate actual tax liability ────────────────────────────────────────
-    final taxableIncome = (totalIncome - stdDed - step4b).clamp(0.0, double.infinity);
+    final taxableIncome =
+        (totalIncome - stdDed - step4b).clamp(0.0, double.infinity);
     final rawTax = federalTaxForStatus(taxableIncome, status);
     // Subtract child/other dependent credits (limited to tax owed)
     final estimatedTax = (rawTax - step3).clamp(0.0, double.infinity);
@@ -242,7 +244,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       setState(() => _step++);
       _pageCtrl.animateToPage(
         _step,
-        duration: const Duration(milliseconds: 300),
+        duration: AppDuration.page,
         curve: Curves.easeInOut,
       );
     }
@@ -253,7 +255,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       setState(() => _step--);
       _pageCtrl.animateToPage(
         _step,
-        duration: const Duration(milliseconds: 300),
+        duration: AppDuration.page,
         curve: Curves.easeInOut,
       );
     }
@@ -294,7 +296,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
             title: Text(title),
             leading: _step > 0
                 ? IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back_rounded),
                     onPressed: _prevStep,
                   )
                 : null,
@@ -352,7 +354,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
                   ],
                 ),
               ),
-              const AdFooter(),
+              const CalcwiseAdFooter(),
             ],
           ),
         );
@@ -375,8 +377,7 @@ class _StepIndicator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border(
-            bottom: BorderSide(color: AppTheme.divider)),
+        border: Border(bottom: BorderSide(color: AppTheme.divider)),
       ),
       child: Row(
         children: List.generate(labels.length, (i) {
@@ -404,7 +405,7 @@ class _StepIndicator extends StatelessWidget {
                             ),
                             child: Center(
                               child: isDone
-                                  ? const Icon(Icons.check,
+                                  ? const Icon(Icons.check_rounded,
                                       color: Colors.white, size: 14)
                                   : Text(
                                       '${i + 1}',
@@ -412,7 +413,7 @@ class _StepIndicator extends StatelessWidget {
                                         color: isActive
                                             ? Colors.white
                                             : AppTheme.labelGray,
-                                        fontSize: 12,
+                                        fontSize: AppTextSize.sm,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -425,12 +426,10 @@ class _StepIndicator extends StatelessWidget {
                         labels[i],
                         style: TextStyle(
                           fontSize: 10,
-                          color: isActive
-                              ? AppTheme.primary
-                              : AppTheme.labelGray,
-                          fontWeight: isActive
-                              ? FontWeight.w700
-                              : FontWeight.normal,
+                          color:
+                              isActive ? AppTheme.primary : AppTheme.labelGray,
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.normal,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -505,7 +504,8 @@ class _Step1FilingStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = es ? 'Estado civil y salario' : 'Filing Status & Income';
-    final salaryLabel = es ? 'Su salario anual bruto' : 'Your gross annual salary';
+    final salaryLabel =
+        es ? 'Su salario anual bruto' : 'Your gross annual salary';
     final multipleJobsLabel = es
         ? '¿Empleos múltiples o cónyuge trabaja?'
         : 'Multiple jobs or spouse works?';
@@ -522,13 +522,13 @@ class _Step1FilingStatus extends StatelessWidget {
     final freqLabels = _freqLabels(es);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 17,
+                  fontSize: AppTextSize.bodyXl,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.primary)),
           const SizedBox(height: 16),
@@ -536,14 +536,14 @@ class _Step1FilingStatus extends StatelessWidget {
           // Filing status card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     es ? 'Estado civil' : 'Filing Status',
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppTextSize.md,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.labelGray),
                   ),
@@ -556,7 +556,7 @@ class _Step1FilingStatus extends StatelessWidget {
                       value: status,
                       groupValue: filingStatus,
                       title: Text(statusLabels[i],
-                          style: const TextStyle(fontSize: 14)),
+                          style: const TextStyle(fontSize: AppTextSize.body)),
                       activeColor: AppTheme.primary,
                       onChanged: (v) {
                         if (v != null) onFilingStatusChanged(v);
@@ -572,7 +572,7 @@ class _Step1FilingStatus extends StatelessWidget {
           // Salary input
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -581,8 +581,7 @@ class _Step1FilingStatus extends StatelessWidget {
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'[\d.,]')),
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
                     ],
                     decoration: InputDecoration(
                       labelText: salaryLabel,
@@ -590,13 +589,14 @@ class _Step1FilingStatus extends StatelessWidget {
                       hintText: '75000',
                     ),
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                        fontSize: AppTextSize.bodyLg,
+                        fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     freqLabel,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppTextSize.md,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.labelGray),
                   ),
@@ -611,16 +611,12 @@ class _Step1FilingStatus extends StatelessWidget {
                         selected: isSelected,
                         selectedColor: AppTheme.primary,
                         labelStyle: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.labelGray,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          fontSize: 13,
+                          color: isSelected ? Colors.white : AppTheme.labelGray,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
+                          fontSize: AppTextSize.md,
                         ),
-                        onSelected: (_) =>
-                            onPayFrequencyChanged(_freqKeys[i]),
+                        onSelected: (_) => onPayFrequencyChanged(_freqKeys[i]),
                       );
                     }),
                   ),
@@ -639,18 +635,18 @@ class _Step1FilingStatus extends StatelessWidget {
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(multipleJobsLabel,
-                        style: const TextStyle(fontSize: 14)),
+                        style: const TextStyle(fontSize: AppTextSize.body)),
                     value: multipleJobs,
                     activeColor: AppTheme.primary,
                     onChanged: onMultipleJobsChanged,
                   ),
                   if (multipleJobs) ...[
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(AppSpacing.smPlus),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: AppTheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Row(
                         children: [
@@ -661,7 +657,8 @@ class _Step1FilingStatus extends StatelessWidget {
                             child: Text(
                               irsNote,
                               style: TextStyle(
-                                  fontSize: 12, color: AppTheme.primary),
+                                  fontSize: AppTextSize.sm,
+                                  color: AppTheme.primary),
                             ),
                           ),
                         ],
@@ -673,8 +670,7 @@ class _Step1FilingStatus extends StatelessWidget {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                              RegExp(r'[\d.,]')),
+                          FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
                         ],
                         decoration: InputDecoration(
                           labelText: spouseLabel,
@@ -682,7 +678,8 @@ class _Step1FilingStatus extends StatelessWidget {
                           hintText: '55000',
                         ),
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                            fontSize: AppTextSize.bodyLg,
+                            fontWeight: FontWeight.w600),
                       ),
                     const SizedBox(height: 8),
                   ],
@@ -701,7 +698,8 @@ class _Step1FilingStatus extends StatelessWidget {
               },
               child: Text(nextLabel,
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700)),
+                      fontSize: AppTextSize.bodyLg,
+                      fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: 16),
@@ -740,9 +738,8 @@ class _Step2Deductions extends StatelessWidget {
     final childrenLabel = es
         ? 'Hijos menores de 17 años (\$2,000 c/u)'
         : 'Qualifying children under 17 (\$2,000 each)';
-    final otherLabel = es
-        ? 'Otros dependientes (\$500 c/u)'
-        : 'Other dependents (\$500 each)';
+    final otherLabel =
+        es ? 'Otros dependientes (\$500 c/u)' : 'Other dependents (\$500 each)';
     final childCredit = qualifyingChildren * 2000.0;
     final otherCredit = otherDependents * 500.0;
     final totalCredit = childCredit + otherCredit;
@@ -755,13 +752,13 @@ class _Step2Deductions extends StatelessWidget {
     final calcLabel = es ? 'Ver resultados W-4' : 'See W-4 Recommendations';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 17,
+                  fontSize: AppTextSize.bodyXl,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.primary)),
           const SizedBox(height: 16),
@@ -769,7 +766,7 @@ class _Step2Deductions extends StatelessWidget {
           // Dependents card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -781,11 +778,12 @@ class _Step2Deductions extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(childrenLabel,
-                                style: const TextStyle(fontSize: 13)),
+                                style:
+                                    const TextStyle(fontSize: AppTextSize.md)),
                             Text(
                               '\$${NumberFormat.currency(symbol: '', decimalDigits: 0).format(childCredit)} credit',
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppTextSize.sm,
                                   color: AppTheme.success,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -796,8 +794,7 @@ class _Step2Deductions extends StatelessWidget {
                         value: qualifyingChildren,
                         onDecrement: () {
                           if (qualifyingChildren > 0) {
-                            onQualifyingChildrenChanged(
-                                qualifyingChildren - 1);
+                            onQualifyingChildrenChanged(qualifyingChildren - 1);
                           }
                         },
                         onIncrement: () =>
@@ -815,11 +812,12 @@ class _Step2Deductions extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(otherLabel,
-                                style: const TextStyle(fontSize: 13)),
+                                style:
+                                    const TextStyle(fontSize: AppTextSize.md)),
                             Text(
                               '\$${NumberFormat.currency(symbol: '', decimalDigits: 0).format(otherCredit)} credit',
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppTextSize.sm,
                                   color: AppTheme.success,
                                   fontWeight: FontWeight.w600),
                             ),
@@ -844,14 +842,17 @@ class _Step2Deductions extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          es ? 'Total créditos (W-4 Paso 3)' : 'Total credits (W-4 Step 3)',
+                          es
+                              ? 'Total créditos (W-4 Paso 3)'
+                              : 'Total credits (W-4 Step 3)',
                           style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600),
+                              fontSize: AppTextSize.md,
+                              fontWeight: FontWeight.w600),
                         ),
                         Text(
                           '\$${NumberFormat.currency(symbol: '', decimalDigits: 0).format(totalCredit)}',
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppTextSize.body,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.success),
                         ),
@@ -867,14 +868,14 @@ class _Step2Deductions extends StatelessWidget {
           // Deductions card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextFormField(
                     controller: deductionsCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
                     ],
@@ -887,8 +888,8 @@ class _Step2Deductions extends StatelessWidget {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: extraCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
                     ],
@@ -910,7 +911,8 @@ class _Step2Deductions extends StatelessWidget {
               onPressed: onCalculate,
               child: Text(calcLabel,
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700)),
+                      fontSize: AppTextSize.bodyLg,
+                      fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: 16),
@@ -951,19 +953,28 @@ class _Step3Results extends StatelessWidget {
     final isRefund = r.refundOrOwed >= 0;
 
     final title = es ? 'Recomendaciones W-4 2024' : 'W-4 Recommendations 2024';
-    final step3Label = es ? 'Paso 3 — Créditos por dependientes' : 'Step 3 — Dependent Credits';
-    final step4bLabel = es ? 'Paso 4(b) — Deducciones adicionales' : 'Step 4(b) — Other Deductions';
+    final step3Label = es
+        ? 'Paso 3 — Créditos por dependientes'
+        : 'Step 3 — Dependent Credits';
+    final step4bLabel = es
+        ? 'Paso 4(b) — Deducciones adicionales'
+        : 'Step 4(b) — Other Deductions';
     final step4cLabel = es
         ? 'Paso 4(c) — Retención adicional por cheque'
         : 'Step 4(c) — Extra Withholding per Paycheck';
-    final taxLabel = es ? 'Impuesto federal anual estimado' : 'Estimated Annual Tax';
+    final taxLabel =
+        es ? 'Impuesto federal anual estimado' : 'Estimated Annual Tax';
     final withholdingLabel = es
         ? 'Retención estimada con estos ajustes'
         : 'Estimated Withholding with These Settings';
     final refundLabel = r.refundOrOwed == 0
-        ? (es ? 'Resultado equilibrado (sin reembolso ni adeudo)' : 'Break-even — No Refund, No Tax Owed')
+        ? (es
+            ? 'Resultado equilibrado (sin reembolso ni adeudo)'
+            : 'Break-even — No Refund, No Tax Owed')
         : (isRefund
-            ? (es ? 'Reembolso por retención extra' : 'Refund from Extra Withholding')
+            ? (es
+                ? 'Reembolso por retención extra'
+                : 'Refund from Extra Withholding')
             : (es ? 'Monto a pagar estimado' : 'Estimated Amount Owed'));
     final restartLabel = es ? 'Reiniciar' : 'Start Over';
     final shareLabel = es ? 'Compartir / Guardar' : 'Share / Save';
@@ -972,36 +983,36 @@ class _Step3Results extends StatelessWidget {
         : '* Based on IRS 2024 W-4 worksheet. Submit an updated W-4 to your employer with these values.';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 17,
+                  fontSize: AppTextSize.bodyXl,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.primary)),
           const SizedBox(height: 16),
 
           // W-4 Summary Card (shareable)
           Card(
-            elevation: 3,
+            elevation: 0,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(AppRadius.xl)),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.assignment_outlined,
+                      Icon(Icons.assignment_rounded,
                           color: AppTheme.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         es ? 'Resumen W-4 2024' : 'W-4 2024 Summary',
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppTextSize.bodyMd,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.primary),
                       ),
@@ -1031,7 +1042,7 @@ class _Step3Results extends StatelessWidget {
 
           // Refund / owed highlight
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
               gradient: isRefund
                   ? LinearGradient(
@@ -1044,7 +1055,7 @@ class _Step3Results extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
               boxShadow: [
                 BoxShadow(
                     color: (isRefund ? AppTheme.success : AppTheme.error)
@@ -1057,8 +1068,8 @@ class _Step3Results extends StatelessWidget {
               children: [
                 Icon(
                   isRefund
-                      ? Icons.savings_outlined
-                      : Icons.warning_amber_outlined,
+                      ? Icons.savings_rounded
+                      : Icons.warning_amber_rounded,
                   color: Colors.white,
                   size: 28,
                 ),
@@ -1069,7 +1080,7 @@ class _Step3Results extends StatelessWidget {
                     children: [
                       Text(refundLabel,
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 13)),
+                              color: Colors.white70, fontSize: AppTextSize.md)),
                       Text(
                         _fmt(r.refundOrOwed.abs()),
                         style: const TextStyle(
@@ -1088,7 +1099,7 @@ class _Step3Results extends StatelessWidget {
           // Tax estimates card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 children: [
                   MetricRow(
@@ -1101,7 +1112,8 @@ class _Step3Results extends StatelessWidget {
                       valueColor: AppTheme.primary),
                   MetricRow(
                       label: refundLabel,
-                      value: '${isRefund ? '+' : '-'}${_fmt(r.refundOrOwed.abs())}',
+                      value:
+                          '${isRefund ? '+' : '-'}${_fmt(r.refundOrOwed.abs())}',
                       valueColor: isRefund ? AppTheme.success : AppTheme.error),
                 ],
               ),
@@ -1113,7 +1125,7 @@ class _Step3Results extends StatelessWidget {
             child: Text(
               irsNote,
               style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppTextSize.xs,
                   color: AppTheme.labelGray,
                   fontStyle: FontStyle.italic),
             ),
@@ -1124,14 +1136,14 @@ class _Step3Results extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.share_outlined),
+              icon: const Icon(Icons.share_rounded),
               label: Text(shareLabel),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.primary,
                 side: BorderSide(color: AppTheme.primary),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(AppRadius.xl)),
               ),
               onPressed: () => _sharePdf(context, r),
             ),
@@ -1143,8 +1155,8 @@ class _Step3Results extends StatelessWidget {
             width: double.infinity,
             child: TextButton(
               onPressed: onRestart,
-              child: Text(restartLabel,
-                  style: TextStyle(color: AppTheme.primary)),
+              child:
+                  Text(restartLabel, style: TextStyle(color: AppTheme.primary)),
             ),
           ),
           const SizedBox(height: 16),
@@ -1160,14 +1172,15 @@ class _Step3Results extends StatelessWidget {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text('W-4 Withholding Wizard — 2024',
-              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+              style: pw.TextStyle(
+                  fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: 11)),
+              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
           pw.Divider(height: 24),
           pw.Text('W-4 Recommended Values',
-              style:
-                  pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              style: pw.TextStyle(
+                  fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
           _pdfRow('Step 3 — Dependent Credits',
               '\$${r.step3DependentCredit.toStringAsFixed(0)}'),
@@ -1177,15 +1190,14 @@ class _Step3Results extends StatelessWidget {
               '\$${r.step4cExtra.toStringAsFixed(2)}'),
           pw.Divider(height: 24),
           pw.Text('Estimates',
-              style:
-                  pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              style: pw.TextStyle(
+                  fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
           _pdfRow('Estimated Annual Tax',
               '\$${r.estimatedAnnualTax.toStringAsFixed(2)}'),
           _pdfRow('Estimated Annual Withholding',
               '\$${r.estimatedWithholding.toStringAsFixed(2)}'),
-          _pdfRow(
-              r.refundOrOwed >= 0 ? 'Expected Refund' : 'Amount Owed',
+          _pdfRow(r.refundOrOwed >= 0 ? 'Expected Refund' : 'Amount Owed',
               '\$${r.refundOrOwed.abs().toStringAsFixed(2)}'),
           pw.SizedBox(height: 20),
           pw.Text(
@@ -1205,10 +1217,10 @@ class _Step3Results extends StatelessWidget {
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(label, style: const pw.TextStyle(fontSize: 12)),
+            pw.Text(label, style: const pw.TextStyle(fontSize: AppTextSize.sm)),
             pw.Text(value,
-                style:
-                    pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
           ],
         ),
       );
@@ -1231,12 +1243,13 @@ class _W4Row extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: const TextStyle(fontSize: 13)),
+            child:
+                Text(label, style: const TextStyle(fontSize: AppTextSize.md)),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.bold,
               color: highlight ? AppTheme.primary : null,
             ),
@@ -1274,12 +1287,11 @@ class _CounterButtons extends StatelessWidget {
             '$value',
             textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold),
+                fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.bold),
           ),
         ),
         IconButton(
-          icon:
-              Icon(Icons.add_circle_outline, color: AppTheme.primary),
+          icon: Icon(Icons.add_circle_outline, color: AppTheme.primary),
           onPressed: onIncrement,
           splashRadius: 20,
         ),

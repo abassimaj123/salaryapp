@@ -4,7 +4,8 @@ import '../widgets/app_bar_actions.dart';
 import 'raise_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter, AppDuration;
+import 'package:calcwise_core/calcwise_core.dart'
+    show CalcwiseAdFooter, AppDuration;
 
 // Local spacing constants (mirrors calcwise_core tokens)
 const double _spMd = 12.0;
@@ -35,44 +36,58 @@ class ToolsScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.all(_spLg),
                   children: [
-              _ToolCard(
-                icon: Icons.trending_up_rounded,
-                title: useAlt ? 'Calculadora de Aumento' : 'Raise Calculator',
-                subtitle: useAlt
-                    ? 'Calcular el impacto de un aumento en tu salario'
-                    : 'Calculate the impact of a raise on your salary',
-                onTap: () => Navigator.push(context, PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => const RaiseScreen(),
-                    transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-                    transitionDuration: AppDuration.base,
-                )),
-              ),
-              const SizedBox(height: _spMd),
-              _ToolCard(
-                icon: Icons.card_giftcard_rounded,
-                title: useAlt ? 'Calculadora de Bonificación' : 'Bonus Calculator',
-                subtitle: useAlt
-                    ? 'Estimar impuestos y ganancias netas en bonificaciones'
-                    : 'Estimate taxes and net gains on bonuses',
-                onTap: () => Navigator.push(context, PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => const BonusCalculatorScreen(),
-                    transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-                    transitionDuration: AppDuration.base,
-                )),
-              ),
-              const SizedBox(height: _spMd),
-              _ToolCard(
-                icon: Icons.assignment_rounded,
-                title: 'W4 Wizard',
-                subtitle: useAlt
-                    ? 'Asistente para optimizar tu formulario W4'
-                    : 'Wizard to optimize your W4 withholding',
-                onTap: () => Navigator.push(context, PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => const W4WizardScreen(),
-                    transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
-                    transitionDuration: AppDuration.base,
-                )),
-              ),
+                    _ToolCard(
+                      icon: Icons.trending_up_rounded,
+                      title: useAlt
+                          ? 'Calculadora de Aumento'
+                          : 'Raise Calculator',
+                      subtitle: useAlt
+                          ? 'Calcular el impacto de un aumento en tu salario'
+                          : 'Calculate the impact of a raise on your salary',
+                      onTap: () => Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => const RaiseScreen(),
+                            transitionsBuilder: (_, anim, __, child) =>
+                                FadeTransition(opacity: anim, child: child),
+                            transitionDuration: AppDuration.base,
+                          )),
+                    ),
+                    const SizedBox(height: _spMd),
+                    _ToolCard(
+                      icon: Icons.card_giftcard_rounded,
+                      title: useAlt
+                          ? 'Calculadora de Bonificación'
+                          : 'Bonus Calculator',
+                      subtitle: useAlt
+                          ? 'Estimar impuestos y ganancias netas en bonificaciones'
+                          : 'Estimate taxes and net gains on bonuses',
+                      onTap: () => Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) =>
+                                const BonusCalculatorScreen(),
+                            transitionsBuilder: (_, anim, __, child) =>
+                                FadeTransition(opacity: anim, child: child),
+                            transitionDuration: AppDuration.base,
+                          )),
+                    ),
+                    const SizedBox(height: _spMd),
+                    _ToolCard(
+                      icon: Icons.assignment_rounded,
+                      title: 'W4 Wizard',
+                      subtitle: useAlt
+                          ? 'Asistente para optimizar tu formulario W4'
+                          : 'Wizard to optimize your W4 withholding',
+                      onTap: () => Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => const W4WizardScreen(),
+                            transitionsBuilder: (_, anim, __, child) =>
+                                FadeTransition(opacity: anim, child: child),
+                            transitionDuration: AppDuration.base,
+                          )),
+                    ),
                   ],
                 ),
               ),
@@ -101,8 +116,8 @@ class _ToolCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_radLg)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radLg)),
       child: ListTile(
         leading: Icon(icon, size: 28),
         title: Text(title,
@@ -114,8 +129,8 @@ class _ToolCard extends StatelessWidget {
             style: const TextStyle(fontSize: _textSm)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: _spLg, vertical: _spSm),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: _spLg, vertical: _spSm),
       ),
     );
   }

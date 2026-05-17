@@ -1,4 +1,3 @@
-import '../core/ads/ad_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +6,8 @@ import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
+import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Raise Screen ─────────────────────────────────────────────────────────────
 
@@ -54,8 +55,7 @@ class _RaiseScreenState extends State<RaiseScreen> {
     final raiseVal = _parseAmount(_raiseCtrl.text);
     if (current <= 0 || raiseVal <= 0) return;
 
-    final double raisePct =
-        _isPercent ? raiseVal : (raiseVal / current * 100);
+    final double raisePct = _isPercent ? raiseVal : (raiseVal / current * 100);
     final double newAnnual =
         _isPercent ? current * (1 + raisePct / 100) : current + raiseVal;
 
@@ -69,7 +69,9 @@ class _RaiseScreenState extends State<RaiseScreen> {
     final yearsToDouble = raisePct > 0 ? 72 / raisePct : double.infinity;
 
     // 5-year projection (compound raises)
-    final in5Years = current * (1 + raisePct / 100) * (1 + raisePct / 100) *
+    final in5Years = current *
+        (1 + raisePct / 100) *
+        (1 + raisePct / 100) *
         (1 + raisePct / 100) *
         (1 + raisePct / 100) *
         (1 + raisePct / 100);
@@ -104,10 +106,10 @@ class _RaiseScreenState extends State<RaiseScreen> {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
 
-        final title =
-            fr ? 'Calculateur d\'augmentation' : (es ? 'Calculadora de aumento' : 'Raise Calculator');
-        final calcLabel =
-            fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
+        final title = fr
+            ? 'Calculateur d\'augmentation'
+            : (es ? 'Calculadora de aumento' : 'Raise Calculator');
+        final calcLabel = fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
@@ -115,7 +117,7 @@ class _RaiseScreenState extends State<RaiseScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -134,12 +136,12 @@ class _RaiseScreenState extends State<RaiseScreen> {
                           onPressed: _calculate,
                           child: Text(calcLabel,
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w700)),
+                                  fontSize: AppTextSize.bodyLg,
+                                  fontWeight: FontWeight.w700)),
                         ),
                         if (_result != null) ...[
                           SizedBox(height: 28),
-                          _ResultsSection(
-                              result: _result!, es: es, fr: fr),
+                          _ResultsSection(result: _result!, es: es, fr: fr),
                         ],
                         SizedBox(height: 16),
                       ],
@@ -147,7 +149,7 @@ class _RaiseScreenState extends State<RaiseScreen> {
                   ),
                 ),
               ),
-              const AdFooter(),
+              const CalcwiseAdFooter(),
             ],
           ),
         );
@@ -201,26 +203,31 @@ class _InputCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final symbol = FlavorConfig.currencySymbol;
-    final currentLabel =
-        fr ? 'Salaire actuel (annuel)' : (es ? 'Salario actual (anual)' : 'Current Annual Salary');
+    final currentLabel = fr
+        ? 'Salaire actuel (annuel)'
+        : (es ? 'Salario actual (anual)' : 'Current Annual Salary');
     final raiseTypeLabel =
         fr ? 'Type d\'augmentation' : (es ? 'Tipo de aumento' : 'Raise Type');
-    final pctLabel = fr ? '% (pourcentage)' : (es ? '% (porcentaje)' : '% (percentage)');
-    final amtLabel =
-        fr ? '$symbol (montant fixe)' : (es ? '$symbol (monto fijo)' : '$symbol (flat amount)');
-    final raiseLabel =
-        fr ? 'Valeur de l\'augmentation' : (es ? 'Valor del aumento' : 'Raise Value');
+    final pctLabel =
+        fr ? '% (pourcentage)' : (es ? '% (porcentaje)' : '% (percentage)');
+    final amtLabel = fr
+        ? '$symbol (montant fixe)'
+        : (es ? '$symbol (monto fijo)' : '$symbol (flat amount)');
+    final raiseLabel = fr
+        ? 'Valeur de l\'augmentation'
+        : (es ? 'Valor del aumento' : 'Raise Value');
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Current salary
             TextFormField(
               controller: currentCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
               ],
@@ -229,7 +236,8 @@ class _InputCard extends StatelessWidget {
                 labelText: currentLabel,
                 hintText: '60000',
               ),
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {
                   return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
@@ -237,7 +245,9 @@ class _InputCard extends StatelessWidget {
                 final val = double.tryParse(
                     v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) {
-                  return fr ? 'Montant invalide' : (es ? 'Inválido' : 'Invalid amount');
+                  return fr
+                      ? 'Montant invalide'
+                      : (es ? 'Inválido' : 'Invalid amount');
                 }
                 return null;
               },
@@ -247,7 +257,7 @@ class _InputCard extends StatelessWidget {
             // Raise type toggle
             Text(raiseTypeLabel,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppTextSize.md,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.labelGray)),
             SizedBox(height: 8),
@@ -259,8 +269,7 @@ class _InputCard extends StatelessWidget {
                   selectedColor: AppTheme.primary,
                   labelStyle: TextStyle(
                     color: isPercent ? Colors.white : AppTheme.labelGray,
-                    fontWeight:
-                        isPercent ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isPercent ? FontWeight.w600 : FontWeight.normal,
                   ),
                   onSelected: (_) => onTypeToggle(true),
                 ),
@@ -285,7 +294,8 @@ class _InputCard extends StatelessWidget {
             // Raise value
             TextFormField(
               controller: raiseCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
               ],
@@ -295,7 +305,8 @@ class _InputCard extends StatelessWidget {
                 labelText: raiseLabel,
                 hintText: isPercent ? '5' : '3000',
               ),
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {
                   return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
@@ -303,7 +314,9 @@ class _InputCard extends StatelessWidget {
                 final val = double.tryParse(
                     v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) {
-                  return fr ? 'Valeur invalide' : (es ? 'Inválido' : 'Invalid value');
+                  return fr
+                      ? 'Valeur invalide'
+                      : (es ? 'Inválido' : 'Invalid value');
                 }
                 return null;
               },
@@ -339,8 +352,9 @@ class _ResultsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final newAnnualLabel =
-        fr ? 'Nouveau salaire annuel' : (es ? 'Nuevo salario anual' : 'New Annual Salary');
+    final newAnnualLabel = fr
+        ? 'Nouveau salaire annuel'
+        : (es ? 'Nuevo salario anual' : 'New Annual Salary');
     final newMonthlyLabel = fr
         ? 'Revenu mensuel net estimé'
         : (es ? 'Ingreso mensual neto estimado' : 'Est. Monthly Net Take-Home');
@@ -358,7 +372,9 @@ class _ResultsSection extends StatelessWidget {
         : (es ? 'Proyección a 5 años' : 'Salary in 5 years');
     final taxNote = fr
         ? '* Net estimé après ~25 % d\'impôt'
-        : (es ? '* Neto estimado con ~25 % de impuestos' : '* Net estimated after ~25% tax');
+        : (es
+            ? '* Neto estimado con ~25 % de impuestos'
+            : '* Net estimated after ~25% tax');
 
     final yearsStr = result.yearsToDouble.isFinite
         ? result.yearsToDouble.toStringAsFixed(1)
@@ -392,8 +408,7 @@ class _ResultsSection extends StatelessWidget {
                   label: extraYearLabel,
                   value: '+${_fmt(result.extraPerYear)}')),
           SizedBox(width: 10),
-          Expanded(
-              child: ResultCard(label: doubleLabel, value: yearsStr)),
+          Expanded(child: ResultCard(label: doubleLabel, value: yearsStr)),
         ]),
         SizedBox(height: 10),
         ResultCard(label: in5Label, value: _fmt(result.in5Years)),
@@ -402,14 +417,14 @@ class _ResultsSection extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4),
           child: Text(taxNote,
               style: TextStyle(
-                  fontSize: 11, color: AppTheme.labelGray,
+                  fontSize: AppTextSize.xs,
+                  color: AppTheme.labelGray,
                   fontStyle: FontStyle.italic)),
         ),
         SizedBox(height: 20),
 
         // Scenarios comparison table
-        _ScenariosCard(
-            currentSalary: result.currentSalary, es: es, fr: fr),
+        _ScenariosCard(currentSalary: result.currentSalary, es: es, fr: fr),
       ],
     );
   }
@@ -438,14 +453,15 @@ class _ScenariosCard extends StatelessWidget {
         ? 'Comparaison de scénarios'
         : (es ? 'Comparar escenarios' : 'Compare Scenarios');
     final raiseLabel = fr ? 'Augmentation' : (es ? 'Aumento' : 'Raise');
-    final newAnnualLabel = fr ? 'Nouv. annuel' : (es ? 'Nuevo anual' : 'New Annual');
+    final newAnnualLabel =
+        fr ? 'Nouv. annuel' : (es ? 'Nuevo anual' : 'New Annual');
     final extraLabel = fr ? 'Extra/an' : (es ? 'Extra/año' : 'Extra/yr');
 
     const scenarios = [3.0, 5.0, 10.0];
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -455,7 +471,8 @@ class _ScenariosCard extends StatelessWidget {
               SizedBox(width: 8),
               Text(title,
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.w600)),
             ]),
             SizedBox(height: 14),
             Table(
@@ -467,8 +484,8 @@ class _ScenariosCard extends StatelessWidget {
               children: [
                 TableRow(
                   decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(color: AppTheme.divider))),
+                      border:
+                          Border(bottom: BorderSide(color: AppTheme.divider))),
                   children: [
                     _headerCell(raiseLabel),
                     _headerCell(newAnnualLabel),
@@ -480,8 +497,7 @@ class _ScenariosCard extends StatelessWidget {
                     _dataCell('${pct.toStringAsFixed(0)}%',
                         color: AppTheme.primary),
                     _dataCell(_fmt(currentSalary * (1 + pct / 100))),
-                    _dataCell(
-                        '+${_fmt(currentSalary * pct / 100)}',
+                    _dataCell('+${_fmt(currentSalary * pct / 100)}',
                         color: AppTheme.success),
                   ]),
               ],
@@ -496,7 +512,7 @@ class _ScenariosCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(text,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.labelGray)),
       );
@@ -505,7 +521,7 @@ class _ScenariosCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(text,
             style: TextStyle(
-                fontSize: 13,
+                fontSize: AppTextSize.md,
                 fontWeight: FontWeight.w600,
                 color: color)),
       );

@@ -5,8 +5,8 @@
 class SalaryResult {
   final double grossAnnual;
   final double federalTax;
-  final double ficaTax;   // US: FICA  |  UK: NI  |  CA: CPP+EI
-  final double stateTax;  // US: state |  UK: 0   |  CA: provincial
+  final double ficaTax; // US: FICA  |  UK: NI  |  CA: CPP+EI
+  final double stateTax; // US: state |  UK: 0   |  CA: provincial
   final double totalTax;
   final double netAnnual;
   final double netMonthly;
@@ -85,8 +85,7 @@ class UsSalaryEngine {
     double tax = 0;
     double prev = 0;
     for (int i = 0; i < brackets.length; i++) {
-      final upper =
-          i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
+      final upper = i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
       final rate = brackets[i].$2;
       if (income <= prev) break;
       final taxable = (income < upper ? income : upper) - prev;
@@ -116,110 +115,148 @@ class UsSalaryEngine {
       // California: 9 brackets + 1 % mental-health surcharge above $1 M
       case 'CA':
         final baseTax = _progressive(grossAnnual, [
-          (10756,   0.01),
-          (25499,   0.02),
-          (40245,   0.04),
-          (55866,   0.06),
-          (70606,   0.08),
-          (360659,  0.093),
-          (432787,  0.103),
-          (721314,  0.113),
+          (10756, 0.01),
+          (25499, 0.02),
+          (40245, 0.04),
+          (55866, 0.06),
+          (70606, 0.08),
+          (360659, 0.093),
+          (432787, 0.103),
+          (721314, 0.113),
           (double.infinity, 0.123),
         ]);
-        final surcharge = grossAnnual > 1000000 ? (grossAnnual - 1000000) * 0.01 : 0.0;
+        final surcharge =
+            grossAnnual > 1000000 ? (grossAnnual - 1000000) * 0.01 : 0.0;
         return baseTax + surcharge;
 
       // New York: 9 brackets
       case 'NY':
         return _progressive(grossAnnual, [
-          (17150,      0.04),
-          (23600,      0.045),
-          (27900,      0.0525),
-          (161550,     0.0585),
-          (323200,     0.0625),
-          (2155350,    0.0685),
-          (5000000,    0.0965),
-          (25000000,   0.103),
+          (17150, 0.04),
+          (23600, 0.045),
+          (27900, 0.0525),
+          (161550, 0.0585),
+          (323200, 0.0625),
+          (2155350, 0.0685),
+          (5000000, 0.0965),
+          (25000000, 0.103),
           (double.infinity, 0.109),
         ]);
 
       // New Jersey: 7 brackets
       case 'NJ':
         return _progressive(grossAnnual, [
-          (20000,      0.014),
-          (35000,      0.0175),
-          (40000,      0.035),
-          (75000,      0.05525),
-          (500000,     0.0637),
-          (1000000,    0.0897),
+          (20000, 0.014),
+          (35000, 0.0175),
+          (40000, 0.035),
+          (75000, 0.05525),
+          (500000, 0.0637),
+          (1000000, 0.0897),
           (double.infinity, 0.1075),
         ]);
 
       // Minnesota: 4 brackets
       case 'MN':
         return _progressive(grossAnnual, [
-          (31690,      0.0535),
-          (104090,     0.068),
-          (193240,     0.0785),
+          (31690, 0.0535),
+          (104090, 0.068),
+          (193240, 0.0785),
           (double.infinity, 0.0985),
         ]);
 
       // Oregon: 4 brackets
       case 'OR':
         return _progressive(grossAnnual, [
-          (4050,       0.0475),
-          (10200,      0.0675),
-          (125000,     0.0875),
+          (4050, 0.0475),
+          (10200, 0.0675),
+          (125000, 0.0875),
           (double.infinity, 0.099),
         ]);
 
       // Wisconsin: 4 brackets
       case 'WI':
         return _progressive(grossAnnual, [
-          (14320,      0.035),
-          (28640,      0.044),
-          (315310,     0.053),
+          (14320, 0.035),
+          (28640, 0.044),
+          (315310, 0.053),
           (double.infinity, 0.0765),
         ]);
 
       // ── Flat-rate states ─────────────────────────────────────────────────
-      case 'IL': return grossAnnual * 0.0495;
-      case 'PA': return grossAnnual * 0.0307;
-      case 'OH': return grossAnnual * 0.04;
-      case 'GA': return grossAnnual * 0.055;
-      case 'NC': return grossAnnual * 0.0475;
-      case 'VA': return grossAnnual * 0.0575;
-      case 'MA': return grossAnnual * 0.05;
-      case 'CO': return grossAnnual * 0.044;
-      case 'AZ': return grossAnnual * 0.025;
-      case 'MD': return grossAnnual * 0.0575;
-      case 'MI': return grossAnnual * 0.0425;
-      case 'IN': return grossAnnual * 0.0323;
-      case 'KY': return grossAnnual * 0.045;
-      case 'MO': return grossAnnual * 0.0495;
-      case 'AL': return grossAnnual * 0.05;
-      case 'SC': return grossAnnual * 0.07;
-      case 'LA': return grossAnnual * 0.0425;
-      case 'AR': return grossAnnual * 0.059;
-      case 'MS': return grossAnnual * 0.05;
-      case 'ID': return grossAnnual * 0.058;
-      case 'NM': return grossAnnual * 0.059;
-      case 'MT': return grossAnnual * 0.0675;
-      case 'UT': return grossAnnual * 0.0465;
-      case 'ND': return grossAnnual * 0.029;
-      case 'HI': return grossAnnual * 0.11;
-      case 'VT': return grossAnnual * 0.0875;
-      case 'ME': return grossAnnual * 0.0715;
-      case 'CT': return grossAnnual * 0.0699;
-      case 'RI': return grossAnnual * 0.0599;
-      case 'DE': return grossAnnual * 0.066;
-      case 'DC': return grossAnnual * 0.0895;
-      case 'WV': return grossAnnual * 0.065;
-      case 'KS': return grossAnnual * 0.057;
-      case 'NE': return grossAnnual * 0.0664;
-      case 'IA': return grossAnnual * 0.06;
-      case 'OK': return grossAnnual * 0.0475;
-      default:   return grossAnnual * 0.05;
+      case 'IL':
+        return grossAnnual * 0.0495;
+      case 'PA':
+        return grossAnnual * 0.0307;
+      case 'OH':
+        return grossAnnual * 0.04;
+      case 'GA':
+        return grossAnnual * 0.055;
+      case 'NC':
+        return grossAnnual * 0.0475;
+      case 'VA':
+        return grossAnnual * 0.0575;
+      case 'MA':
+        return grossAnnual * 0.05;
+      case 'CO':
+        return grossAnnual * 0.044;
+      case 'AZ':
+        return grossAnnual * 0.025;
+      case 'MD':
+        return grossAnnual * 0.0575;
+      case 'MI':
+        return grossAnnual * 0.0425;
+      case 'IN':
+        return grossAnnual * 0.0323;
+      case 'KY':
+        return grossAnnual * 0.045;
+      case 'MO':
+        return grossAnnual * 0.0495;
+      case 'AL':
+        return grossAnnual * 0.05;
+      case 'SC':
+        return grossAnnual * 0.07;
+      case 'LA':
+        return grossAnnual * 0.0425;
+      case 'AR':
+        return grossAnnual * 0.059;
+      case 'MS':
+        return grossAnnual * 0.05;
+      case 'ID':
+        return grossAnnual * 0.058;
+      case 'NM':
+        return grossAnnual * 0.059;
+      case 'MT':
+        return grossAnnual * 0.0675;
+      case 'UT':
+        return grossAnnual * 0.0465;
+      case 'ND':
+        return grossAnnual * 0.029;
+      case 'HI':
+        return grossAnnual * 0.11;
+      case 'VT':
+        return grossAnnual * 0.0875;
+      case 'ME':
+        return grossAnnual * 0.0715;
+      case 'CT':
+        return grossAnnual * 0.0699;
+      case 'RI':
+        return grossAnnual * 0.0599;
+      case 'DE':
+        return grossAnnual * 0.066;
+      case 'DC':
+        return grossAnnual * 0.0895;
+      case 'WV':
+        return grossAnnual * 0.065;
+      case 'KS':
+        return grossAnnual * 0.057;
+      case 'NE':
+        return grossAnnual * 0.0664;
+      case 'IA':
+        return grossAnnual * 0.06;
+      case 'OK':
+        return grossAnnual * 0.0475;
+      default:
+        return grossAnnual * 0.05;
     }
   }
 
@@ -244,11 +281,57 @@ class UsSalaryEngine {
   }
 
   static const List<String> states = [
-    'AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL',
-    'GA', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA',
-    'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE',
-    'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI',
-    'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY',
+    'AK',
+    'AL',
+    'AR',
+    'AZ',
+    'CA',
+    'CO',
+    'CT',
+    'DC',
+    'DE',
+    'FL',
+    'GA',
+    'HI',
+    'IA',
+    'ID',
+    'IL',
+    'IN',
+    'KS',
+    'KY',
+    'LA',
+    'MA',
+    'MD',
+    'ME',
+    'MI',
+    'MN',
+    'MO',
+    'MS',
+    'MT',
+    'NC',
+    'ND',
+    'NE',
+    'NH',
+    'NJ',
+    'NM',
+    'NV',
+    'NY',
+    'OH',
+    'OK',
+    'OR',
+    'PA',
+    'RI',
+    'SC',
+    'SD',
+    'TN',
+    'TX',
+    'UT',
+    'VA',
+    'VT',
+    'WA',
+    'WI',
+    'WV',
+    'WY',
   ];
 }
 
@@ -323,9 +406,16 @@ class CaSalaryEngine {
   /// Simplified provincial income-tax rates.
   static double provincialTax(double grossAnnual, String province) {
     const rates = <String, double>{
-      'ON': 0.0505, 'BC': 0.0506, 'AB': 0.10, 'QC': 0.14,
-      'MB': 0.108,  'SK': 0.105,  'NS': 0.0879, 'NB': 0.094,
-      'NL': 0.087,  'PE': 0.098,
+      'ON': 0.0505,
+      'BC': 0.0506,
+      'AB': 0.10,
+      'QC': 0.14,
+      'MB': 0.108,
+      'SK': 0.105,
+      'NS': 0.0879,
+      'NB': 0.094,
+      'NL': 0.087,
+      'PE': 0.098,
     };
     final taxable = (grossAnnual - 10000).clamp(0.0, double.infinity);
     return taxable * (rates[province] ?? 0.0505);
@@ -353,6 +443,15 @@ class CaSalaryEngine {
   }
 
   static const List<String> provinces = [
-    'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'ON', 'PE', 'QC', 'SK',
+    'AB',
+    'BC',
+    'MB',
+    'NB',
+    'NL',
+    'NS',
+    'ON',
+    'PE',
+    'QC',
+    'SK',
   ];
 }

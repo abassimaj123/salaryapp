@@ -9,22 +9,33 @@ class BannerAdWidget extends StatefulWidget {
   @override
   State<BannerAdWidget> createState() => _State();
 }
+
 class _State extends State<BannerAdWidget> {
   BannerAd? _ad;
   bool _loaded = false;
   bool _retried = false;
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
+
   void _load() {
     _ad = BannerAd(
-      adUnitId: AdConfig.bannerAndroid, size: AdSize.banner,
+      adUnitId: AdConfig.bannerAndroid,
+      size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) { if (mounted) setState(() => _loaded = true); },
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _loaded = true);
+        },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
           if (!mounted) return;
-          setState(() { _ad = null; _loaded = false; });
+          setState(() {
+            _ad = null;
+            _loaded = false;
+          });
           AnalyticsService.instance.logBannerFailed();
           if (!_retried) {
             _retried = true;
@@ -36,8 +47,13 @@ class _State extends State<BannerAdWidget> {
       ),
     )..load();
   }
+
   @override
-  void dispose() { _ad?.dispose(); super.dispose(); }
+  void dispose() {
+    _ad?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!AdConfig.adsEnabled) return const SizedBox.shrink();
