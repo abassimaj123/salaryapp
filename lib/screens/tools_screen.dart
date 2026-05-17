@@ -7,7 +7,12 @@ import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'salary_comparison_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
-    show CalcwiseAdFooter, AppDuration, PaywallTrigger, PaywallHard, PaywallSoft;
+    show
+        CalcwiseAdFooter,
+        AppDuration,
+        PaywallTrigger,
+        PaywallHard,
+        PaywallSoft;
 
 // Local spacing constants (mirrors calcwise_core tokens)
 const double _spMd = 12.0;
@@ -93,26 +98,21 @@ class ToolsScreen extends StatelessWidget {
                     const SizedBox(height: _spMd),
                     _ToolCard(
                       icon: Icons.compare_arrows_rounded,
-                      title: useAlt
-                          ? 'Comparar Salarios'
-                          : 'Salary Comparison',
+                      title: useAlt ? 'Comparar Salarios' : 'Salary Comparison',
                       subtitle: useAlt
                           ? 'Compara dos ofertas: neto, impuestos, mensual'
                           : 'Compare two offers: net pay, taxes, monthly',
                       onTap: () async {
                         analyticsService.logCalculationCompleted(
                             params: {'action': 'salary_comparison_tapped'});
-                        final trigger =
-                            await paywallSession.recordAction();
+                        final trigger = await paywallSession.recordAction();
                         if (!context.mounted) return;
                         if (trigger == PaywallTrigger.hard) {
-                          analyticsService
-                              .logPaywallViewed('session_hard');
+                          analyticsService.logPaywallViewed('session_hard');
                           PaywallHard.show(context);
                           return;
                         } else if (trigger == PaywallTrigger.soft) {
-                          analyticsService
-                              .logPaywallViewed('session_soft');
+                          analyticsService.logPaywallViewed('session_soft');
                           PaywallSoft.show(context,
                               featureTitle: useAlt
                                   ? 'Comparar Salarios'

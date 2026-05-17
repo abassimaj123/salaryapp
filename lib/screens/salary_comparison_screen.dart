@@ -17,8 +17,7 @@ class SalaryComparisonScreen extends StatefulWidget {
   const SalaryComparisonScreen({super.key});
 
   @override
-  State<SalaryComparisonScreen> createState() =>
-      _SalaryComparisonScreenState();
+  State<SalaryComparisonScreen> createState() => _SalaryComparisonScreenState();
 }
 
 class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
@@ -213,8 +212,7 @@ class _InputCard extends StatelessWidget {
         children: [
           // Label chip
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
@@ -304,8 +302,8 @@ class _ResultsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(
-        locale: 'en_US', symbol: r'$', decimalDigits: 0);
+    final fmt =
+        NumberFormat.currency(locale: 'en_US', symbol: r'$', decimalDigits: 0);
     final pctFmt = NumberFormat('0.0#', 'en_US');
     final ct = CalcwiseTheme.of(context);
 
@@ -324,8 +322,7 @@ class _ResultsTable extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppRadius.xl)),
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
                 Expanded(
@@ -333,8 +330,7 @@ class _ResultsTable extends StatelessWidget {
                   child: Text(
                     useAlt ? 'Métrica' : 'Metric',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: AppTextSize.sm),
+                        fontWeight: FontWeight.bold, fontSize: AppTextSize.sm),
                   ),
                 ),
                 Expanded(
@@ -365,8 +361,7 @@ class _ResultsTable extends StatelessWidget {
                     useAlt ? 'Delta' : 'Diff',
                     textAlign: TextAlign.right,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: AppTextSize.sm),
+                        fontWeight: FontWeight.bold, fontSize: AppTextSize.sm),
                   ),
                 ),
               ],
@@ -577,8 +572,8 @@ class _RowPct extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Text(label,
-                style: const TextStyle(fontSize: AppTextSize.sm)),
+            child:
+                Text(label, style: const TextStyle(fontSize: AppTextSize.sm)),
           ),
           Expanded(
             flex: 2,
@@ -667,9 +662,7 @@ class _WinnerCard extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isTie
-                ? Icons.balance_rounded
-                : Icons.emoji_events_rounded,
+            isTie ? Icons.balance_rounded : Icons.emoji_events_rounded,
             color: borderColor,
             size: 30,
           ),
