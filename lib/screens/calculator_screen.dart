@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:calcwise_core/calcwise_core.dart';
@@ -6,6 +7,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import '../core/services/pdf_export_service.dart' show PdfExportService;
 
 import '../core/analytics/analytics_service.dart';
@@ -1018,6 +1020,11 @@ class _ResultsSectionState extends State<_ResultsSection> {
         // PDF export button
         _PdfExportButton(result: result, fr: fr, es: es),
 
+        SizedBox(height: 8),
+
+        // CSV export button
+        _CsvExportButton(result: result, fr: fr, es: es),
+
         SizedBox(height: 12),
         Text(
           fr
@@ -1603,7 +1610,7 @@ class _PdfExportButton extends StatelessWidget {
   Future<void> _exportPdf(BuildContext context) async {
     final symbol = FlavorConfig.currencySymbol;
     final fmtCurrency = NumberFormat.currency(symbol: symbol, decimalDigits: 2);
-    final fmtPct = (double v) => '${v.toStringAsFixed(1)}%';
+    String fmtPct(double v) => '${v.toStringAsFixed(1)}%';
 
     final federalLabel = FlavorConfig.isUK
         ? 'Income Tax'
@@ -1705,6 +1712,148 @@ class _PdfExportButton extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ─── CSV Export Button ────────────────────────────────────────────────────────
+
+class _CsvExportButton extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _CsvExportButton({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  String get _label =>
+      fr ? 'Exporter CSV' : (es ? 'Exportar CSV' : 'Export CSV');
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: freemiumService.isPremiumNotifier,
+      builder: (context, isPremium, _) {
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: Icon(isPremium
+                ? Icons.table_chart_outlined
+                : Icons.lock_outline_rounded),
+            label: Text(_label),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              side: BorderSide(color: AppTheme.primary),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.xl)),
+            ),
+            onPressed: () async {
+              HapticFeedback.mediumImpact();
+              if (!isPremium) {
+                await PdfExportService.showUnlockOrPay(
+                  context,
+                  () => _exportCsv(context),
+                );
+                return;
+              }
+              await _exportCsv(context);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportCsv(BuildContext context) async {
+    final symbol = FlavorConfig.currencySymbol;
+    String fmt(double v) =>
+        NumberFormat.currency(symbol: symbol, decimalDigits: 2).format(v);
+
+    final federalLabel = FlavorConfig.isUK
+        ? 'Income Tax'
+        : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
+    final ficaLabel = FlavorConfig.isUS
+        ? 'FICA (SS + Medicare)'
+        : (FlavorConfig.isUK
+            ? 'National Insurance'
+            : (fr ? 'RPC + AE' : 'CPP + EI'));
+    final stateLabel = FlavorConfig.isUS
+        ? (es ? 'Impuesto estatal' : 'State Tax')
+        : (fr ? 'Impôt provincial' : 'Provincial Tax');
+    final grossLabel =
+        fr ? 'Salaire brut' : (es ? 'Salario bruto' : 'Gross Salary');
+    final totalLabel =
+        fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax');
+    final rateLabel =
+        fr ? 'Taux effectif' : (es ? 'Tasa efectiva' : 'Effective Tax Rate');
+    final netAnnualLabel = fr
+        ? 'Salaire net annuel'
+        : (es ? 'Salario neto anual' : 'Net Annual');
+    final netMonthlyLabel =
+        fr ? 'Net mensuel' : (es ? 'Neto mensual' : 'Net Monthly');
+    final netBiWeeklyLabel =
+        fr ? 'Net bimensuel' : (es ? 'Neto quincenal' : 'Net Bi-Weekly');
+    final netWeeklyLabel =
+        fr ? 'Net hebdomadaire' : (es ? 'Neto semanal' : 'Net Weekly');
+    final labelHeader =
+        fr ? 'Catégorie' : (es ? 'Categoría' : 'Category');
+    final valueHeader = fr ? 'Montant' : (es ? 'Monto' : 'Amount');
+
+    final rows = <String>[
+      '$labelHeader,$valueHeader',
+      '$grossLabel,${fmt(result.grossAnnual)}',
+      '$federalLabel,${fmt(result.federalTax)}',
+      if (result.ficaTax > 0) '$ficaLabel,${fmt(result.ficaTax)}',
+      if (!FlavorConfig.isUK && result.stateTax > 0)
+        '$stateLabel,${fmt(result.stateTax)}',
+      '$totalLabel,${fmt(result.totalTax)}',
+      '$rateLabel,${result.effectiveRate.toStringAsFixed(2)}%',
+      '$netAnnualLabel,${fmt(result.netAnnual)}',
+      '$netMonthlyLabel,${fmt(result.netMonthly)}',
+      '$netBiWeeklyLabel,${fmt(result.netBiWeekly)}',
+      '$netWeeklyLabel,${fmt(result.netWeekly)}',
+    ];
+
+    final csv = rows.join('\n');
+    final filename =
+        'salary_summary_${DateTime.now().millisecondsSinceEpoch}.csv';
+
+    try {
+      final bytes = Uint8List.fromList(csv.codeUnits);
+      await Share.shareXFiles(
+        [XFile.fromData(bytes, name: filename, mimeType: 'text/csv')],
+        subject: filename,
+      );
+      analyticsService.logResultShared();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(fr
+                ? 'CSV exporté avec succès'
+                : es
+                    ? 'CSV exportado con éxito'
+                    : 'CSV exported successfully'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(fr
+                ? 'Erreur lors de l\'export'
+                : es
+                    ? 'Error al exportar'
+                    : 'Export failed'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 }
 
 // ─── Pay Rate Converter ───────────────────────────────────────────────────────

@@ -245,8 +245,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     });
   }
 
-  static const _payPeriodOptions = [52, 26, 24, 12];
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
