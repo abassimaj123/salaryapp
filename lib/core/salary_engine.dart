@@ -403,13 +403,31 @@ class CaSalaryEngine {
     return grossAnnual.clamp(0, 63200) * 0.0166;
   }
 
-  /// Simplified provincial income-tax rates.
+  /// Quebec 2026 provincial tax — 4 progressive brackets.
+  /// Personal basic amount: ~$17,183 CAD.
+  static double _quebecProvincialTax(double grossAnnual) {
+    // Taxable income after QC basic personal amount
+    final taxable = (grossAnnual - 17183).clamp(0.0, double.infinity);
+    if (taxable <= 51780) return taxable * 0.14;
+    if (taxable <= 103545) return 7249.20 + (taxable - 51780) * 0.19;
+    if (taxable <= 126000) return 17084.55 + (taxable - 103545) * 0.24;
+    return 22474.75 + (taxable - 126000) * 0.2575;
+  }
+
+  /// Quebec federal tax abatement (2026): QC residents pay 16.5% less
+  /// federal income tax because QC funds its own parallel social programs.
+  static double quebecFederalAbatement(double grossAnnual) =>
+      federalTax(grossAnnual) * 0.165;
+
+  /// Provincial income-tax rates (simplified brackets, 2026 estimates).
   static double provincialTax(double grossAnnual, String province) {
+    // Québec: proper 4-bracket progressive system
+    if (province == 'QC') return _quebecProvincialTax(grossAnnual);
+
     const rates = <String, double>{
       'ON': 0.0505,
       'BC': 0.0506,
       'AB': 0.10,
-      'QC': 0.14,
       'MB': 0.108,
       'SK': 0.105,
       'NS': 0.0879,
@@ -423,14 +441,17 @@ class CaSalaryEngine {
 
   static SalaryResult calculate(double grossAnnual, String province) {
     final fed = federalTax(grossAnnual);
+    // Quebec residents receive a 16.5% abatement on their federal tax
+    // (QC runs its own equivalent social programs).
+    final fedAbatement = province == 'QC' ? quebecFederalAbatement(grossAnnual) : 0.0;
     final cppAmt = cpp(grossAnnual);
     final eiAmt = ei(grossAnnual);
     final prov = provincialTax(grossAnnual, province);
-    final total = fed + cppAmt + eiAmt + prov;
+    final total = (fed - fedAbatement) + cppAmt + eiAmt + prov;
     final net = grossAnnual - total;
     return SalaryResult(
       grossAnnual: grossAnnual,
-      federalTax: fed,
+      federalTax: fed - fedAbatement, // effective federal after QC abatement
       ficaTax: cppAmt + eiAmt, // CPP + EI lumped together
       stateTax: prov,
       totalTax: total,
