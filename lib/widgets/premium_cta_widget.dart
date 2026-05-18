@@ -40,7 +40,7 @@ class PremiumCtaWidget extends StatelessWidget {
                 ),
                 child: Icon(Icons.star_rounded, color: Colors.white, size: 26),
               ),
-              SizedBox(width: 14),
+              SizedBox(width: AppSpacing.mdPlus),
               Expanded(
                   child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +50,7 @@ class PremiumCtaWidget extends StatelessWidget {
                           color: Colors.white,
                           fontSize: AppTextSize.bodyMd,
                           fontWeight: FontWeight.bold)),
-                  SizedBox(height: 2),
+                  SizedBox(height: AppSpacing.xxs),
                   Text('No ads · Unlimited · PDF export',
                       style: TextStyle(
                           color: Colors.white70, fontSize: AppTextSize.sm)),
@@ -58,7 +58,7 @@ class PremiumCtaWidget extends StatelessWidget {
               )),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.mdPlus, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20)),

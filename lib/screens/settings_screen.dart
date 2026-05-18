@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
 
             // ── Disclaimer ────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.sm),
               child: Text(
                 fr
                     ? 'À titre informatif seulement. Pas de conseil financier. Consultez un conseiller avant de prendre des décisions.'
@@ -193,7 +193,7 @@ class _LanguageSection extends StatelessWidget {
                     onTap: () => setAlt(true),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.smPlus),
                 Expanded(
                   child: _LangChip(
                     label: 'English',
@@ -210,7 +210,7 @@ class _LanguageSection extends StatelessWidget {
                     onTap: () => setAlt(false),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.smPlus),
                 Expanded(
                   child: _LangChip(
                     label: 'Español',
@@ -224,7 +224,7 @@ class _LanguageSection extends StatelessWidget {
           title: title,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               child: Row(children: children),
             ),
           ],
@@ -247,7 +247,7 @@ class _LangChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.smPlus),
         decoration: BoxDecoration(
           color: selected ? AppTheme.primary : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(AppRadius.mdPlus),
@@ -300,11 +300,11 @@ class _RewardedSection extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.12),
+                      color: CalcwiseSemanticColors.successDeep.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.mdPlus),
                     ),
                     child:
-                        const Icon(Icons.ondemand_video, color: Colors.purple),
+                        const Icon(Icons.ondemand_video, color: CalcwiseSemanticColors.successDeep),
                   ),
                   title: Text(adFreeLabel,
                       style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -409,7 +409,7 @@ class _AppInfoTile extends StatelessWidget {
         FlavorConfig.isUK ? 'UK' : (FlavorConfig.isCA ? 'CA' : 'US');
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Text(
           'Salary Calculator $flavorBadge · v1.0.0',
           style: TextStyle(color: AppTheme.labelGray, fontSize: AppTextSize.sm),

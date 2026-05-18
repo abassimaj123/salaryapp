@@ -90,7 +90,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxxl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -109,7 +109,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                               useAlt: useAlt,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: _InputCard(
                               label: useAlt ? 'Oferta B' : 'Offer B',
@@ -123,7 +123,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
 
                       // ── Compare button ───────────────────────────────────
                       SizedBox(
@@ -138,7 +138,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.mdPlus),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppRadius.lg),
                             ),
@@ -150,7 +150,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                       if (_hasCalculated &&
                           _resultA != null &&
                           _resultB != null) ...[
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.xl),
                         _ResultsTable(
                           resultA: _resultA!,
                           resultB: _resultB!,
@@ -158,7 +158,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           labelB: useAlt ? 'Oferta B' : 'Offer B',
                           useAlt: useAlt,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         _WinnerCard(
                           resultA: _resultA!,
                           resultB: _resultB!,
@@ -212,7 +212,7 @@ class _InputCard extends StatelessWidget {
         children: [
           // Label chip
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.smPlus, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
@@ -226,7 +226,7 @@ class _InputCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Gross salary field
           TextField(
@@ -248,7 +248,7 @@ class _InputCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.smPlus),
 
           // State dropdown (US only)
           if (FlavorConfig.isUS)
@@ -268,7 +268,7 @@ class _InputCard extends StatelessWidget {
                   borderSide: BorderSide(color: ct.cardBorder),
                 ),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.smPlus, vertical: AppSpacing.smPlus),
               ),
               items: UsSalaryEngine.states
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -322,7 +322,7 @@ class _ResultsTable extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppRadius.xl)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.smPlus),
             child: Row(
               children: [
                 Expanded(
@@ -369,7 +369,7 @@ class _ResultsTable extends StatelessWidget {
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
             child: Column(
               children: [
                 _Row(
@@ -666,7 +666,7 @@ class _WinnerCard extends StatelessWidget {
             color: borderColor,
             size: 30,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,7 +680,7 @@ class _WinnerCard extends StatelessWidget {
                     color: AppTheme.labelGray,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   title,
                   style: TextStyle(
@@ -690,7 +690,7 @@ class _WinnerCard extends StatelessWidget {
                   ),
                 ),
                 if (!isTie) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     useAlt
                         ? '+${fmt.format(delta.abs() / 12)} por mes'

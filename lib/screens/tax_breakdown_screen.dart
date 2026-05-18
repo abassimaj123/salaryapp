@@ -416,17 +416,17 @@ class _TaxBreakdownSection extends StatelessWidget {
   }
 
   Color _bracketColor(double rate) {
-    if (rate <= 0.10) return Colors.green;
-    if (rate <= 0.12) return Colors.lightGreen;
-    if (rate <= 0.22) return Colors.amber;
-    if (rate <= 0.24) return Colors.orange;
-    if (rate <= 0.32) return Colors.deepOrange;
-    if (rate <= 0.35) return Colors.redAccent;
-    return Colors.red;
+    if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
+    if (rate <= 0.12) return CalcwiseSemanticColors.successDark;
+    if (rate <= 0.22) return CalcwiseSemanticColors.warnIcon;
+    if (rate <= 0.24) return CalcwiseSemanticColors.warnIcon;
+    if (rate <= 0.32) return CalcwiseSemanticColors.alertText;
+    if (rate <= 0.35) return CalcwiseSemanticColors.errorDark;
+    return CalcwiseSemanticColors.errorDark;
   }
 
   Widget _th(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
                 fontSize: 10,
@@ -454,13 +454,13 @@ class _BracketProgressBar extends StatelessWidget {
       {required this.brackets, required this.grossAnnual});
 
   Color _color(double rate) {
-    if (rate <= 0.10) return Colors.green;
-    if (rate <= 0.12) return Colors.lightGreen;
+    if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
+    if (rate <= 0.12) return CalcwiseSemanticColors.successDark;
     if (rate <= 0.22) return const Color(0xFFF5C518);
-    if (rate <= 0.24) return Colors.orange;
-    if (rate <= 0.32) return Colors.deepOrange;
-    if (rate <= 0.35) return Colors.redAccent;
-    return Colors.red;
+    if (rate <= 0.24) return CalcwiseSemanticColors.warnIcon;
+    if (rate <= 0.32) return CalcwiseSemanticColors.alertText;
+    if (rate <= 0.35) return CalcwiseSemanticColors.errorDark;
+    return CalcwiseSemanticColors.errorDark;
   }
 
   @override
@@ -639,7 +639,7 @@ class _StateComparisonCard extends StatelessWidget {
   }
 
   Widget _th(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
                 fontSize: 10,

@@ -565,10 +565,10 @@ class _ResultsSection extends StatelessWidget {
                 isBetter: flatBetter,
                 rows: [
                   _MRow(federalLabel, _fmt(r.usFlatFederalTax!),
-                      Colors.redAccent),
+                      CalcwiseSemanticColors.errorDark),
                   _MRow(stateLabel, _fmt(r.usFlatStateTax!),
                       Colors.deepOrangeAccent),
-                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!), Colors.red),
+                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!), CalcwiseSemanticColors.errorDark),
                   _MRow(netLabel, _fmt(r.usFlatNetBonus!), AppTheme.success),
                 ],
               ),
@@ -581,7 +581,7 @@ class _ResultsSection extends StatelessWidget {
                 isBetter: !flatBetter,
                 rows: [
                   _MRow(
-                      totalTaxLabel, _fmt(r.usAggregateTotalTax!), Colors.red),
+                      totalTaxLabel, _fmt(r.usAggregateTotalTax!), CalcwiseSemanticColors.errorDark),
                   _MRow(
                       netLabel, _fmt(r.usAggregateNetBonus!), AppTheme.success),
                 ],
@@ -635,7 +635,7 @@ class _ResultsSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           child: Text(
             es
                 ? '* El método preferido depende de sus preferencias de flujo de caja. Ambos importes anuales son iguales si su tasa marginal real coincide con la tasa suplementaria.'
@@ -685,7 +685,7 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: federalLabel,
                     value: _fmt(r.caFederalTax!),
-                    valueColor: Colors.redAccent),
+                    valueColor: CalcwiseSemanticColors.errorDark),
                 MetricRow(
                     label: provLabel,
                     value: _fmt(r.caProvincialTax!),
@@ -693,7 +693,7 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: totalLabel,
                     value: _fmt(r.caTotalTax!),
-                    valueColor: Colors.red),
+                    valueColor: CalcwiseSemanticColors.errorDark),
                 MetricRow(label: effLabel, value: _pct(effRate)),
                 MetricRow(
                     label: netLabel,
@@ -705,7 +705,7 @@ class _ResultsSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           child: Text(
             caNote,
             style: TextStyle(
@@ -746,7 +746,7 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: taxLabel,
                     value: _fmt(r.ukExtraTax!),
-                    valueColor: Colors.redAccent),
+                    valueColor: CalcwiseSemanticColors.errorDark),
                 MetricRow(label: effLabel, value: _pct(effRate)),
                 MetricRow(
                     label: netLabel,
@@ -758,7 +758,7 @@ class _ResultsSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           child: Text(
             ukNote,
             style: TextStyle(
@@ -849,7 +849,7 @@ class _MethodCard extends StatelessWidget {
             child: Column(
               children: rows.map((row) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Row(
                     children: [
                       Expanded(

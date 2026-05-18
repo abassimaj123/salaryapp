@@ -245,7 +245,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                         onTypeToggle: (v) => setState(() => _isPercent = v),
                         onSliderChanged: (v) => setState(() => _raisePct = v),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpacing.xl),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -259,7 +259,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                         ),
                       ),
                       if (_result != null) ...[
-                        const SizedBox(height: 28),
+                        const SizedBox(height: AppSpacing.xxlPlus),
                         _ResultsSection(
                           result: _result!,
                           es: es,
@@ -267,7 +267,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                           onShare: () => _share(_result!, es),
                         ),
                       ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                     ],
                   ),
                 ),
@@ -381,7 +381,7 @@ class _InputSection extends StatelessWidget {
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
 
           // Raise type toggle
           Text(raiseTypeLabel,
@@ -389,7 +389,7 @@ class _InputSection extends StatelessWidget {
                   fontSize: AppTextSize.md,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.labelGray)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Semantics(
             label: fr
                 ? 'Type d\'augmentation'
@@ -413,7 +413,7 @@ class _InputSection extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Semantics(
                   inMutuallyExclusiveGroup: true,
@@ -433,7 +433,7 @@ class _InputSection extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // Raise value input
           if (isPercent) ...[
@@ -594,19 +594,19 @@ class _ResultsSection extends StatelessWidget {
         icon: Icons.trending_up_rounded,
         highlight: true,
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: AppSpacing.md),
 
       // Monthly before/after
       Row(children: [
         Expanded(
           child: ResultCard(label: oldNetLabel, value: _fmt2(r.oldMonthlyNet)),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.smPlus),
         Expanded(
           child: ResultCard(label: newNetLabel, value: _fmt2(r.newMonthlyNet)),
         ),
       ]),
-      const SizedBox(height: 12),
+      const SizedBox(height: AppSpacing.md),
 
       // Tax breakdown card
       Card(
@@ -616,7 +616,7 @@ class _ResultsSection extends StatelessWidget {
             Row(children: [
               Icon(Icons.account_balance_rounded,
                   size: 18, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 fr
                     ? 'Détail fiscal'
@@ -625,7 +625,7 @@ class _ResultsSection extends StatelessWidget {
                     fontSize: AppTextSize.bodyMd, fontWeight: FontWeight.w600),
               ),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.mdPlus),
             MetricRow(
                 label: taxHitLabel,
                 value: _fmt(r.taxIncrease),
@@ -645,7 +645,7 @@ class _ResultsSection extends StatelessWidget {
           ]),
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: AppSpacing.md),
 
       // Aha-moment motivating message
       Container(
@@ -657,7 +657,7 @@ class _ResultsSection extends StatelessWidget {
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.lightbulb_outline, color: AppTheme.primary, size: 18),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(ahaMsg,
                 style: TextStyle(
@@ -673,7 +673,7 @@ class _ResultsSection extends StatelessWidget {
               fontSize: AppTextSize.xs,
               color: AppTheme.labelGray,
               fontStyle: FontStyle.italic)),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.lg),
 
       // Share button
       OutlinedButton.icon(

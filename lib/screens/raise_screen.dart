@@ -131,7 +131,7 @@ class _RaiseScreenState extends State<RaiseScreen> {
                           fr: fr,
                           onTypeToggle: (v) => setState(() => _isPercent = v),
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: AppSpacing.xxl),
                         ElevatedButton(
                           onPressed: _calculate,
                           child: Text(calcLabel,
@@ -140,10 +140,10 @@ class _RaiseScreenState extends State<RaiseScreen> {
                                   fontWeight: FontWeight.w700)),
                         ),
                         if (_result != null) ...[
-                          SizedBox(height: 28),
+                          SizedBox(height: AppSpacing.xxlPlus),
                           _ResultsSection(result: _result!, es: es, fr: fr),
                         ],
-                        SizedBox(height: 16),
+                        SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                   ),
@@ -252,7 +252,7 @@ class _InputCard extends StatelessWidget {
                 return null;
               },
             ),
-            SizedBox(height: 20),
+            SizedBox(height: AppSpacing.xl),
 
             // Raise type toggle
             Text(raiseTypeLabel,
@@ -260,7 +260,7 @@ class _InputCard extends StatelessWidget {
                     fontSize: AppTextSize.md,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.labelGray)),
-            SizedBox(height: 8),
+            SizedBox(height: AppSpacing.sm),
             Row(children: [
               Expanded(
                 child: ChoiceChip(
@@ -274,7 +274,7 @@ class _InputCard extends StatelessWidget {
                   onSelected: (_) => onTypeToggle(true),
                 ),
               ),
-              SizedBox(width: 8),
+              SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: ChoiceChip(
                   label: Text(amtLabel),
@@ -289,7 +289,7 @@ class _InputCard extends StatelessWidget {
                 ),
               ),
             ]),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.lg),
 
             // Raise value
             TextFormField(
@@ -390,38 +390,38 @@ class _ResultsSection extends StatelessWidget {
           icon: Icons.trending_up_rounded,
           highlight: true,
         ),
-        SizedBox(height: 12),
+        SizedBox(height: AppSpacing.md),
         Row(children: [
           Expanded(
               child: ResultCard(
                   label: newMonthlyLabel, value: _fmt2(result.newMonthlyNet))),
-          SizedBox(width: 10),
+          SizedBox(width: AppSpacing.smPlus),
           Expanded(
               child: ResultCard(
                   label: extraMonthLabel,
                   value: '+${_fmt2(result.extraPerMonth)}')),
         ]),
-        SizedBox(height: 10),
+        SizedBox(height: AppSpacing.smPlus),
         Row(children: [
           Expanded(
               child: ResultCard(
                   label: extraYearLabel,
                   value: '+${_fmt(result.extraPerYear)}')),
-          SizedBox(width: 10),
+          SizedBox(width: AppSpacing.smPlus),
           Expanded(child: ResultCard(label: doubleLabel, value: yearsStr)),
         ]),
-        SizedBox(height: 10),
+        SizedBox(height: AppSpacing.smPlus),
         ResultCard(label: in5Label, value: _fmt(result.in5Years)),
         SizedBox(height: 6),
         Padding(
-          padding: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsets.only(left: AppSpacing.xs),
           child: Text(taxNote,
               style: TextStyle(
                   fontSize: AppTextSize.xs,
                   color: AppTheme.labelGray,
                   fontStyle: FontStyle.italic)),
         ),
-        SizedBox(height: 20),
+        SizedBox(height: AppSpacing.xl),
 
         // Scenarios comparison table
         _ScenariosCard(currentSalary: result.currentSalary, es: es, fr: fr),
@@ -468,13 +468,13 @@ class _ScenariosCard extends StatelessWidget {
             Row(children: [
               Icon(Icons.compare_arrows_rounded,
                   size: 18, color: AppTheme.primary),
-              SizedBox(width: 8),
+              SizedBox(width: AppSpacing.sm),
               Text(title,
                   style: TextStyle(
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 14),
+            SizedBox(height: AppSpacing.mdPlus),
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(2),
@@ -509,7 +509,7 @@ class _ScenariosCard extends StatelessWidget {
   }
 
   Widget _headerCell(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
                 fontSize: AppTextSize.xs,
@@ -518,7 +518,7 @@ class _ScenariosCard extends StatelessWidget {
       );
 
   Widget _dataCell(String text, {Color? color}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
                 fontSize: AppTextSize.md,

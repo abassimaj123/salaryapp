@@ -73,83 +73,83 @@ class HistoryDetailScreen extends StatelessWidget {
                         label: l.date,
                         value: fmtDate.format(entry.timestamp)),
                     if (entry.region.isNotEmpty) ...[
-                      SizedBox(height: 8),
+                      SizedBox(height: AppSpacing.sm),
                       _DetailCard(
                           icon: Icons.location_on_rounded,
                           label: l.region,
                           value: entry.region),
                     ],
-                    SizedBox(height: 16),
+                    SizedBox(height: AppSpacing.lg),
 
                     // Salary breakdown
                     _SectionHeader(l.breakdown),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.account_balance_wallet_rounded,
                         label: l.grossAnnual,
                         value: fmtMoney.format(r.grossAnnual),
                         valueColor: AppTheme.primary),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.trending_down,
                         label: federalLabel,
                         value: fmtMoney.format(r.federalTax),
-                        valueColor: Colors.redAccent),
+                        valueColor: CalcwiseSemanticColors.errorDark),
                     if (r.ficaTax > 0) ...[
-                      SizedBox(height: 8),
+                      SizedBox(height: AppSpacing.sm),
                       _DetailCard(
                           icon: Icons.trending_down,
                           label: ficaLabel,
                           value: fmtMoney.format(r.ficaTax),
-                          valueColor: Colors.orange),
+                          valueColor: CalcwiseSemanticColors.warnIcon),
                     ],
                     if (entry.flavor != 'uk' && r.stateTax > 0) ...[
-                      SizedBox(height: 8),
+                      SizedBox(height: AppSpacing.sm),
                       _DetailCard(
                           icon: Icons.trending_down,
                           label: stateLabel,
                           value: fmtMoney.format(r.stateTax),
-                          valueColor: Colors.deepOrange),
+                          valueColor: CalcwiseSemanticColors.alertText),
                     ],
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.receipt_long_rounded,
                         label: l.totalTax,
                         value: fmtMoney.format(r.totalTax),
-                        valueColor: Colors.red),
-                    SizedBox(height: 8),
+                        valueColor: CalcwiseSemanticColors.errorDark),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.percent,
                         label: l.effectiveRate,
                         value: '${r.effectiveRate.toStringAsFixed(1)}%',
                         valueColor: CalcwiseSemanticColors.errorDark),
-                    SizedBox(height: 16),
+                    SizedBox(height: AppSpacing.lg),
 
                     // Net pay breakdown
                     _SectionHeader(l.netPay),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.star_rounded,
                         label: l.netAnnual,
                         value: fmtMoney.format(r.netAnnual),
                         valueColor: AppTheme.success),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.calendar_month_rounded,
                         label: l.netMonthly,
                         value: fmtMoney.format(r.netMonthly),
                         valueColor: AppTheme.success),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.date_range_rounded,
                         label: l.netBiWeekly,
                         value: fmtMoney.format(r.netBiWeekly)),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.view_week_rounded,
                         label: l.netWeekly,
                         value: fmtMoney.format(r.netWeekly)),
-                    SizedBox(height: 16),
+                    SizedBox(height: AppSpacing.lg),
                   ],
                 ),
               ),
@@ -231,7 +231,7 @@ class _DetailCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
         child: Row(children: [
           Icon(icon, size: 20, color: AppTheme.primary),
-          SizedBox(width: 12),
+          SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(label,
                 style: TextStyle(

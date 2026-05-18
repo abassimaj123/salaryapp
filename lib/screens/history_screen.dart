@@ -68,7 +68,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Text(cancel)),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(ok, style: TextStyle(color: Colors.red)),
+            child: Text(ok, style: TextStyle(color: CalcwiseSemanticColors.errorDark)),
           ),
         ],
       ),
@@ -138,7 +138,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(Icons.history_rounded,
                 size: 44, color: AppTheme.labelGray.withValues(alpha: 0.4)),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.lg),
             Text(empty,
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -167,7 +167,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 child: Row(children: [
                   Icon(Icons.lock_outline, color: AppTheme.warning, size: 18),
-                  SizedBox(width: 8),
+                  SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(limitMsg,
                         style: TextStyle(
@@ -177,7 +177,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ]),
               ),
-              SizedBox(height: 12),
+              SizedBox(height: AppSpacing.md),
             ],
             ..._entries.map(
               (e) => _HistoryCard(
@@ -197,7 +197,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
             if (showCta) ...[
-              SizedBox(height: 8),
+              SizedBox(height: AppSpacing.sm),
               PremiumCtaWidget(
                 feature: fr
                     ? 'Historique illimité'
@@ -243,7 +243,7 @@ class _HistoryCard extends StatelessWidget {
 
     final regionBadge = entry.region.isNotEmpty
         ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -266,13 +266,13 @@ class _HistoryCard extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Icon(Icons.schedule, size: 14, color: AppTheme.labelGray),
-              SizedBox(width: 4),
+              SizedBox(width: AppSpacing.xs),
               Text(dateStr,
                   style: TextStyle(
                       color: AppTheme.labelGray, fontSize: AppTextSize.sm)),
               const Spacer(),
               regionBadge,
-              SizedBox(width: 8),
+              SizedBox(width: AppSpacing.sm),
               InkWell(
                 onTap: onDelete,
                 borderRadius: BorderRadius.circular(20),
@@ -283,20 +283,20 @@ class _HistoryCard extends StatelessWidget {
                 ),
               ),
             ]),
-            SizedBox(height: 10),
+            SizedBox(height: AppSpacing.smPlus),
             Row(children: [
               _StatCell(
                   label: grossLabel, value: _fmt(entry.result.grossAnnual)),
-              SizedBox(width: 12),
+              SizedBox(width: AppSpacing.md),
               _StatCell(
                   label: netLabel,
                   value: _fmt(entry.result.netAnnual),
                   color: AppTheme.success),
-              SizedBox(width: 12),
+              SizedBox(width: AppSpacing.md),
               _StatCell(
                   label: rateLabel,
                   value: '${entry.result.effectiveRate.toStringAsFixed(1)}%',
-                  color: Colors.redAccent),
+                  color: CalcwiseSemanticColors.errorDark),
             ]),
           ]),
         ),
@@ -316,7 +316,7 @@ class _StatCell extends StatelessWidget {
       Text(label,
           style:
               TextStyle(color: AppTheme.labelGray, fontSize: AppTextSize.xs)),
-      SizedBox(height: 2),
+      SizedBox(height: AppSpacing.xxs),
       Text(value,
           style: TextStyle(
               fontWeight: FontWeight.w700,

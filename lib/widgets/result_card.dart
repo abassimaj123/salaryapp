@@ -44,7 +44,7 @@ class ResultCard extends StatelessWidget {
   Widget _content(Color primary, Color secondary) => Row(children: [
         if (icon != null) ...[
           Icon(icon, color: primary.withValues(alpha: 0.8), size: 22),
-          SizedBox(width: 12)
+          SizedBox(width: AppSpacing.md)
         ],
         Expanded(
             child:
@@ -54,7 +54,7 @@ class ResultCard extends StatelessWidget {
                   color: secondary,
                   fontSize: AppTextSize.sm,
                   fontWeight: FontWeight.w500)),
-          SizedBox(height: 2),
+          SizedBox(height: AppSpacing.xxs),
           Text(value,
               style: TextStyle(
                   color: primary,
@@ -75,7 +75,7 @@ class MetricRow extends StatelessWidget {
       {super.key, required this.label, required this.value, this.valueColor});
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(label,
