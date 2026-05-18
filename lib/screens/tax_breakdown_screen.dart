@@ -157,7 +157,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _SalaryInput(controller: _salaryCtrl, es: es, fr: fr),
-                        SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         ElevatedButton(
                           onPressed: _calculate,
                           child: Text(calcLabel,
@@ -166,7 +166,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                                   fontWeight: FontWeight.w700)),
                         ),
                         if (_grossAnnual != null && _brackets.isNotEmpty) ...[
-                          SizedBox(height: 28),
+                          const SizedBox(height: AppSpacing.xxlPlus),
                           _TaxBreakdownSection(
                             grossAnnual: _grossAnnual!,
                             brackets: _brackets,
@@ -174,7 +174,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                             fr: fr,
                           ),
                         ],
-                        SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                   ),
@@ -308,30 +308,30 @@ class _TaxBreakdownSection extends StatelessWidget {
           icon: Icons.account_balance_rounded,
           highlight: true,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Row(children: [
           Expanded(
               child: ResultCard(
                   label: effectiveLabel,
                   value: '${effectiveRate.toStringAsFixed(1)}%')),
-          SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.smPlus),
           Expanded(
               child: ResultCard(label: takeHomeLabel, value: _fmt(takeHome))),
         ]),
-        SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.smPlus),
         Row(children: [
           Expanded(
               child: ResultCard(
                   label: deductionLabel, value: _fmt(_kStandardDeduction))),
-          SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.smPlus),
           Expanded(
               child: ResultCard(label: taxableLabel, value: _fmt(taxable))),
         ]),
-        SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
 
         // Progress bar visualization
         _BracketProgressBar(brackets: brackets, grossAnnual: grossAnnual),
-        SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
 
         // Bracket table
         Card(
@@ -343,13 +343,13 @@ class _TaxBreakdownSection extends StatelessWidget {
                 Row(children: [
                   Icon(Icons.table_chart_rounded,
                       size: 18, color: AppTheme.primary),
-                  SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(bracketsTitle,
                       style: TextStyle(
                           fontSize: AppTextSize.bodyMd,
                           fontWeight: FontWeight.w600)),
                 ]),
-                SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.mdPlus),
                 Table(
                   columnWidths: const {
                     0: FlexColumnWidth(3),
@@ -396,7 +396,7 @@ class _TaxBreakdownSection extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
 
         // Premium: state tax comparison
         ValueListenableBuilder<bool>(
@@ -477,13 +477,13 @@ class _BracketProgressBar extends StatelessWidget {
           children: [
             Row(children: [
               Icon(Icons.bar_chart_rounded, size: 18, color: AppTheme.primary),
-              SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text('Tax Visualization',
                   style: TextStyle(
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             // Stacked bar
             ClipRRect(
@@ -507,7 +507,7 @@ class _BracketProgressBar extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
 
             // Legend
             Wrap(
@@ -534,7 +534,7 @@ class _BracketProgressBar extends StatelessWidget {
             height: 10,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xs),
           Text(label,
               style: TextStyle(
                   fontSize: AppTextSize.xs, color: AppTheme.labelGray)),
@@ -589,13 +589,13 @@ class _StateComparisonCard extends StatelessWidget {
             Row(children: [
               Icon(Icons.location_city_rounded,
                   size: 18, color: AppTheme.primary),
-              SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(title,
                   style: TextStyle(
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.mdPlus),
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(2),
@@ -690,18 +690,18 @@ class _PremiumStateTeaser extends StatelessWidget {
           children: [
             Row(children: [
               Icon(Icons.lock_outline, size: 18, color: AppTheme.primary),
-              SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                   child: Text(title,
                       style: TextStyle(
                           fontSize: AppTextSize.bodyMd,
                           fontWeight: FontWeight.w600))),
             ]),
-            SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(desc,
                 style: TextStyle(
                     fontSize: AppTextSize.md, color: AppTheme.labelGray)),
-            SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

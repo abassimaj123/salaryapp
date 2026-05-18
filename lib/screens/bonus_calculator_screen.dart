@@ -285,7 +285,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           onPayPeriodsChanged: (v) =>
                               setState(() => _payPeriods = v),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.xxl),
                         ElevatedButton(
                           onPressed: _calculate,
                           child: Text(calcLabel,
@@ -294,10 +294,10 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                                   fontWeight: FontWeight.w700)),
                         ),
                         if (_result != null) ...[
-                          const SizedBox(height: 28),
+                          const SizedBox(height: AppSpacing.xxlPlus),
                           _ResultsSection(result: _result!, es: es, fr: fr),
                         ],
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                   ),
@@ -390,7 +390,7 @@ class _InputCard extends StatelessWidget {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             TextFormField(
               controller: bonusCtrl,
               keyboardType:
@@ -419,7 +419,7 @@ class _InputCard extends StatelessWidget {
               },
             ),
             if (FlavorConfig.isUS) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               DropdownButtonFormField<String>(
                 value: usState,
                 decoration: InputDecoration(
@@ -431,7 +431,7 @@ class _InputCard extends StatelessWidget {
                     .toList(),
                 onChanged: onStateChanged,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 es ? 'Frecuencia de pago' : 'Pay Frequency',
                 style: TextStyle(
@@ -439,7 +439,7 @@ class _InputCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppTheme.labelGray),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
@@ -461,7 +461,7 @@ class _InputCard extends StatelessWidget {
               ),
             ],
             if (FlavorConfig.isCA) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               DropdownButtonFormField<String>(
                 value: caProvince,
                 decoration: InputDecoration(
@@ -552,7 +552,7 @@ class _ResultsSection extends StatelessWidget {
           icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.xl),
 
         // Side-by-side methods
         Row(
@@ -573,7 +573,7 @@ class _ResultsSection extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.smPlus),
             Expanded(
               child: _MethodCard(
                 title: aggTitle,
@@ -589,7 +589,7 @@ class _ResultsSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
 
         // Verdict card
         Container(
@@ -602,7 +602,7 @@ class _ResultsSection extends StatelessWidget {
           child: Row(
             children: [
               Icon(Icons.lightbulb_outline, color: AppTheme.success, size: 22),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.smPlus),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,7 +614,7 @@ class _ResultsSection extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: AppTheme.success),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '${es ? "Recomendado" : "Recommended"}: $verdictMethod',
                       style: TextStyle(
@@ -622,7 +622,7 @@ class _ResultsSection extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: AppTheme.success),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(verdictText,
                         style: TextStyle(
                             fontSize: AppTextSize.sm,
@@ -633,7 +633,7 @@ class _ResultsSection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
@@ -673,7 +673,7 @@ class _ResultsSection extends StatelessWidget {
           icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -703,7 +703,7 @@ class _ResultsSection extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
@@ -736,7 +736,7 @@ class _ResultsSection extends StatelessWidget {
           icon: Icons.monetization_on_rounded,
           highlight: true,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -756,7 +756,7 @@ class _ResultsSection extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
@@ -834,11 +834,11 @@ class _MethodCard extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5)),
                   ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(title,
                     style: const TextStyle(
                         fontSize: AppTextSize.md, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(subtitle,
                     style: TextStyle(fontSize: 10, color: AppTheme.labelGray)),
               ],
