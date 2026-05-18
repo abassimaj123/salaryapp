@@ -101,9 +101,11 @@ packages:
   calcwise_lint:
     dependency: "direct dev"
     description:
-      path: "../packages/calcwise_lint"
-      relative: true
-    source: path
+      path: calcwise_lint
+      ref: main
+      resolved-ref: "7fd312017a969bec80223e44098cc016ce526297"
+      url: "https://github.com/abassimaj123/calcwise_core.git"
+    source: git
     version: "0.1.0"
   characters:
     dependency: transitive
