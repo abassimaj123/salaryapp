@@ -1366,7 +1366,7 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: AppTextSize.bodyMd,
-                    color: _netAfter > 0 ? AppTheme.success : Colors.red),
+                    color: _netAfter > 0 ? AppTheme.success : CalcwiseSemanticColors.errorDark),
               ),
             ]),
             SizedBox(height: 4),
@@ -1413,7 +1413,7 @@ class _BenefitRow extends StatelessWidget {
           style: TextStyle(fontSize: AppTextSize.md),
           decoration: const InputDecoration(
             suffixText: '%',
-            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             isDense: true,
           ),
           onChanged: (_) => onChanged(),

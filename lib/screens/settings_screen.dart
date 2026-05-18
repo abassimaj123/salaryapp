@@ -323,7 +323,7 @@ class _RewardedSection extends StatelessWidget {
                       ? Icon(Icons.check_circle, color: AppTheme.success)
                       : ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(90, 36),
+                            minimumSize: const Size(90, 48),
                             padding: EdgeInsets.zero,
                           ),
                           onPressed: adService.isRewardedReady

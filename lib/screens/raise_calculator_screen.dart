@@ -682,10 +682,11 @@ class _ResultsSection extends StatelessWidget {
         label: Text(shareLabel),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppTheme.primary,
+          minimumSize: const Size(double.infinity, 48),
           side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.4)),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         ),
       ),
     ]);

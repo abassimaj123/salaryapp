@@ -808,13 +808,13 @@ class _MethodCard extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.smPlus),
             decoration: BoxDecoration(
               color: isBetter
                   ? AppTheme.success.withValues(alpha: 0.12)
                   : Colors.transparent,
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(11)),
+                  const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,7 +822,7 @@ class _MethodCard extends StatelessWidget {
                 if (isBetter)
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
                     decoration: BoxDecoration(
                       color: AppTheme.success,
                       borderRadius: BorderRadius.circular(AppRadius.xs),

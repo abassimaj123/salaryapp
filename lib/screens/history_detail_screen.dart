@@ -122,7 +122,7 @@ class HistoryDetailScreen extends StatelessWidget {
                         icon: Icons.percent,
                         label: l.effectiveRate,
                         value: '${r.effectiveRate.toStringAsFixed(1)}%',
-                        valueColor: Colors.red.shade700),
+                        valueColor: CalcwiseSemanticColors.errorDark),
                     SizedBox(height: 16),
 
                     // Net pay breakdown
@@ -228,7 +228,7 @@ class _DetailCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
         child: Row(children: [
           Icon(icon, size: 20, color: AppTheme.primary),
           SizedBox(width: 12),

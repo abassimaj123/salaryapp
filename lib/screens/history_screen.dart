@@ -158,7 +158,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             if (!isPremium) ...[
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.mdPlus, vertical: AppSpacing.smPlus),
                 decoration: BoxDecoration(
                   color: AppTheme.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -259,9 +259,9 @@ class _HistoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: AppSpacing.smPlus),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [

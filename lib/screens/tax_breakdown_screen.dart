@@ -376,7 +376,7 @@ class _TaxBreakdownSection extends StatelessWidget {
                           _td('${(b.rate * 100).toStringAsFixed(0)}%',
                               color: _bracketColor(b.rate)),
                           _td(_fmt2(b.amountInBracket)),
-                          _td(_fmt2(b.taxOwed), color: Colors.redAccent),
+                          _td(_fmt2(b.taxOwed), color: CalcwiseSemanticColors.errorDark),
                         ],
                       ),
                     TableRow(
@@ -387,7 +387,7 @@ class _TaxBreakdownSection extends StatelessWidget {
                         _td('Total', bold: true),
                         _td(''),
                         _td(''),
-                        _td(_fmt2(totalFederal), bold: true, color: Colors.red),
+                        _td(_fmt2(totalFederal), bold: true, color: CalcwiseSemanticColors.errorDark),
                       ],
                     ),
                   ],
@@ -625,8 +625,8 @@ class _StateComparisonCard extends StatelessWidget {
                       _td(_fmt(stateTax),
                           color: s.rate == 0
                               ? AppTheme.success
-                              : Colors.deepOrange),
-                      _td(_fmt(total), color: Colors.redAccent),
+                              : CalcwiseSemanticColors.warnIcon),
+                      _td(_fmt(total), color: CalcwiseSemanticColors.errorDark),
                       _td(_fmt(net), color: AppTheme.success),
                     ]);
                   }(),
