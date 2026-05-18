@@ -57,8 +57,8 @@ class PremiumCtaWidget extends StatelessWidget {
                 ],
               )),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.mdPlus, vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.mdPlus, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20)),

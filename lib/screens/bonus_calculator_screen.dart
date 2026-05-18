@@ -568,7 +568,8 @@ class _ResultsSection extends StatelessWidget {
                       CalcwiseSemanticColors.errorDark),
                   _MRow(stateLabel, _fmt(r.usFlatStateTax!),
                       Colors.deepOrangeAccent),
-                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!), CalcwiseSemanticColors.errorDark),
+                  _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!),
+                      CalcwiseSemanticColors.errorDark),
                   _MRow(netLabel, _fmt(r.usFlatNetBonus!), AppTheme.success),
                 ],
               ),
@@ -580,8 +581,8 @@ class _ResultsSection extends StatelessWidget {
                 subtitle: aggDesc,
                 isBetter: !flatBetter,
                 rows: [
-                  _MRow(
-                      totalTaxLabel, _fmt(r.usAggregateTotalTax!), CalcwiseSemanticColors.errorDark),
+                  _MRow(totalTaxLabel, _fmt(r.usAggregateTotalTax!),
+                      CalcwiseSemanticColors.errorDark),
                   _MRow(
                       netLabel, _fmt(r.usAggregateNetBonus!), AppTheme.success),
                 ],
@@ -808,21 +809,22 @@ class _MethodCard extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.smPlus),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.smPlus),
             decoration: BoxDecoration(
               color: isBetter
                   ? AppTheme.success.withValues(alpha: 0.12)
                   : Colors.transparent,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppRadius.lg)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isBetter)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
                     decoration: BoxDecoration(
                       color: AppTheme.success,
                       borderRadius: BorderRadius.circular(AppRadius.xs),

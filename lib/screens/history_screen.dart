@@ -68,7 +68,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Text(cancel)),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(ok, style: TextStyle(color: CalcwiseSemanticColors.errorDark)),
+            child: Text(ok,
+                style: TextStyle(color: CalcwiseSemanticColors.errorDark)),
           ),
         ],
       ),
@@ -157,8 +158,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             if (!isPremium) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.mdPlus, vertical: AppSpacing.smPlus),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.mdPlus, vertical: AppSpacing.smPlus),
                 decoration: BoxDecoration(
                   color: AppTheme.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -243,7 +244,8 @@ class _HistoryCard extends StatelessWidget {
 
     final regionBadge = entry.region.isNotEmpty
         ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: 3),
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -261,7 +263,8 @@ class _HistoryCard extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.smPlus),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [

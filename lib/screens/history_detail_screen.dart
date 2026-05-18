@@ -228,7 +228,8 @@ class _DetailCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
         child: Row(children: [
           Icon(icon, size: 20, color: AppTheme.primary),
           SizedBox(width: AppSpacing.md),
