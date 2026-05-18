@@ -252,9 +252,12 @@ void main() {
       approx(CaSalaryEngine.provincialTax(60000, 'ON'), taxable * 0.0505);
     });
 
-    test('Quebec — 14%', () {
-      final taxable = (80000 - 10000).toDouble();
-      approx(CaSalaryEngine.provincialTax(80000, 'QC'), taxable * 0.14);
+    test('Quebec — 4-bracket progressive (2026)', () {
+      // $80k gross: taxable = 80000 - 17183 = 62817
+      // bracket1: 51780 × 14% = 7249.20
+      // bracket2: (62817 - 51780) × 19% = 11037 × 19% = 2097.03
+      // total provincial = 9346.23
+      approx(CaSalaryEngine.provincialTax(80000, 'QC'), 9346.23);
     });
 
     test('unknown province — defaults to ON rate', () {
