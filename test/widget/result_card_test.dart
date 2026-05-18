@@ -73,7 +73,8 @@ void main() {
       expect(find.byIcon(Icons.health_and_safety), findsOneWidget);
     });
 
-    testWidgets('default highlight is false — uses Card widget', (tester) async {
+    testWidgets('default highlight is false — uses Card widget',
+        (tester) async {
       await tester.pumpWidget(_host(
         const ResultCard(label: 'Deductions', value: r'$1,500'),
       ));

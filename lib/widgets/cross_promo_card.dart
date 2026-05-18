@@ -68,7 +68,8 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
     if (!_checked || _dismissed || widget.isPremium)
       return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
+      margin:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: _accentColor.withValues(alpha: 0.06),
@@ -92,7 +93,8 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: AppSpacing.xxs),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 6, vertical: AppSpacing.xxs),
               decoration: BoxDecoration(
                 color: _accentColor,
                 borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -130,7 +132,8 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
           GestureDetector(
             onTap: _open,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.smPlus, vertical: 5),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.smPlus, vertical: 5),
               decoration: BoxDecoration(
                 color: _accentColor,
                 borderRadius: BorderRadius.circular(AppRadius.md),

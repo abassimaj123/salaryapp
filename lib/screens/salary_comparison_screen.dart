@@ -90,7 +90,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxxl),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                      AppSpacing.md, AppSpacing.lg, AppSpacing.xxxl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -138,7 +139,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.mdPlus),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.mdPlus),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppRadius.lg),
                             ),
@@ -212,7 +214,8 @@ class _InputCard extends StatelessWidget {
         children: [
           // Label chip
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.smPlus, vertical: AppSpacing.xs),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.smPlus, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
@@ -267,8 +270,8 @@ class _InputCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   borderSide: BorderSide(color: ct.cardBorder),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.smPlus, vertical: AppSpacing.smPlus),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.smPlus, vertical: AppSpacing.smPlus),
               ),
               items: UsSalaryEngine.states
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -322,7 +325,8 @@ class _ResultsTable extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppRadius.xl)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.smPlus),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.smPlus),
             child: Row(
               children: [
                 Expanded(
@@ -369,7 +373,8 @@ class _ResultsTable extends StatelessWidget {
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
             child: Column(
               children: [
                 _Row(

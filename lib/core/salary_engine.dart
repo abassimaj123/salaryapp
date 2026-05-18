@@ -443,7 +443,8 @@ class CaSalaryEngine {
     final fed = federalTax(grossAnnual);
     // Quebec residents receive a 16.5% abatement on their federal tax
     // (QC runs its own equivalent social programs).
-    final fedAbatement = province == 'QC' ? quebecFederalAbatement(grossAnnual) : 0.0;
+    final fedAbatement =
+        province == 'QC' ? quebecFederalAbatement(grossAnnual) : 0.0;
     final cppAmt = cpp(grossAnnual);
     final eiAmt = ei(grossAnnual);
     final prov = provincialTax(grossAnnual, province);

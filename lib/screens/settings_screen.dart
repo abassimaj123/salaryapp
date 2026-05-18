@@ -69,7 +69,8 @@ class SettingsScreen extends StatelessWidget {
 
             // ── Disclaimer ────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.sm),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.sm),
               child: Text(
                 fr
                     ? 'À titre informatif seulement. Pas de conseil financier. Consultez un conseiller avant de prendre des décisions.'
@@ -224,7 +225,8 @@ class _LanguageSection extends StatelessWidget {
           title: title,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               child: Row(children: children),
             ),
           ],
@@ -300,11 +302,12 @@ class _RewardedSection extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: CalcwiseSemanticColors.successDeep.withValues(alpha: 0.12),
+                      color: CalcwiseSemanticColors.successDeep
+                          .withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.mdPlus),
                     ),
-                    child:
-                        const Icon(Icons.ondemand_video, color: CalcwiseSemanticColors.successDeep),
+                    child: const Icon(Icons.ondemand_video,
+                        color: CalcwiseSemanticColors.successDeep),
                   ),
                   title: Text(adFreeLabel,
                       style: const TextStyle(fontWeight: FontWeight.w600)),

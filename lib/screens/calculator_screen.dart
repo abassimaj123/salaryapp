@@ -1366,7 +1366,9 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: AppTextSize.bodyMd,
-                    color: _netAfter > 0 ? AppTheme.success : CalcwiseSemanticColors.errorDark),
+                    color: _netAfter > 0
+                        ? AppTheme.success
+                        : CalcwiseSemanticColors.errorDark),
               ),
             ]),
             SizedBox(height: 4),
@@ -1413,7 +1415,8 @@ class _BenefitRow extends StatelessWidget {
           style: TextStyle(fontSize: AppTextSize.md),
           decoration: const InputDecoration(
             suffixText: '%',
-            contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             isDense: true,
           ),
           onChanged: (_) => onChanged(),
@@ -1787,17 +1790,15 @@ class _CsvExportButton extends StatelessWidget {
         fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax');
     final rateLabel =
         fr ? 'Taux effectif' : (es ? 'Tasa efectiva' : 'Effective Tax Rate');
-    final netAnnualLabel = fr
-        ? 'Salaire net annuel'
-        : (es ? 'Salario neto anual' : 'Net Annual');
+    final netAnnualLabel =
+        fr ? 'Salaire net annuel' : (es ? 'Salario neto anual' : 'Net Annual');
     final netMonthlyLabel =
         fr ? 'Net mensuel' : (es ? 'Neto mensual' : 'Net Monthly');
     final netBiWeeklyLabel =
         fr ? 'Net bimensuel' : (es ? 'Neto quincenal' : 'Net Bi-Weekly');
     final netWeeklyLabel =
         fr ? 'Net hebdomadaire' : (es ? 'Neto semanal' : 'Net Weekly');
-    final labelHeader =
-        fr ? 'Catégorie' : (es ? 'Categoría' : 'Category');
+    final labelHeader = fr ? 'Catégorie' : (es ? 'Categoría' : 'Category');
     final valueHeader = fr ? 'Montant' : (es ? 'Monto' : 'Amount');
 
     final rows = <String>[
