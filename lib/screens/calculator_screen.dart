@@ -120,6 +120,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void initState() {
     super.initState();
+    analyticsService.logScreenView('calculator');
     _salaryCtrl.addListener(_debouncedCalculate);
 
     // Trigger initial calculation with default values after first frame
