@@ -90,11 +90,10 @@ void main() async {
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
+  // Brightness-aware override is applied in MainShell.build(); set safe
+  // defaults here so the splash doesn't show a wrong nav-bar color.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF0D0B1E),
-    systemNavigationBarIconBrightness: Brightness.light,
   ));
 
   CalcwiseAdFooter.configure(
@@ -188,9 +187,12 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      systemNavigationBarColor: Theme.of(context).scaffoldBackgroundColor,
+      systemNavigationBarColor:
+          isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
       systemNavigationBarIconBrightness:
           isDark ? Brightness.light : Brightness.dark,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,

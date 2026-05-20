@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../main.dart' show isSpanishNotifier, paywallSession;
 import '../core/analytics/analytics_service.dart';
+import '../core/flavor_config.dart';
 import '../widgets/app_bar_actions.dart';
-import 'raise_screen.dart';
+import 'raise_calculator_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'salary_comparison_screen.dart';
@@ -10,17 +11,12 @@ import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         AppDuration,
+        AppSpacing,
+        AppRadius,
+        AppTextSize,
         PaywallTrigger,
         PaywallHard,
         PaywallSoft;
-
-// Local spacing constants (mirrors calcwise_core tokens)
-const double _spMd = 12.0;
-const double _spLg = 16.0;
-const double _spSm = 8.0;
-const double _radLg = 12.0;
-const double _textBody = 14.0;
-const double _textSm = 12.0;
 
 /// Tools screen — hub for salary calculators and utilities
 class ToolsScreen extends StatelessWidget {
@@ -41,7 +37,7 @@ class ToolsScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(_spLg),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   children: [
                     _ToolCard(
                       icon: Icons.trending_up_rounded,
@@ -54,13 +50,13 @@ class ToolsScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const RaiseScreen(),
+                            pageBuilder: (_, __, ___) => const RaiseCalculatorScreen(),
                             transitionsBuilder: (_, anim, __, child) =>
                                 FadeTransition(opacity: anim, child: child),
                             transitionDuration: AppDuration.base,
                           )),
                     ),
-                    const SizedBox(height: _spMd),
+                    const SizedBox(height: AppSpacing.md),
                     _ToolCard(
                       icon: Icons.card_giftcard_rounded,
                       title: useAlt
@@ -79,23 +75,27 @@ class ToolsScreen extends StatelessWidget {
                             transitionDuration: AppDuration.base,
                           )),
                     ),
-                    const SizedBox(height: _spMd),
-                    _ToolCard(
-                      icon: Icons.assignment_rounded,
-                      title: 'W4 Wizard',
-                      subtitle: useAlt
-                          ? 'Asistente para optimizar tu formulario W4'
-                          : 'Wizard to optimize your W4 withholding',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const W4WizardScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
-                    ),
-                    const SizedBox(height: _spMd),
+                    if (FlavorConfig.isUS) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _ToolCard(
+                        icon: Icons.assignment_rounded,
+                        title: 'W4 Wizard',
+                        subtitle: useAlt
+                            ? 'Asistente para optimizar tu formulario W4'
+                            : 'Wizard to optimize your W4 withholding',
+                        onTap: () => Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (_, __, ___) =>
+                                  const W4WizardScreen(),
+                              transitionsBuilder: (_, anim, __, child) =>
+                                  FadeTransition(opacity: anim, child: child),
+                              transitionDuration: AppDuration.base,
+                            )),
+                      ),
+                    ],
+                    if (FlavorConfig.isUS) ...[
+                    const SizedBox(height: AppSpacing.md),
                     _ToolCard(
                       icon: Icons.compare_arrows_rounded,
                       title: useAlt ? 'Comparar Salarios' : 'Salary Comparison',
@@ -130,6 +130,7 @@ class ToolsScreen extends StatelessWidget {
                         );
                       },
                     ),
+                  ], // end FlavorConfig.isUS (Salary Comparison)
                   ],
                 ),
               ),
@@ -157,22 +158,42 @@ class _ToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radLg)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTile(
-        leading: Icon(icon, size: 28),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon,
+              color: Theme.of(context).colorScheme.primary, size: 22),
+        ),
         title: Text(title,
             style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: _textBody)),
+                fontWeight: FontWeight.w600, fontSize: AppTextSize.body)),
         subtitle: Text(subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: _textSm)),
+            style: const TextStyle(fontSize: AppTextSize.sm)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: _spLg, vertical: _spSm),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       ),
     );
   }

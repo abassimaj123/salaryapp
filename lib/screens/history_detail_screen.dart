@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/analytics/analytics_service.dart';
 import '../core/db/database_service.dart';
@@ -184,12 +185,10 @@ class HistoryDetailScreen extends StatelessWidget {
     buf.writeln('${l.netAnnual}: ${fmtMoney.format(r.netAnnual)}');
     buf.writeln('${l.netMonthly}: ${fmtMoney.format(r.netMonthly)}');
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(fr
-          ? 'Résumé copié'
-          : (es ? 'Resumen copiado' : 'Summary ready — use share button')),
-      duration: const Duration(seconds: 2),
-    ));
+    final subject = fr
+        ? 'Résumé de salaire'
+        : (es ? 'Resumen de salario' : 'Salary Summary');
+    Share.share(buf.toString(), subject: subject);
   }
 }
 

@@ -156,6 +156,37 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (!FlavorConfig.isUS) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm),
+                            decoration: BoxDecoration(
+                              color: AppTheme.warning.withValues(alpha: 0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(
+                                  color:
+                                      AppTheme.warning.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.info_outline_rounded,
+                                  color: AppTheme.warning, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  fr
+                                      ? 'Affichage des tranches fédérales américaines (US IRS 2024)'
+                                      : 'Showing US Federal tax brackets (IRS 2024)',
+                                  style: TextStyle(
+                                      fontSize: AppTextSize.sm,
+                                      color: AppTheme.warning),
+                                ),
+                              ),
+                            ]),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
                         _SalaryInput(controller: _salaryCtrl, es: es, fr: fr),
                         const SizedBox(height: AppSpacing.lg),
                         ElevatedButton(

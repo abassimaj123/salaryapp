@@ -55,12 +55,16 @@ class ResultCard extends StatelessWidget {
                   fontSize: AppTextSize.sm,
                   fontWeight: FontWeight.w500)),
           SizedBox(height: AppSpacing.xxs),
-          Text(value,
-              style: TextStyle(
-                  color: primary,
-                  fontSize: highlight ? 52 : 22,
-                  fontWeight: highlight ? FontWeight.w800 : FontWeight.bold,
-                  letterSpacing: highlight ? -1.5 : null)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                style: TextStyle(
+                    color: primary,
+                    fontSize: highlight ? 52 : 22,
+                    fontWeight: highlight ? FontWeight.w800 : FontWeight.bold,
+                    letterSpacing: highlight ? -1.5 : null)),
+          ),
           if (subtitle != null)
             Text(subtitle!,
                 style: TextStyle(color: secondary, fontSize: AppTextSize.sm)),

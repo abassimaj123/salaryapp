@@ -291,12 +291,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           appBar: AppBar(
             title: Text(appBarTitle),
             actions: [
-              if (_showResults)
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: resetLabel,
-                  onPressed: _reset,
-                ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: resetLabel,
+                onPressed: _showResults ? _reset : null,
+              ),
               const AppBarActions(),
             ],
           ),
@@ -326,7 +325,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                     es: es,
                                     fr: fr,
                                   )),
-                              SizedBox(height: 16),
+                              SizedBox(height: AppSpacing.md),
                               CalcwiseStaggerItem(
                                   index: 1,
                                   child: Column(children: [
@@ -340,7 +339,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       },
                                     ),
                                     if (FlavorConfig.isUS) ...[
-                                      SizedBox(height: 16),
+                                      SizedBox(height: AppSpacing.md),
                                       Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -380,7 +379,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       ),
                                     ],
                                     if (FlavorConfig.isCA) ...[
-                                      SizedBox(height: 16),
+                                      SizedBox(height: AppSpacing.md),
                                       _ProvinceDropdown(
                                         value: _caProvince,
                                         useAlt: useAlt,
@@ -391,7 +390,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       ),
                                     ],
                                   ])),
-                              SizedBox(height: 24),
+                              SizedBox(height: AppSpacing.xl),
                               AnimatedSwitcher(
                                 duration: AppDuration.base,
                                 switchInCurve: Curves.easeOut,
@@ -431,7 +430,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         child: SizedBox.shrink(),
                                       ),
                               ),
-                              SizedBox(height: 16),
+                              SizedBox(height: AppSpacing.md),
                             ],
                           ),
                         )), // CalcwisePageEntrance closes
@@ -834,7 +833,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
               child: ResultCard(
                   label: weeklyLabel, value: _fmt(adjustedNetWeekly))),
         ]),
-        SizedBox(height: 24),
+        SizedBox(height: AppSpacing.xl),
 
         // ── Sankey paycheck flow ─────────────────────────────────────────
         Card(
@@ -853,8 +852,13 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontSize: AppTextSize.bodyMd)),
-                SizedBox(height: 12),
-                SankeyChart(
+                const SizedBox(height: AppSpacing.md),
+                Semantics(
+                  label: 'Salary breakdown: '
+                      'Gross ${_currencyFmt0.format(result.grossAnnual)}, '
+                      '${federalLabel} ${_currencyFmt0.format(result.federalTax)}, '
+                      'Net ${_currencyFmt0.format(result.netAnnual)}',
+                  child: SankeyChart(
                   gross: result.grossAnnual,
                   currencySymbol: FlavorConfig.currencySymbol,
                   outflows: [
@@ -888,12 +892,13 @@ class _ResultsSectionState extends State<_ResultsSection> {
                       color: AppTheme.success,
                     ),
                   ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Pie chart
         Card(
@@ -912,7 +917,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontSize: AppTextSize.bodyMd)),
-                SizedBox(height: 16),
+                SizedBox(height: AppSpacing.md),
                 SizedBox(
                   height: 200,
                   child: _TaxPieChart(
@@ -922,7 +927,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                     stateLabel: stateLabel,
                   ),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: AppSpacing.md),
                 Divider(color: AppTheme.divider),
                 SizedBox(height: 8),
                 MetricRow(label: grossLabel, value: _fmt(result.grossAnnual)),
@@ -960,7 +965,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
           ),
         ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // ── City-to-City COL Comparison ──────────────────────────────────
         _CityComparisonCard(
@@ -971,7 +976,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
           onCityChanged: (city) => setState(() => _targetCity = city),
         ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Smart Insights
         if (FlavorConfig.isUS)
@@ -990,17 +995,17 @@ class _ResultsSectionState extends State<_ResultsSection> {
             isSpanish: es,
           ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Benefits & deductions estimator
         _BenefitsCard(result: result, fr: fr, es: es),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Pay Rate Converter
         _PayRateConverter(result: result, fr: fr, es: es),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Premium CTA if user is free
         ValueListenableBuilder<bool>(
@@ -1034,9 +1039,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
                   ? 'Solo para fines informativos. No es asesoramiento financiero.'
                   : 'For informational purposes only. Not financial advice.'),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF757575),
+          style: TextStyle(
+            fontSize: AppTextSize.xs,
+            color: AppTheme.labelGray,
           ),
         ),
       ],
@@ -1128,7 +1133,7 @@ class _CityComparisonCard extends StatelessWidget {
             if (targetCity != null &&
                 _colIndex[targetCity] != null &&
                 equivalentGross != null) ...[
-              SizedBox(height: 16),
+              SizedBox(height: AppSpacing.md),
               // Result pill
               Container(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1948,7 +1953,7 @@ class _PayRateConverter extends StatelessWidget {
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.md),
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(3),

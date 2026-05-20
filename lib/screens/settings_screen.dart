@@ -251,7 +251,9 @@ class _LangChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.smPlus),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary : const Color(0xFFF1F5F9),
+          color: selected
+              ? AppTheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(AppRadius.mdPlus),
           border: Border.all(
             color: selected ? AppTheme.primary : AppTheme.divider,

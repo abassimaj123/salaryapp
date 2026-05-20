@@ -572,7 +572,7 @@ class _ResultsSection extends StatelessWidget {
       ahaMsg = 'Une augmentation de ${r.raisePct.toStringAsFixed(1)}% '
           '(${_fmt(r.raiseGross)}) rapporte seulement ${_fmt(r.raiseNet)} '
           'net après impôts (${(r.marginalRate * 100).toStringAsFixed(0)}% marginal). '
-          'Maximize your 401(k) or RRSP to recoup part of that tax.';
+          'Maximisez vos cotisations REER pour récupérer une partie de cet impôt.';
     } else if (es) {
       ahaMsg = 'Tu aumento de ${r.raisePct.toStringAsFixed(1)}% '
           '(${_fmt(r.raiseGross)}) solo equivale a ${_fmt(r.raiseNet)} neto '

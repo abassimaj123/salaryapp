@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
+import '../core/flavor_config.dart';
 import '../main.dart' show paywallSession;
 import 'onboarding_screen.dart';
 
@@ -26,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
         appSuffix: 'Pro',
         tagline: 'Know what you actually take home',
         chips: const ['After Tax', 'Hourly Rate', '3 Countries'],
-        badgeSymbol: r'$+',
+        badgeSymbol: '${FlavorConfig.currencySymbol}+',
         badgeIcon: Icons.payments_rounded,
         backgroundColor: AppTheme.primary,
         onComplete: () async {

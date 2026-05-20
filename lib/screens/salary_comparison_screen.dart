@@ -270,8 +270,6 @@ class _InputCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   borderSide: BorderSide(color: ct.cardBorder),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.smPlus, vertical: AppSpacing.smPlus),
               ),
               items: UsSalaryEngine.states
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -649,12 +647,12 @@ class _WinnerCard extends StatelessWidget {
       title = useAlt
           ? 'Oferta A — +${fmt.format(delta.abs())} neto/año'
           : 'Offer A — +${fmt.format(delta.abs())} net/year';
-      borderColor = AppTheme.primary;
+      borderColor = AppTheme.success;
     } else {
       title = useAlt
           ? 'Oferta B — +${fmt.format(delta.abs())} neto/año'
           : 'Offer B — +${fmt.format(delta.abs())} net/year';
-      borderColor = AppTheme.accent;
+      borderColor = AppTheme.success;
     }
 
     return Container(

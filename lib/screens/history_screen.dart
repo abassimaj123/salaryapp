@@ -129,21 +129,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildBody(String empty, String limitMsg, bool fr, bool es) {
     if (_loading) {
-      return Center(child: CircularProgressIndicator());
+      return const _HistorySkeleton();
     }
 
     if (_entries.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.history_rounded,
-                size: 44, color: AppTheme.labelGray.withValues(alpha: 0.4)),
-            SizedBox(height: AppSpacing.lg),
-            Text(empty,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: AppTheme.labelGray, fontSize: AppTextSize.bodyMd)),
+            Icon(Icons.history_edu_rounded,
+                size: 64,
+                color: AppTheme.primary.withValues(alpha: 0.25)),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              fr
+                  ? 'Aucun calcul sauvegardé'
+                  : es
+                      ? 'Sin cálculos guardados'
+                      : 'No saved calculations',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: AppTextSize.bodyLg),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              empty,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: AppTheme.labelGray, fontSize: AppTextSize.md),
+            ),
           ]),
         ),
       );
@@ -326,5 +341,69 @@ class _StatCell extends StatelessWidget {
               fontSize: AppTextSize.body,
               color: color ?? Theme.of(context).textTheme.bodyLarge?.color)),
     ]);
+  }
+}
+
+// ─── History skeleton ─────────────────────────────────────────────────────────
+
+class _HistorySkeleton extends StatelessWidget {
+  const _HistorySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: 5,
+      itemBuilder: (_, __) => const Padding(
+        padding: EdgeInsets.only(bottom: AppSpacing.smPlus),
+        child: _SkeletonCard(),
+      ),
+    );
+  }
+}
+
+class _SkeletonCard extends StatefulWidget {
+  const _SkeletonCard();
+
+  @override
+  State<_SkeletonCard> createState() => _SkeletonCardState();
+}
+
+class _SkeletonCardState extends State<_SkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8);
+    final shine = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        height: 88,
+        decoration: BoxDecoration(
+          color: Color.lerp(base, shine, _anim.value),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+      ),
+    );
   }
 }
