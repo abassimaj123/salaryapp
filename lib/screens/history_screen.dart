@@ -133,34 +133,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     if (_entries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.history_edu_rounded,
-                size: 64,
-                color: AppTheme.primary.withValues(alpha: 0.25)),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              fr
-                  ? 'Aucun calcul sauvegardé'
-                  : es
-                      ? 'Sin cálculos guardados'
-                      : 'No saved calculations',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppTextSize.bodyLg),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              empty,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: AppTheme.labelGray, fontSize: AppTextSize.md),
-            ),
-          ]),
-        ),
+      return CalcwiseEmptyState(
+        icon: Icons.history_edu_rounded,
+        title: fr
+            ? 'Aucun calcul sauvegardé'
+            : es
+                ? 'Sin cálculos guardados'
+                : 'No saved calculations',
+        body: empty,
       );
     }
 

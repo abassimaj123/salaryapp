@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import 'app_theme_base.dart';
 
@@ -28,7 +29,7 @@ class AppThemeUK {
           CalcwiseTheme.light(
               primary: Color(0xFF1F2937), accent: Color(0xFFD4AF37))
         ],
-        fontFamily: 'Inter',
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       );
 
   static ThemeData get darkTheme => ThemeData(
@@ -48,6 +49,6 @@ class AppThemeUK {
           CalcwiseTheme.dark(
               primary: Color(0xFF1F2937), accent: Color(0xFFD4AF37))
         ],
-        fontFamily: 'Inter',
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       );
 }
