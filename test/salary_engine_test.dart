@@ -247,8 +247,11 @@ void main() {
   });
 
   group('CaSalaryEngine — provincial tax', () {
-    test('Ontario — 5.05%', () {
-      final taxable = (60000 - 10000).toDouble();
+    test('Ontario — 5.05% first bracket with BPA \$11,865', () {
+      // ON 2025: BPA = $11,865, first bracket ≤ $51,446 at 5.05%
+      // taxable = 60000 - 11865 = 48135; all in first bracket
+      // expected = 48135 × 0.0505 = 2430.8175
+      final taxable = (60000 - 11865).toDouble();
       approx(CaSalaryEngine.provincialTax(60000, 'ON'), taxable * 0.0505);
     });
 
@@ -260,9 +263,11 @@ void main() {
       approx(CaSalaryEngine.provincialTax(80000, 'QC'), 9346.23);
     });
 
-    test('unknown province — defaults to ON rate', () {
-      final expected = CaSalaryEngine.provincialTax(50000, 'ON');
-      approx(CaSalaryEngine.provincialTax(50000, 'XX'), expected);
+    test('unknown province — uses flat 5.05% with \$10,000 exemption', () {
+      // Default branch: flat rate 0.0505 with $10,000 basic exemption
+      // (not the ON progressive brackets — unknown provinces use simplified flat rates)
+      final taxable = (50000 - 10000).toDouble();
+      approx(CaSalaryEngine.provincialTax(50000, 'XX'), taxable * 0.0505);
     });
   });
 
