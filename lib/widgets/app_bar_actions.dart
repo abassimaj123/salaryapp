@@ -4,6 +4,7 @@ import 'package:calcwise_core/calcwise_core.dart'
 import '../core/freemium/freemium_service.dart';
 import '../main.dart' show paywallSession;
 import '../screens/settings_screen.dart';
+import 'paywall_hard.dart';
 
 /// Standard AppBar trailing actions used across all SalaryApp tab screens.
 /// Delegates to CalcwiseAppBarActions for a single source of truth.
@@ -25,6 +26,7 @@ class AppBarActions extends StatelessWidget {
         ),
       ),
       onRewardAd: () => CalcwiseRewardAdSheet.show(context),
+      onPremium: () => PaywallHard.show(context),
     );
   }
 }

@@ -3,7 +3,6 @@ import 'package:calcwise_core/calcwise_core.dart';
 import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
-import '../main.dart' show paywallSession;
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -44,7 +43,6 @@ class _SplashScreenState extends State<SplashScreen> {
             );
           } else {
             Navigator.of(context).pushReplacementNamed('/home');
-            await paywallSession.recordSession();
           }
         },
       );

@@ -12,7 +12,6 @@ import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
 import '../widgets/premium_cta_widget.dart';
 import '../main.dart' show isSpanishNotifier;
-import '../widgets/app_bar_actions.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
 
@@ -113,7 +112,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 icon: Icon(Icons.refresh_rounded),
                 onPressed: _load,
               ),
-              const AppBarActions(),
             ],
           ),
           body: Column(

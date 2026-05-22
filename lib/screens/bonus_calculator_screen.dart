@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -200,6 +200,15 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   int _payPeriods = 26; // biweekly default
 
   BonusResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    final salary = salaryNotifier.value;
+    if (salary > 0) {
+      _salaryCtrl.text = salary.toStringAsFixed(0);
+    }
+  }
 
   @override
   void dispose() {

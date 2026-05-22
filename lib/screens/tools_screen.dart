@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../main.dart' show isSpanishNotifier, paywallSession;
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
-import '../widgets/app_bar_actions.dart';
 import 'raise_calculator_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
@@ -31,7 +30,6 @@ class ToolsScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(useAlt ? 'Herramientas' : 'Tools'),
             elevation: 0,
-            actions: const [AppBarActions()],
           ),
           body: Column(
             children: [

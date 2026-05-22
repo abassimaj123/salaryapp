@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:calcwise_core/calcwise_core.dart';
-import '../main.dart' show isSpanishNotifier, paywallSession;
+import '../main.dart' show isSpanishNotifier, paywallSession, salaryNotifier;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
@@ -38,6 +38,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     super.initState();
     analyticsService.logCalculationCompleted(
         params: {'screen': 'salary_comparison_opened'});
+    final salary = salaryNotifier.value;
+    if (salary > 0) {
+      _grossACtrl.text = salary.toStringAsFixed(0);
+    }
     // Calculate with defaults immediately
     WidgetsBinding.instance.addPostFrameCallback((_) => _calculate());
   }

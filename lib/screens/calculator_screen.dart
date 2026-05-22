@@ -29,12 +29,11 @@ import '../widgets/premium_cta_widget.dart';
 import '../widgets/result_card.dart';
 import '../widgets/insight_card.dart';
 import '../core/insight_engine.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, ukStudentLoanNotifier;
 import 'raise_screen.dart';
 import 'tax_breakdown_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'bonus_calculator_screen.dart';
-import '../widgets/app_bar_actions.dart';
 
 // ─── Pay-frequency enum ───────────────────────────────────────────────────────
 
@@ -103,7 +102,7 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _salaryCtrl = TextEditingController();
+  final _salaryCtrl = TextEditingController(text: '75,000');
   final _scrollCtrl = ScrollController();
 
   PayFrequency _frequency = PayFrequency.annual;
@@ -150,8 +149,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   void _calculate() {
-    // In auto-calc mode, skip if field is empty — no error flash
-    if (_salaryCtrl.text.trim().isEmpty) return;
     if (!_formKey.currentState!.validate()) return;
 
     final rawText = _salaryCtrl.text;
@@ -167,7 +164,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     if (FlavorConfig.isUS) {
       res = UsSalaryEngine.calculate(grossAnnual, _usState);
     } else if (FlavorConfig.isUK) {
-      res = UkSalaryEngine.calculate(grossAnnual);
+      res = UkSalaryEngine.calculate(
+        grossAnnual,
+        studentLoan: ukStudentLoanNotifier.value,
+      );
     } else {
       res = CaSalaryEngine.calculate(grossAnnual, _caProvince);
     }
@@ -177,6 +177,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     if (FlavorConfig.isUS && _usCity != null && localTaxes[_usCity] != null) {
       localTax = res.grossAnnual * localTaxes[_usCity]!.rate;
     }
+
+    salaryNotifier.value = res.grossAnnual;
 
     setState(() {
       _result = res;
@@ -296,7 +298,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 tooltip: resetLabel,
                 onPressed: _showResults ? _reset : null,
               ),
-              const AppBarActions(),
             ],
           ),
           body: GestureDetector(
@@ -387,6 +388,36 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                           setState(() => _caProvince = v!);
                                           _debouncedCalculate();
                                         },
+                                      ),
+                                    ],
+                                    if (FlavorConfig.isUK) ...[
+                                      SizedBox(height: AppSpacing.sm),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable:
+                                            ukStudentLoanNotifier,
+                                        builder: (context, hasLoan, _) =>
+                                            SwitchListTile.adaptive(
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                            'Student Loan Repayment',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium,
+                                          ),
+                                          subtitle: Text(
+                                            'Plan 2 — 9% above £27,295',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                          value: hasLoan,
+                                          activeColor: AppTheme.primary,
+                                          onChanged: (v) {
+                                            ukStudentLoanNotifier.value = v;
+                                            _debouncedCalculate();
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ])),
@@ -781,7 +812,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
 
     final stateLabel = FlavorConfig.isUS
@@ -1627,7 +1660,9 @@ class _PdfExportButton extends StatelessWidget {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
     final stateLabel = FlavorConfig.isUS
         ? (es ? 'Impuesto estatal' : 'State Tax')
@@ -1785,7 +1820,9 @@ class _CsvExportButton extends StatelessWidget {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
     final stateLabel = FlavorConfig.isUS
         ? (es ? 'Impuesto estatal' : 'State Tax')

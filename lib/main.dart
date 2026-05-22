@@ -13,12 +13,14 @@ import 'package:calcwise_core/calcwise_core.dart'
         requestCalcwiseConsent,
         CalcwiseAdFooter,
         CalcwiseRewardAdSheet,
+        CalcwiseAppBarActions,
         PaywallTrigger,
         PaywallHard,
         PaywallSoft,
         AppDuration,
         iapErrorNotifier,
-        showIapErrorSnackBar;
+        showIapErrorSnackBar,
+        showPremiumWelcomeSnackBar;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';
@@ -55,6 +57,12 @@ final adService = CalcwiseAdService(
 // ─── Global language notifier ─────────────────────────────────────────────────
 // For US: true = Spanish  |  For CA: true = French  |  For UK: ignored
 final ValueNotifier<bool> isSpanishNotifier = ValueNotifier<bool>(false);
+
+/// Holds the last-calculated gross annual salary so secondary screens can pre-fill.
+final ValueNotifier<double> salaryNotifier = ValueNotifier<double>(75000);
+
+/// UK flavor only: whether student loan repayment is included in the calculation.
+final ValueNotifier<bool> ukStudentLoanNotifier = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -170,6 +178,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _index = 0;
+  bool _wasPremium = false;
 
   static const _pages = <Widget>[
     CalculatorScreen(),
@@ -181,13 +190,27 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    _wasPremium = freemiumService.hasFullAccess;
+    freemiumService.isPremiumNotifier.addListener(_onPremiumChange);
     iapErrorNotifier.addListener(_onIapError);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) async => await paywallSession.recordSession(),
+    );
   }
 
   @override
   void dispose() {
+    freemiumService.isPremiumNotifier.removeListener(_onPremiumChange);
     iapErrorNotifier.removeListener(_onIapError);
     super.dispose();
+  }
+
+  void _onPremiumChange() {
+    final now = freemiumService.hasFullAccess;
+    if (now && !_wasPremium && mounted) {
+      showPremiumWelcomeSnackBar(context, isSpanish: isSpanishNotifier.value);
+    }
+    _wasPremium = now;
   }
 
   void _onIapError() {
@@ -212,7 +235,49 @@ class _MainShellState extends State<MainShell> {
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
         final s = _strings(useAlt);
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+        final appTitle = FlavorConfig.isUK
+            ? 'UK Salary Calculator'
+            : (FlavorConfig.isCA
+                ? (fr ? 'Calculateur de salaire' : 'CA Salary Calculator')
+                : (es ? 'Calculadora de Salario' : 'US Salary Calculator'));
         return Scaffold(
+          appBar: AppBar(
+            flexibleSpace: Container(
+              decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+            ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calculate_rounded,
+                    color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  appTitle,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              CalcwiseAppBarActions(
+                freemium: freemiumService,
+                session: paywallSession,
+                onSettings: () => Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const SettingsScreen(),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: AppDuration.base,
+                  ),
+                ),
+                onRewardAd: () => CalcwiseRewardAdSheet.show(context),
+                onPremium: () => PaywallHard.show(context),
+              ),
+            ],
+          ),
           body: IndexedStack(index: _index, children: _pages),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,

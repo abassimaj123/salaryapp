@@ -6,7 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -223,6 +223,15 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
 
   // ── Result ──────────────────────────────────────────────────────────────────
   _W4Result? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    final salary = salaryNotifier.value;
+    if (salary > 0) {
+      _salaryCtrl.text = salary.toStringAsFixed(0);
+    }
+  }
 
   @override
   void dispose() {

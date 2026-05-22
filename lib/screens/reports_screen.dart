@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/flavor_config.dart';
 import '../main.dart' show isSpanishNotifier;
-import '../widgets/app_bar_actions.dart';
 import 'tax_breakdown_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
@@ -30,7 +29,6 @@ class ReportsScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(_t('Reports', 'Reportes', 'Rapports')),
             elevation: 0,
-            actions: const [AppBarActions()],
           ),
           body: Column(
             children: [

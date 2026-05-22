@@ -357,15 +357,36 @@ class UkSalaryEngine {
     return lower + upper;
   }
 
-  static SalaryResult calculate(double grossAnnual) {
+  /// Student loan repayment 2024/25 (9% above plan threshold).
+  /// Plan 1: £22,015 | Plan 2: £27,295 (default) | Plan 5: £25,000
+  static double studentLoanRepayment(double grossAnnual, {int plan = 2}) {
+    final threshold = switch (plan) {
+      1 => 22015.0,
+      5 => 25000.0,
+      _ => 27295.0, // Plan 2
+    };
+    if (grossAnnual <= threshold) return 0;
+    return (grossAnnual - threshold) * 0.09;
+  }
+
+  /// [studentLoan] – include Plan 2 student loan repayment (default false).
+  /// [loanPlan]   – 1, 2 (default), or 5.
+  static SalaryResult calculate(
+    double grossAnnual, {
+    bool studentLoan = false,
+    int loanPlan = 2,
+  }) {
     final income = incomeTax(grossAnnual);
     final ni = nationalInsurance(grossAnnual);
-    final total = income + ni;
+    final sl = studentLoan ? studentLoanRepayment(grossAnnual, plan: loanPlan) : 0.0;
+    // ficaTax stores NI + student loan so the result model stays unchanged.
+    final ficaTotal = ni + sl;
+    final total = income + ficaTotal;
     final net = grossAnnual - total;
     return SalaryResult(
       grossAnnual: grossAnnual,
       federalTax: income,
-      ficaTax: ni,
+      ficaTax: ficaTotal,
       stateTax: 0,
       totalTax: total,
       netAnnual: net,
@@ -403,6 +424,49 @@ class CaSalaryEngine {
     return grossAnnual.clamp(0, 63200) * 0.0166;
   }
 
+  /// Applies progressive brackets to [income].
+  /// [brackets] is a list of (upperBound, rate) pairs in ascending order;
+  /// the last entry's upperBound is treated as infinity.
+  static double _progressive(
+      double income, List<(double upper, double rate)> brackets) {
+    double tax = 0;
+    double prev = 0;
+    for (int i = 0; i < brackets.length; i++) {
+      final upper = i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
+      final rate = brackets[i].$2;
+      if (income <= prev) break;
+      final taxable = (income < upper ? income : upper) - prev;
+      tax += taxable * rate;
+      prev = upper;
+    }
+    return tax;
+  }
+
+  /// Ontario 2025: 5 progressive brackets, BPA $11,865.
+  static double _ontarioProvincialTax(double grossAnnual) {
+    final taxable = (grossAnnual - 11865).clamp(0.0, double.infinity);
+    return _progressive(taxable, [
+      (51446, 0.0505),
+      (102894, 0.0915),
+      (150000, 0.1116),
+      (220000, 0.1216),
+      (double.infinity, 0.1316),
+    ]);
+  }
+
+  /// British Columbia 2025: 6 progressive brackets, BPA $11,981.
+  static double _bcProvincialTax(double grossAnnual) {
+    final taxable = (grossAnnual - 11981).clamp(0.0, double.infinity);
+    return _progressive(taxable, [
+      (45654, 0.0506),
+      (91310, 0.0770),
+      (104835, 0.1050),
+      (127299, 0.1229),
+      (172602, 0.1470),
+      (double.infinity, 0.1680),
+    ]);
+  }
+
   /// Quebec 2026 provincial tax — 4 progressive brackets.
   /// Personal basic amount: ~$17,183 CAD.
   static double _quebecProvincialTax(double grossAnnual) {
@@ -419,24 +483,30 @@ class CaSalaryEngine {
   static double quebecFederalAbatement(double grossAnnual) =>
       federalTax(grossAnnual) * 0.165;
 
-  /// Provincial income-tax rates (simplified brackets, 2026 estimates).
+  /// Provincial income-tax. ON and BC use proper progressive brackets (2025).
+  /// Other provinces use calibrated flat rates as reasonable approximations.
   static double provincialTax(double grossAnnual, String province) {
-    // Québec: proper 4-bracket progressive system
-    if (province == 'QC') return _quebecProvincialTax(grossAnnual);
-
-    const rates = <String, double>{
-      'ON': 0.0505,
-      'BC': 0.0506,
-      'AB': 0.10,
-      'MB': 0.108,
-      'SK': 0.105,
-      'NS': 0.0879,
-      'NB': 0.094,
-      'NL': 0.087,
-      'PE': 0.098,
-    };
-    final taxable = (grossAnnual - 10000).clamp(0.0, double.infinity);
-    return taxable * (rates[province] ?? 0.0505);
+    switch (province) {
+      case 'QC':
+        return _quebecProvincialTax(grossAnnual);
+      case 'ON':
+        return _ontarioProvincialTax(grossAnnual);
+      case 'BC':
+        return _bcProvincialTax(grossAnnual);
+      default:
+        // Flat-rate approximations for remaining provinces (2025 estimates).
+        const rates = <String, double>{
+          'AB': 0.10,
+          'MB': 0.108,
+          'SK': 0.105,
+          'NS': 0.0879,
+          'NB': 0.094,
+          'NL': 0.087,
+          'PE': 0.098,
+        };
+        final taxable = (grossAnnual - 10000).clamp(0.0, double.infinity);
+        return taxable * (rates[province] ?? 0.0505);
+    }
   }
 
   static SalaryResult calculate(double grossAnnual, String province) {
