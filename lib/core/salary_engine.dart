@@ -536,9 +536,9 @@ class UkSalaryEngine {
 class CaSalaryEngine {
   CaSalaryEngine._();
 
-  /// Federal tax 2024. Basic Personal Amount (BPA): $15,705.
+  /// Federal tax 2025. Basic Personal Amount (BPA): $16,129 (ARC officiel 2025).
   static double federalTax(double grossAnnual) {
-    final taxable = (grossAnnual - 15705).clamp(0.0, double.infinity);
+    final taxable = (grossAnnual - 16129).clamp(0.0, double.infinity);
     if (taxable <= 55867) return taxable * 0.15;
     if (taxable <= 111733) return 8380.05 + (taxable - 55867) * 0.205;
     if (taxable <= 154906) return 19832.48 + (taxable - 111733) * 0.26;

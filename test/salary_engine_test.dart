@@ -180,40 +180,40 @@ void main() {
   // ─── CA Engine ───────────────────────────────────────────────────────────
 
   group('CaSalaryEngine — federal tax', () {
-    test('below BPA \$15,705 → 0', () {
-      expect(CaSalaryEngine.federalTax(15705), 0.0);
+    test('below BPA \$16,129 → 0', () {
+      expect(CaSalaryEngine.federalTax(16129), 0.0);
     });
 
     test('\$40,000 → 15% on taxable', () {
-      // taxable = 40000-15705 = 24295
-      approx(CaSalaryEngine.federalTax(40000), 24295 * 0.15, tolerance: 1.0);
+      // taxable = 40000-16129 = 23871 (BPA 2025: $16,129)
+      approx(CaSalaryEngine.federalTax(40000), 23871 * 0.15, tolerance: 1.0);
     });
 
     test('\$80,000 — second bracket', () {
-      // taxable=64295; 8380.05 + (64295-55867)*0.205
+      // taxable=63871; 8380.05 + (63871-55867)*0.205 (BPA 2025: $16,129)
       approx(
-          CaSalaryEngine.federalTax(80000), 8380.05 + (64295 - 55867) * 0.205,
+          CaSalaryEngine.federalTax(80000), 8380.05 + (63871 - 55867) * 0.205,
           tolerance: 1.0);
     });
 
     test('\$130,000 — third bracket', () {
-      // taxable=114295; 19832.48 + (114295-111733)*0.26
+      // taxable=113871; 19832.48 + (113871-111733)*0.26 (BPA 2025: $16,129)
       approx(CaSalaryEngine.federalTax(130000),
-          19832.48 + (114295 - 111733) * 0.26,
+          19832.48 + (113871 - 111733) * 0.26,
           tolerance: 1.0);
     });
 
     test('\$180,000 — fourth bracket', () {
-      // taxable=164295; 31064.73 + (164295-154906)*0.29
+      // taxable=163871; 31064.73 + (163871-154906)*0.29 (BPA 2025: $16,129)
       approx(CaSalaryEngine.federalTax(180000),
-          31064.73 + (164295 - 154906) * 0.29,
+          31064.73 + (163871 - 154906) * 0.29,
           tolerance: 1.0);
     });
 
     test('\$250,000 — top bracket 33%', () {
-      // taxable=234295; 49942.35 + (234295-220000)*0.33
+      // taxable=233871; 49942.35 + (233871-220000)*0.33 (BPA 2025: $16,129)
       approx(CaSalaryEngine.federalTax(250000),
-          49942.35 + (234295 - 220000) * 0.33,
+          49942.35 + (233871 - 220000) * 0.33,
           tolerance: 1.0);
     });
   });
