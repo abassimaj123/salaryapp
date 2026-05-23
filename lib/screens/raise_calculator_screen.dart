@@ -51,6 +51,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
       _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override

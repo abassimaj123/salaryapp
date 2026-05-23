@@ -42,6 +42,17 @@ class OnboardingScreen extends StatelessWidget {
               'Sélectionnez votre province et voyez la décomposition fédérale + provinciale.',
           pillsFr: ['10 provinces', 'RPC et AE', 'Abattement QC'],
         ),
+        OnboardingPage(
+          icon: Icons.history_rounded,
+          title: 'Save Your\nCalculations',
+          subtitle:
+              'Your salary history is saved automatically. Compare scenarios anytime.',
+          pills: ['History', 'PDF Export', 'Compare'],
+          titleFr: 'Sauvegardez vos\ncalculs',
+          subtitleFr:
+              'Vos calculs de salaire sont sauvegardés. Comparez vos scénarios en tout temps.',
+          pillsFr: ['Historique', 'Export PDF', 'Comparer'],
+        ),
       ];
     }
 
@@ -60,6 +71,13 @@ class OnboardingScreen extends StatelessWidget {
           subtitle:
               'Income Tax and NI calculated for your salary — instantly.',
           pills: ['Income Tax', 'National Insurance', 'Net Pay'],
+        ),
+        OnboardingPage(
+          icon: Icons.history_rounded,
+          title: 'Save Your\nResults',
+          subtitle:
+              'Your salary calculations are saved automatically. Revisit and compare anytime.',
+          pills: ['History', 'PDF Export', 'Share'],
         ),
       ];
     }
@@ -87,6 +105,17 @@ class OnboardingScreen extends StatelessWidget {
         subtitleEs:
             'El impuesto estatal varía mucho. Selecciona tu estado para un cálculo preciso.',
         pillsEs: ['Impuesto federal', 'FICA', 'Impuesto estatal'],
+      ),
+      OnboardingPage(
+        icon: Icons.history_rounded,
+        title: 'Save Your\nResults',
+        subtitle:
+            'Your salary calculations are saved automatically. Revisit and compare anytime.',
+        pills: ['History', 'PDF Export', 'Share'],
+        titleEs: 'Guarda tus\nresultados',
+        subtitleEs:
+            'Tus cálculos de salario se guardan automáticamente. Recupéralos y compara cuando quieras.',
+        pillsEs: ['Historial', 'Exportar PDF', 'Compartir'],
       ),
     ];
   }

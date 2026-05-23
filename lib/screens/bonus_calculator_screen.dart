@@ -208,6 +208,9 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     if (salary > 0) {
       _salaryCtrl.text = salary.toStringAsFixed(0);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override
