@@ -370,9 +370,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8);
-    final shine = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
+    final base = CalcwiseTheme.of(context).cardBorder;
+    final shine = CalcwiseTheme.of(context).surfaceHigh;
     return AnimatedBuilder(
       animation: _anim,
       builder: (_, __) => Container(

@@ -1025,7 +1025,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                       SankeyFlow(
                         label: localLabel,
                         value: localTax,
-                        color: const Color(0xFFD4A017), // yellow/gold
+                        color: AppTheme.gold, // yellow/gold
                       ),
                     SankeyFlow(
                       label: netLabel,
@@ -1090,7 +1090,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                   MetricRow(
                       label: localLabel,
                       value: _fmt(localTax),
-                      valueColor: const Color(0xFFD4A017)),
+                      valueColor: AppTheme.gold),
                 MetricRow(
                     label: totalTaxLabel,
                     value: _fmt(adjustedTotalTax),

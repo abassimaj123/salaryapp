@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/flavor_config.dart';
+import '../core/theme/app_theme.dart';
 import '../main.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 
@@ -26,7 +27,7 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
   static const _targetTaglineFr = 'Meilleur prêt auto — rapide';
 
   static const _targetId = 'com.calcwise.autoloan';
-  static const _accentColor = Color(0xFF0B5C2E);
+  static const _accentColor = AppTheme.crossPromoGreen;
 
   @override
   void initState() {
@@ -109,24 +110,24 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
             Text(
                 _altLabel(
                     'Also from us', 'También de nosotros', 'Aussi de nous'),
-                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                style: TextStyle(fontSize: 10, color: CalcwiseTheme.of(context).textSecondary)),
           ]),
           const SizedBox(height: AppSpacing.xxs),
-          const Text(_targetName,
+          Text(_targetName,
               style: TextStyle(
                   fontSize: AppTextSize.md,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B))),
+                  color: CalcwiseTheme.of(context).textPrimary)),
           Text(_altLabel(_targetTagline, _targetTaglineEs, _targetTaglineFr),
-              style: const TextStyle(
-                  fontSize: AppTextSize.xs, color: Color(0xFF64748B))),
+              style: TextStyle(
+                  fontSize: AppTextSize.xs, color: CalcwiseTheme.of(context).textSecondary)),
         ])),
         const SizedBox(width: AppSpacing.sm),
         Column(children: [
           GestureDetector(
             onTap: _dismiss,
-            child: const Icon(Icons.close_rounded,
-                size: 16, color: Color(0xFF94A3B8)),
+            child: Icon(Icons.close_rounded,
+                size: 16, color: CalcwiseTheme.of(context).textSecondary),
           ),
           const SizedBox(height: AppSpacing.sm),
           GestureDetector(

@@ -426,14 +426,14 @@ class _LifetimeCard extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+              colors: [AppTheme.premiumPurple, AppTheme.premiumPurpleDeep],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(AppRadius.xl),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7C3AED).withValues(alpha: 0.35),
+                color: AppTheme.premiumPurple.withValues(alpha: 0.35),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -474,14 +474,14 @@ class _LifetimeCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.smPlus, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFBBF24),
+                              color: CalcwiseSemanticColors.premiumGold,
                               borderRadius:
                                   BorderRadius.circular(AppRadius.sm),
                             ),
                             child: const Text(
                               'BEST VALUE',
                               style: TextStyle(
-                                color: Color(0xFF1C1917),
+                                color: Colors.black87,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 9,
                                 letterSpacing: 0.5,

@@ -64,6 +64,16 @@ class AppTheme {
     );
   }
 
+  // Gold — used for local-tax flow / data-vis (non-primary brand accent)
+  static const Color gold = Color(0xFFD4A017);
+
+  // Premium CTA gradient (Lifetime Access paywall banner)
+  static const Color premiumPurple      = Color(0xFF7C3AED);
+  static const Color premiumPurpleDeep  = Color(0xFF4F46E5);
+
+  // Cross-promo accent (AutoLoan brand green — used in cross-promo card only)
+  static const Color crossPromoGreen = Color(0xFF0B5C2E);
+
   static ThemeData get theme =>
       CalcwiseThemeFactory.buildLight(primary: primary, accent: accent);
   static ThemeData get dark =>

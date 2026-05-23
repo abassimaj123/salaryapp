@@ -228,7 +228,7 @@ class _MainShellState extends State<MainShell> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       systemNavigationBarColor:
-          isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
+          Theme.of(context).colorScheme.surface,
       systemNavigationBarIconBrightness:
           isDark ? Brightness.light : Brightness.dark,
       statusBarColor: Colors.transparent,
