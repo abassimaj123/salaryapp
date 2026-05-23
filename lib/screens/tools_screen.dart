@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../main.dart' show isSpanishNotifier, paywallSession;
+import '../core/freemium/freemium_service.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
+import '../core/freemium/iap_service.dart';
 import 'raise_calculator_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'salary_comparison_screen.dart';
+import 'rrsp_optimizer_screen.dart';
+import 'retirement_optimizer_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
@@ -78,11 +82,31 @@ class ToolsScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.md),
                       _ToolCard(
                         icon: Icons.assignment_rounded,
-                        title: 'W4 Wizard',
+                        title: useAlt ? 'Asistente W-4' : 'W-4 Withholding Wizard',
                         subtitle: useAlt
-                            ? 'Asistente para optimizar tu formulario W4'
-                            : 'Wizard to optimize your W4 withholding',
-                        onTap: () => Navigator.push(
+                            ? 'Optimiza tu retención federal'
+                            : 'Get your federal withholding exactly right',
+                        onTap: () async {
+                          if (!freemiumService.hasFullAccess &&
+                              paywallSession.sessionCount >= 5) {
+                            analyticsService.logFeatureGated('w4_wizard');
+                            await PaywallSoft.show(
+                              context,
+                              isSpanish: useAlt,
+                              featureTitle: useAlt
+                                  ? 'Asistente W-4'
+                                  : 'W-4 Withholding Wizard',
+                              featureSubtitle: useAlt
+                                  ? 'Optimiza tu retención federal'
+                                  : 'Get your federal withholding exactly right',
+                              priceLabel:
+                                  IAPService.instance.localizedPrice.value,
+                              onUnlock: () => IAPService.instance.buy(),
+                            );
+                            return;
+                          }
+                          if (!context.mounted) return;
+                          Navigator.push(
                             context,
                             PageRouteBuilder(
                               pageBuilder: (_, __, ___) =>
@@ -90,7 +114,9 @@ class ToolsScreen extends StatelessWidget {
                               transitionsBuilder: (_, anim, __, child) =>
                                   FadeTransition(opacity: anim, child: child),
                               transitionDuration: AppDuration.base,
-                            )),
+                            ),
+                          );
+                        },
                       ),
                     ],
                     if (FlavorConfig.isUS) ...[
@@ -130,6 +156,46 @@ class ToolsScreen extends StatelessWidget {
                       },
                     ),
                   ], // end FlavorConfig.isUS (Salary Comparison)
+                    if (FlavorConfig.isUS) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _ToolCard(
+                        icon: Icons.savings_rounded,
+                        title: useAlt ? 'Optimizador 401(k)' : '401(k) Optimizer',
+                        subtitle: useAlt
+                            ? 'Minimiza impuestos con aportes al 401(k)'
+                            : 'Minimize taxes with optimal 401(k) contributions',
+                        onTap: () => Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) =>
+                                const RetirementOptimizerScreen(),
+                            transitionsBuilder: (_, anim, __, child) =>
+                                FadeTransition(opacity: anim, child: child),
+                            transitionDuration: AppDuration.base,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (FlavorConfig.isCA) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _ToolCard(
+                        icon: Icons.account_balance_rounded,
+                        title: useAlt ? 'Optimiseur REER' : 'RRSP Optimizer',
+                        subtitle: useAlt
+                            ? 'Réduisez votre impôt avec vos cotisations REER'
+                            : 'Reduce your tax with optimal RRSP contributions',
+                        onTap: () => Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) =>
+                                const RrspOptimizerScreen(),
+                            transitionsBuilder: (_, anim, __, child) =>
+                                FadeTransition(opacity: anim, child: child),
+                            transitionDuration: AppDuration.base,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
