@@ -24,12 +24,12 @@ class OnboardingScreen extends StatelessWidget {
           icon: Icons.payments_rounded,
           title: 'Know What You\nActually Take Home',
           subtitle:
-              'After tax and deductions — your real paycheque, calculated instantly.',
-          pills: ['After Tax', 'Hourly Rate', 'Canadian Market'],
+              'CPP2, EI, provincial tax — your real paycheque in French or English.',
+          pills: ['Français / English', 'CPP2 2025', 'QC Abatement', 'Hourly Rate'],
           titleFr: 'Calculez votre\nsalaire net',
           subtitleFr:
-              'Après impôts et déductions — votre vrai chèque de paie, calculé instantanément.',
-          pillsFr: ['Après impôts', 'Taux horaire', 'Marché canadien'],
+              'RPC2, AE, impôt provincial — votre vrai chèque de paie en français ou en anglais.',
+          pillsFr: ['Français / English', 'RPC2 2025', 'Abattement QC', 'Taux horaire'],
         ),
         OnboardingPage(
           icon: Icons.map_rounded,
@@ -62,8 +62,8 @@ class OnboardingScreen extends StatelessWidget {
           icon: Icons.payments_rounded,
           title: 'Know What You\nActually Take Home',
           subtitle:
-              'After income tax and National Insurance — your real take-home pay.',
-          pills: ['After Tax', 'Hourly Rate', 'UK Market'],
+              'Scottish Income Tax, NI 2025 bands, salary sacrifice — all calculated for your pay.',
+          pills: ['Scottish Tax', 'NI 2025', 'Salary Sacrifice', 'Student Loan'],
         ),
         OnboardingPage(
           icon: Icons.account_balance_rounded,

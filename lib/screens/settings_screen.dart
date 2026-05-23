@@ -143,6 +143,9 @@ class _PremiumSection extends StatelessWidget {
                   ),
                 ]
               : [
+                  // ── UK: Lifetime "Best Value" card (shown above standard) ──
+                  if (FlavorConfig.isUK) _LifetimeCard(premiumDesc: premiumDesc),
+
                   CalcwiseSettingsTile(
                     icon: Icons.star_rounded,
                     label: getPremium,
@@ -398,6 +401,137 @@ class _LinksSection extends StatelessWidget {
               'https://play.google.com/store/apps/developer?id=CalqWise'),
         ),
       ],
+    );
+  }
+}
+
+// ─── UK Lifetime IAP card ─────────────────────────────────────────────────────
+
+/// "Best Value — Lifetime" purchase card shown only in the UK flavor.
+///
+/// TODO(play-console): The product 'premium_lifetime_uk' must be created as a
+/// non-consumable one-time product in Play Console before publishing the UK AAB.
+class _LifetimeCard extends StatelessWidget {
+  final String premiumDesc;
+  const _LifetimeCard({required this.premiumDesc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        onTap: () => IAPService.instance.buyLifetime(),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
+            child: Row(
+              children: [
+                // Crown icon
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.smPlus),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.mdPlus),
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded,
+                      color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: AppSpacing.mdPlus),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Lifetime Access',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: AppTextSize.bodyMd,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.smPlus, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBBF24),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: const Text(
+                              'BEST VALUE',
+                              style: TextStyle(
+                                color: Color(0xFF1C1917),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 9,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        premiumDesc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: AppTextSize.sm,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                // Price — live from Play Store, fallback to placeholder
+                ValueListenableBuilder<String?>(
+                  valueListenable: IAPService.instance.localizedLifetimePrice,
+                  builder: (_, price, __) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        // TODO: replace placeholder once product is in Play Console
+                        price ?? '£X.XX',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: AppTextSize.title,
+                        ),
+                      ),
+                      const Text(
+                        'one time',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: AppTextSize.xs,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
