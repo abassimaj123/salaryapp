@@ -170,13 +170,19 @@ class InsightEngine {
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
   /// Derive the top US federal bracket rate (as decimal) from gross annual income.
+  /// Uses 2025 single-filer brackets (gross, before standard deduction).
   static double usFederalBracketPct(double grossAnnual) {
-    if (grossAnnual <= 11600) return 0.10;
-    if (grossAnnual <= 47150) return 0.12;
-    if (grossAnnual <= 100525) return 0.22;
-    if (grossAnnual <= 191950) return 0.24;
-    if (grossAnnual <= 243725) return 0.32;
-    if (grossAnnual <= 609350) return 0.35;
+    // 2025 single filer — approximate bracket based on gross income
+    // (standard deduction $15,000 applied before brackets).
+    const double sd = 15000;
+    final taxable = grossAnnual - sd;
+    if (taxable <= 0) return 0.10;
+    if (taxable <= 11925) return 0.10;
+    if (taxable <= 48475) return 0.12;
+    if (taxable <= 103350) return 0.22;
+    if (taxable <= 197300) return 0.24;
+    if (taxable <= 250525) return 0.32;
+    if (taxable <= 626350) return 0.35;
     return 0.37;
   }
 

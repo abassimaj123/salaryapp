@@ -64,6 +64,9 @@ final ValueNotifier<double> salaryNotifier = ValueNotifier<double>(75000);
 /// UK flavor only: whether student loan repayment is included in the calculation.
 final ValueNotifier<bool> ukStudentLoanNotifier = ValueNotifier<bool>(false);
 
+/// UK flavor only: whether Scottish income tax rates apply.
+final ValueNotifier<bool> ukScotlandNotifier = ValueNotifier<bool>(false);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
