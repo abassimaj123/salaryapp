@@ -228,10 +228,11 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    if (salary > 0) {
-      _grossCtrl.text = salary.toStringAsFixed(0);
-    }
+    _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
     _loadUseCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   Future<void> _loadUseCount() async {

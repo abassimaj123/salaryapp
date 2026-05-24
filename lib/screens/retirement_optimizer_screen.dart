@@ -164,9 +164,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    if (salary > 0) {
-      _grossCtrl.text = salary.toStringAsFixed(0);
-    }
+    _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override

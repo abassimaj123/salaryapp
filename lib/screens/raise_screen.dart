@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -24,7 +24,7 @@ class RaiseScreen extends StatefulWidget {
 class _RaiseScreenState extends State<RaiseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _currentCtrl = TextEditingController();
-  final _raiseCtrl = TextEditingController();
+  final _raiseCtrl = TextEditingController(text: '5');
 
   /// true = percentage raise, false = dollar/pound raise
   bool _isPercent = true;
@@ -36,7 +36,14 @@ class _RaiseScreenState extends State<RaiseScreen> {
     super.initState();
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
       _currentCtrl.text = widget.initialSalary!.toStringAsFixed(0);
+    } else {
+      _currentCtrl.text = salaryNotifier.value > 0
+          ? salaryNotifier.value.toStringAsFixed(0)
+          : '75000';
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override
