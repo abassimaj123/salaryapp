@@ -57,7 +57,16 @@ const _brackets = [
 ];
 
 const _provinces = [
-  'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'ON', 'PE', 'QC', 'SK',
+  'AB',
+  'BC',
+  'MB',
+  'NB',
+  'NL',
+  'NS',
+  'ON',
+  'PE',
+  'QC',
+  'SK',
 ];
 
 const _provinceNames = {
@@ -126,8 +135,8 @@ class _RrspEngine {
     required String province,
   }) {
     final bracket = _brackets[targetBracketIndex];
-    final contribution = calcRrspToReachBracket(
-        grossIncome, bracket.taxableMax, rrspRoom);
+    final contribution =
+        calcRrspToReachBracket(grossIncome, bracket.taxableMax, rrspRoom);
 
     final marginalRate = _marginalRate(grossIncome, 0);
     // Also fold in approximate provincial rate
@@ -268,7 +277,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     );
 
     // Gate after 3 uses if not premium
-    final shouldGate = !freemiumService.hasFullAccess && _useCount > _kGateAfterUses;
+    final shouldGate =
+        !freemiumService.hasFullAccess && _useCount > _kGateAfterUses;
 
     setState(() {
       _result = result;
@@ -300,8 +310,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   String _fmt(double v) =>
       NumberFormat.currency(symbol: 'CA\$', decimalDigits: 0).format(v);
 
-  String _pct(double v) =>
-      '${(v * 100).toStringAsFixed(1)}%';
+  String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 
   @override
   Widget build(BuildContext context) {
@@ -316,7 +325,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
 
         final titleStr = fr ? 'Optimiseur REER' : 'RRSP Optimizer';
         final grossLabel = fr ? 'Revenu annuel brut' : 'Gross Annual Income';
-        final rrspRoomLabel = fr ? 'Droits REER disponibles' : 'RRSP Contribution Room';
+        final rrspRoomLabel =
+            fr ? 'Droits REER disponibles' : 'RRSP Contribution Room';
         final bracketLabel = fr ? 'Tranche cible' : 'Target Federal Bracket';
         final provinceLabel = fr ? 'Province' : 'Province';
         final calcLabel = fr ? 'Calculer' : 'Calculate';
@@ -353,9 +363,12 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                             children: [
                               TextFormField(
                                 controller: _grossCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[\d.,]')),
                                 ],
                                 decoration: InputDecoration(
                                   labelText: grossLabel,
@@ -369,9 +382,12 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _rrspRoomCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[\d.,]')),
                                 ],
                                 decoration: InputDecoration(
                                   labelText: rrspRoomLabel,
@@ -416,15 +432,15 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 items: _provinces
                                     .map((p) => DropdownMenuItem(
                                           value: p,
-                                          child: Text(
-                                              _provinceNames[p] ?? p,
+                                          child: Text(_provinceNames[p] ?? p,
                                               style: const TextStyle(
                                                   fontSize: AppTextSize.body)),
                                         ))
                                     .toList(),
                                 onChanged: (v) {
                                   if (v != null) setState(() => _province = v);
-                                  analyticsService.logProvinceSwitched(v ?? _province);
+                                  analyticsService
+                                      .logProvinceSwitched(v ?? _province);
                                 },
                               ),
                             ],
@@ -513,7 +529,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   }
 
   Widget _buildResults(BuildContext context, _RrspResult r, bool fr) {
-    final heroLabel = fr ? 'Cotisation REER recommandée' : 'Recommended RRSP Contribution';
+    final heroLabel =
+        fr ? 'Cotisation REER recommandée' : 'Recommended RRSP Contribution';
     final heroValue = _fmt(r.contribution);
 
     return Column(
@@ -529,7 +546,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                   : 'You\'re already in the target bracket')
               : null,
           gradient: LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.75)],
+            colors: [
+              AppTheme.primary,
+              AppTheme.primary.withValues(alpha: 0.75)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -549,21 +569,28 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
               child: Column(
                 children: [
                   MetricRow(
-                    label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund',
+                    label: fr
+                        ? 'Remboursement fiscal estimé'
+                        : 'Estimated Tax Refund',
                     value: _fmt(r.taxSaving),
                     valueColor: AppTheme.success,
                   ),
                   MetricRow(
-                    label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund',
+                    label: fr
+                        ? 'Coût net après remboursement'
+                        : 'Net Cost After Refund',
                     value: _fmt(r.netCost),
                     valueColor: AppTheme.primary,
                   ),
                   MetricRow(
-                    label: fr ? 'Taux marginal combiné' : 'Combined Marginal Rate',
+                    label:
+                        fr ? 'Taux marginal combiné' : 'Combined Marginal Rate',
                     value: _pct(r.marginalRate),
                   ),
                   MetricRow(
-                    label: fr ? 'Tranche après cotisation' : 'Bracket After Contribution',
+                    label: fr
+                        ? 'Tranche après cotisation'
+                        : 'Bracket After Contribution',
                     value: r.bracketLabel,
                     valueColor: AppTheme.success,
                   ),
@@ -629,7 +656,8 @@ class _GateCard extends StatelessWidget {
                 ? 'Débloquez l\'économie fiscale, le coût net et les droits restants.'
                 : 'Unlock tax savings, net cost, and remaining room.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+            style:
+                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
           ),
           const SizedBox(height: 16),
           SizedBox(

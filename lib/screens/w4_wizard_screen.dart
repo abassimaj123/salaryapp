@@ -1055,12 +1055,18 @@ class _Step3Results extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: isRefund
                   ? LinearGradient(
-                      colors: [AppTheme.success, CalcwiseSemanticColors.successDeep],
+                      colors: [
+                        AppTheme.success,
+                        CalcwiseSemanticColors.successDeep
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : LinearGradient(
-                      colors: [AppTheme.error, CalcwiseSemanticColors.errorDark],
+                      colors: [
+                        AppTheme.error,
+                        CalcwiseSemanticColors.errorDark
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

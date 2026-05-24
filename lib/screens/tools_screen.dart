@@ -53,7 +53,8 @@ class ToolsScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const RaiseCalculatorScreen(),
+                            pageBuilder: (_, __, ___) =>
+                                const RaiseCalculatorScreen(),
                             transitionsBuilder: (_, anim, __, child) =>
                                 FadeTransition(opacity: anim, child: child),
                             transitionDuration: AppDuration.base,
@@ -82,7 +83,8 @@ class ToolsScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.md),
                       _ToolCard(
                         icon: Icons.assignment_rounded,
-                        title: useAlt ? 'Asistente W-4' : 'W-4 Withholding Wizard',
+                        title:
+                            useAlt ? 'Asistente W-4' : 'W-4 Withholding Wizard',
                         subtitle: useAlt
                             ? 'Optimiza tu retención federal'
                             : 'Get your federal withholding exactly right',
@@ -120,47 +122,49 @@ class ToolsScreen extends StatelessWidget {
                       ),
                     ],
                     if (FlavorConfig.isUS) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _ToolCard(
-                      icon: Icons.compare_arrows_rounded,
-                      title: useAlt ? 'Comparar Salarios' : 'Salary Comparison',
-                      subtitle: useAlt
-                          ? 'Compara dos ofertas: neto, impuestos, mensual'
-                          : 'Compare two offers: net pay, taxes, monthly',
-                      onTap: () async {
-                        analyticsService.logCalculationCompleted(
-                            params: {'action': 'salary_comparison_tapped'});
-                        final trigger = await paywallSession.recordAction();
-                        if (!context.mounted) return;
-                        if (trigger == PaywallTrigger.hard) {
-                          analyticsService.logPaywallViewed('session_hard');
-                          PaywallHard.show(context);
-                          return;
-                        } else if (trigger == PaywallTrigger.soft) {
-                          analyticsService.logPaywallViewed('session_soft');
-                          PaywallSoft.show(context,
-                              featureTitle: useAlt
-                                  ? 'Comparar Salarios'
-                                  : 'Salary Comparison');
-                        }
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const SalaryComparisonScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          ),
-                        );
-                      },
-                    ),
-                  ], // end FlavorConfig.isUS (Salary Comparison)
+                      const SizedBox(height: AppSpacing.md),
+                      _ToolCard(
+                        icon: Icons.compare_arrows_rounded,
+                        title:
+                            useAlt ? 'Comparar Salarios' : 'Salary Comparison',
+                        subtitle: useAlt
+                            ? 'Compara dos ofertas: neto, impuestos, mensual'
+                            : 'Compare two offers: net pay, taxes, monthly',
+                        onTap: () async {
+                          analyticsService.logCalculationCompleted(
+                              params: {'action': 'salary_comparison_tapped'});
+                          final trigger = await paywallSession.recordAction();
+                          if (!context.mounted) return;
+                          if (trigger == PaywallTrigger.hard) {
+                            analyticsService.logPaywallViewed('session_hard');
+                            PaywallHard.show(context);
+                            return;
+                          } else if (trigger == PaywallTrigger.soft) {
+                            analyticsService.logPaywallViewed('session_soft');
+                            PaywallSoft.show(context,
+                                featureTitle: useAlt
+                                    ? 'Comparar Salarios'
+                                    : 'Salary Comparison');
+                          }
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (_, __, ___) =>
+                                  const SalaryComparisonScreen(),
+                              transitionsBuilder: (_, anim, __, child) =>
+                                  FadeTransition(opacity: anim, child: child),
+                              transitionDuration: AppDuration.base,
+                            ),
+                          );
+                        },
+                      ),
+                    ], // end FlavorConfig.isUS (Salary Comparison)
                     if (FlavorConfig.isUS) ...[
                       const SizedBox(height: AppSpacing.md),
                       _ToolCard(
                         icon: Icons.savings_rounded,
-                        title: useAlt ? 'Optimizador 401(k)' : '401(k) Optimizer',
+                        title:
+                            useAlt ? 'Optimizador 401(k)' : '401(k) Optimizer',
                         subtitle: useAlt
                             ? 'Minimiza impuestos con aportes al 401(k)'
                             : 'Minimize taxes with optimal 401(k) contributions',
@@ -242,7 +246,8 @@ class _ToolCard extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+            color:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
             shape: BoxShape.circle,
           ),
           child: Icon(icon,

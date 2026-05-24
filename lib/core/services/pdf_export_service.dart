@@ -327,7 +327,8 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
         const SizedBox(height: 6),
         Text(subtitleLabel,
             style: TextStyle(
-                fontSize: AppTextSize.md, color: CalcwiseTheme.of(context).textSecondary)),
+                fontSize: AppTextSize.md,
+                color: CalcwiseTheme.of(context).textSecondary)),
         const SizedBox(height: 24),
         Opacity(
           opacity: adReady ? 1.0 : 0.45,
@@ -398,7 +399,8 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(notNowLabel,
-                style: TextStyle(color: CalcwiseTheme.of(context).textSecondary))),
+                style:
+                    TextStyle(color: CalcwiseTheme.of(context).textSecondary))),
       ]),
     );
   }

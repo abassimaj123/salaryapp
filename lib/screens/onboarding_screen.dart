@@ -25,11 +25,21 @@ class OnboardingScreen extends StatelessWidget {
           title: 'Know What You\nActually Take Home',
           subtitle:
               'CPP2, EI, provincial tax — your real paycheque in French or English.',
-          pills: ['Français / English', 'CPP2 2025', 'QC Abatement', 'Hourly Rate'],
+          pills: [
+            'Français / English',
+            'CPP2 2025',
+            'QC Abatement',
+            'Hourly Rate'
+          ],
           titleFr: 'Calculez votre\nsalaire net',
           subtitleFr:
               'RPC2, AE, impôt provincial — votre vrai chèque de paie en français ou en anglais.',
-          pillsFr: ['Français / English', 'RPC2 2025', 'Abattement QC', 'Taux horaire'],
+          pillsFr: [
+            'Français / English',
+            'RPC2 2025',
+            'Abattement QC',
+            'Taux horaire'
+          ],
         ),
         OnboardingPage(
           icon: Icons.map_rounded,
@@ -63,13 +73,17 @@ class OnboardingScreen extends StatelessWidget {
           title: 'Know What You\nActually Take Home',
           subtitle:
               'Scottish Income Tax, NI 2025 bands, salary sacrifice — all calculated for your pay.',
-          pills: ['Scottish Tax', 'NI 2025', 'Salary Sacrifice', 'Student Loan'],
+          pills: [
+            'Scottish Tax',
+            'NI 2025',
+            'Salary Sacrifice',
+            'Student Loan'
+          ],
         ),
         OnboardingPage(
           icon: Icons.account_balance_rounded,
           title: 'UK Tax,\nSimplified',
-          subtitle:
-              'Income Tax and NI calculated for your salary — instantly.',
+          subtitle: 'Income Tax and NI calculated for your salary — instantly.',
           pills: ['Income Tax', 'National Insurance', 'Net Pay'],
         ),
         OnboardingPage(

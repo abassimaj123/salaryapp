@@ -30,7 +30,8 @@ class PremiumCtaWidget extends StatelessWidget {
           onTap: () => IAPService.instance.buy(),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Padding(
-            padding: EdgeInsets.all(compact ? AppSpacing.smPlus : AppSpacing.mdPlus),
+            padding:
+                EdgeInsets.all(compact ? AppSpacing.smPlus : AppSpacing.mdPlus),
             child: Row(children: [
               Container(
                 padding: const EdgeInsets.all(AppSpacing.smPlus),
@@ -38,7 +39,8 @@ class PremiumCtaWidget extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
-                child: const Icon(Icons.star_rounded, color: Colors.white, size: 26),
+                child: const Icon(Icons.star_rounded,
+                    color: Colors.white, size: 26),
               ),
               const SizedBox(width: AppSpacing.mdPlus),
               Expanded(

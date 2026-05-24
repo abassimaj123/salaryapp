@@ -110,7 +110,9 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
             Text(
                 _altLabel(
                     'Also from us', 'También de nosotros', 'Aussi de nous'),
-                style: TextStyle(fontSize: 10, color: CalcwiseTheme.of(context).textSecondary)),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: CalcwiseTheme.of(context).textSecondary)),
           ]),
           const SizedBox(height: AppSpacing.xxs),
           Text(_targetName,
@@ -120,7 +122,8 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
                   color: CalcwiseTheme.of(context).textPrimary)),
           Text(_altLabel(_targetTagline, _targetTaglineEs, _targetTaglineFr),
               style: TextStyle(
-                  fontSize: AppTextSize.xs, color: CalcwiseTheme.of(context).textSecondary)),
+                  fontSize: AppTextSize.xs,
+                  color: CalcwiseTheme.of(context).textSecondary)),
         ])),
         const SizedBox(width: AppSpacing.sm),
         Column(children: [

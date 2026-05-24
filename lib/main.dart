@@ -227,8 +227,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      systemNavigationBarColor:
-          Theme.of(context).colorScheme.surface,
+      systemNavigationBarColor: Theme.of(context).colorScheme.surface,
       systemNavigationBarIconBrightness:
           isDark ? Brightness.light : Brightness.dark,
       statusBarColor: Colors.transparent,

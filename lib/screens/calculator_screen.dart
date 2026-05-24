@@ -463,8 +463,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       ),
                                       // Student loan toggle
                                       ValueListenableBuilder<bool>(
-                                        valueListenable:
-                                            ukStudentLoanNotifier,
+                                        valueListenable: ukStudentLoanNotifier,
                                         builder: (context, hasLoan, _) =>
                                             SwitchListTile.adaptive(
                                           contentPadding: EdgeInsets.zero,
@@ -945,7 +944,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
         SizedBox(height: 12),
 
         // CA reverse-mode: show required gross to achieve the target net
-        if (FlavorConfig.isCA && widget.caReverseMode && widget.caRequiredGross != null) ...[
+        if (FlavorConfig.isCA &&
+            widget.caReverseMode &&
+            widget.caRequiredGross != null) ...[
           _CaReverseResultBanner(
             requiredGross: widget.caRequiredGross!,
             targetNet: adjustedNetAnnual,
@@ -1000,39 +1001,39 @@ class _ResultsSectionState extends State<_ResultsSection> {
                       '${federalLabel} ${_currencyFmt0.format(result.federalTax)}, '
                       'Net ${_currencyFmt0.format(result.netAnnual)}',
                   child: SankeyChart(
-                  gross: result.grossAnnual,
-                  currencySymbol: FlavorConfig.currencySymbol,
-                  outflows: [
-                    if (result.federalTax > 0)
+                    gross: result.grossAnnual,
+                    currencySymbol: FlavorConfig.currencySymbol,
+                    outflows: [
+                      if (result.federalTax > 0)
+                        SankeyFlow(
+                          label: federalLabel,
+                          value: result.federalTax,
+                          color: CalcwiseTheme.of(context).errorRed,
+                        ),
+                      if (result.ficaTax > 0)
+                        SankeyFlow(
+                          label: ficaLabel,
+                          value: result.ficaTax,
+                          color: Colors.orange,
+                        ),
+                      if (!FlavorConfig.isUK && result.stateTax > 0)
+                        SankeyFlow(
+                          label: stateLabel,
+                          value: result.stateTax,
+                          color: Colors.purple,
+                        ),
+                      if (localTax > 0)
+                        SankeyFlow(
+                          label: localLabel,
+                          value: localTax,
+                          color: AppTheme.gold, // yellow/gold
+                        ),
                       SankeyFlow(
-                        label: federalLabel,
-                        value: result.federalTax,
-                        color: CalcwiseTheme.of(context).errorRed,
+                        label: netLabel,
+                        value: adjustedNetAnnual > 0 ? adjustedNetAnnual : 0,
+                        color: AppTheme.success,
                       ),
-                    if (result.ficaTax > 0)
-                      SankeyFlow(
-                        label: ficaLabel,
-                        value: result.ficaTax,
-                        color: Colors.orange,
-                      ),
-                    if (!FlavorConfig.isUK && result.stateTax > 0)
-                      SankeyFlow(
-                        label: stateLabel,
-                        value: result.stateTax,
-                        color: Colors.purple,
-                      ),
-                    if (localTax > 0)
-                      SankeyFlow(
-                        label: localLabel,
-                        value: localTax,
-                        color: AppTheme.gold, // yellow/gold
-                      ),
-                    SankeyFlow(
-                      label: netLabel,
-                      value: adjustedNetAnnual > 0 ? adjustedNetAnnual : 0,
-                      color: AppTheme.success,
-                    ),
-                  ],
+                    ],
                   ),
                 ),
               ],
@@ -2245,8 +2246,7 @@ class _CaReverseResultBanner extends StatelessWidget {
                       ? 'Pour obtenir un net de $netFmt'
                       : 'To achieve a take-home of $netFmt',
                   style: TextStyle(
-                      fontSize: AppTextSize.sm,
-                      color: AppTheme.labelGray),
+                      fontSize: AppTextSize.sm, color: AppTheme.labelGray),
                 ),
               ],
             ),
@@ -2309,8 +2309,8 @@ class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
           SizedBox(height: 8),
           Text(
             'On $sacrificeFmt sacrifice you save:',
-            style: TextStyle(
-                fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+            style:
+                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
           ),
           SizedBox(height: 6),
           Row(

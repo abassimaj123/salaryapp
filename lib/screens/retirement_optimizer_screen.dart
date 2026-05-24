@@ -48,9 +48,10 @@ class _K401Engine {
     if (taxableIncome <= 0) return 0;
     if (status == _FilingStatus.marriedFilingJointly) {
       return UsSalaryEngine.federalTax(
-        taxableIncome + (status == _FilingStatus.marriedFilingJointly
-            ? _stdMfj
-            : _stdSingle),
+        taxableIncome +
+            (status == _FilingStatus.marriedFilingJointly
+                ? _stdMfj
+                : _stdSingle),
         marriedFilingJointly: true,
       );
     }
@@ -78,10 +79,9 @@ class _K401Engine {
 
     // Federal tax calculation — pass gross so UsSalaryEngine subtracts std deduction
     final isMfj = filingStatus == _FilingStatus.marriedFilingJointly;
-    final taxWithout = UsSalaryEngine.federalTax(grossIncome,
-        marriedFilingJointly: isMfj);
-    final taxWith = UsSalaryEngine.federalTax(
-        grossIncome - contribution,
+    final taxWithout =
+        UsSalaryEngine.federalTax(grossIncome, marriedFilingJointly: isMfj);
+    final taxWith = UsSalaryEngine.federalTax(grossIncome - contribution,
         marriedFilingJointly: isMfj);
 
     final taxSaving = taxWithout - taxWith;
@@ -91,8 +91,8 @@ class _K401Engine {
     // Projection: compound growth at 7% annual return
     const double annualReturn = 0.07;
     const int years30 = 30;
-    final projValue30 = contribution *
-        ((pow(1 + annualReturn, years30) - 1) / annualReturn);
+    final projValue30 =
+        contribution * ((pow(1 + annualReturn, years30) - 1) / annualReturn);
 
     // Verdict
     final utilizationPct = limit > 0 ? (contribution / limit) * 100 : 0;
@@ -149,8 +149,7 @@ class RetirementOptimizerScreen extends StatefulWidget {
       _RetirementOptimizerScreenState();
 }
 
-class _RetirementOptimizerScreenState
-    extends State<RetirementOptimizerScreen> {
+class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
   final _grossCtrl = TextEditingController();
 
   double _contributionPct = 10.0; // 10% default
@@ -343,8 +342,10 @@ class _RetirementOptimizerScreenState
                               if (_parseGross() > 0) ...[
                                 Text(
                                   () {
-                                    final limit = _K401Engine.contributionLimit(_age50Plus);
-                                    final raw = _parseGross() * _contributionPct / 100;
+                                    final limit = _K401Engine.contributionLimit(
+                                        _age50Plus);
+                                    final raw =
+                                        _parseGross() * _contributionPct / 100;
                                     final capped = min(raw, limit);
                                     final capped0 = NumberFormat.currency(
                                             symbol: '\$', decimalDigits: 0)
@@ -390,9 +391,7 @@ class _RetirementOptimizerScreenState
                                 children: [
                                   Expanded(
                                     child: _ToggleChip(
-                                      label: es
-                                          ? 'Menor de 50'
-                                          : 'Under 50',
+                                      label: es ? 'Menor de 50' : 'Under 50',
                                       selected: !_age50Plus,
                                       onTap: () =>
                                           setState(() => _age50Plus = false),
@@ -437,8 +436,8 @@ class _RetirementOptimizerScreenState
                                   Expanded(
                                     child: _ToggleChip(
                                       label: es ? 'Soltero' : 'Single',
-                                      selected: _filingStatus ==
-                                          _FilingStatus.single,
+                                      selected:
+                                          _filingStatus == _FilingStatus.single,
                                       onTap: () => setState(() =>
                                           _filingStatus = _FilingStatus.single),
                                     ),
@@ -452,8 +451,8 @@ class _RetirementOptimizerScreenState
                                       selected: _filingStatus ==
                                           _FilingStatus.marriedFilingJointly,
                                       onTap: () => setState(() =>
-                                          _filingStatus =
-                                              _FilingStatus.marriedFilingJointly),
+                                          _filingStatus = _FilingStatus
+                                              .marriedFilingJointly),
                                     ),
                                   ),
                                 ],
@@ -542,11 +541,9 @@ class _RetirementOptimizerScreenState
     );
   }
 
-  Widget _buildResults(
-      BuildContext context, _RetirementResult r, bool es) {
-    final heroLabel = es
-        ? 'Aportación 401(k) anual'
-        : '401(k) Annual Contribution';
+  Widget _buildResults(BuildContext context, _RetirementResult r, bool es) {
+    final heroLabel =
+        es ? 'Aportación 401(k) anual' : '401(k) Annual Contribution';
     final heroValue = _fmt(r.contribution);
 
     return Column(
@@ -559,7 +556,10 @@ class _RetirementOptimizerScreenState
               ? (es ? 'Máximo IRS alcanzado' : 'IRS max reached')
               : null,
           gradient: LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.75)],
+            colors: [
+              AppTheme.primary,
+              AppTheme.primary.withValues(alpha: 0.75)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -612,8 +612,7 @@ class _RetirementOptimizerScreenState
           decoration: BoxDecoration(
             color: AppTheme.success.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border:
-                Border.all(color: AppTheme.success.withValues(alpha: 0.25)),
+            border: Border.all(color: AppTheme.success.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
@@ -649,8 +648,7 @@ class _RetirementOptimizerScreenState
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border:
-                Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+            border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,7 +659,9 @@ class _RetirementOptimizerScreenState
                       color: AppTheme.primary, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    es ? 'Proyección a 30 años (7% anual)' : '30-Year Projection at 7% Return',
+                    es
+                        ? 'Proyección a 30 años (7% anual)'
+                        : '30-Year Projection at 7% Return',
                     style: TextStyle(
                         fontSize: AppTextSize.md,
                         fontWeight: FontWeight.w600,
@@ -788,8 +788,8 @@ class _GateCard extends StatelessWidget {
                 ? 'Desbloquea proyecciones, ahorro fiscal y análisis detallado.'
                 : 'Unlock projections, tax savings, and detailed analysis.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+            style:
+                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
           ),
           const SizedBox(height: 16),
           SizedBox(

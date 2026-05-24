@@ -71,10 +71,14 @@ class UsSalaryEngine {
     if (taxableIncome <= 0) return 0;
     if (taxableIncome <= 11925) return taxableIncome * 0.10;
     if (taxableIncome <= 48475) return 1192.50 + (taxableIncome - 11925) * 0.12;
-    if (taxableIncome <= 103350) return 5578.50 + (taxableIncome - 48475) * 0.22;
-    if (taxableIncome <= 197300) return 17651.00 + (taxableIncome - 103350) * 0.24;
-    if (taxableIncome <= 250525) return 40199.00 + (taxableIncome - 197300) * 0.32;
-    if (taxableIncome <= 626350) return 57231.00 + (taxableIncome - 250525) * 0.35;
+    if (taxableIncome <= 103350)
+      return 5578.50 + (taxableIncome - 48475) * 0.22;
+    if (taxableIncome <= 197300)
+      return 17651.00 + (taxableIncome - 103350) * 0.24;
+    if (taxableIncome <= 250525)
+      return 40199.00 + (taxableIncome - 197300) * 0.32;
+    if (taxableIncome <= 626350)
+      return 57231.00 + (taxableIncome - 250525) * 0.35;
     return 188769.75 + (taxableIncome - 626350) * 0.37;
   }
 
@@ -83,10 +87,14 @@ class UsSalaryEngine {
     if (taxableIncome <= 0) return 0;
     if (taxableIncome <= 23850) return taxableIncome * 0.10;
     if (taxableIncome <= 96950) return 2385.00 + (taxableIncome - 23850) * 0.12;
-    if (taxableIncome <= 206700) return 11157.00 + (taxableIncome - 96950) * 0.22;
-    if (taxableIncome <= 394600) return 35302.00 + (taxableIncome - 206700) * 0.24;
-    if (taxableIncome <= 501050) return 80398.00 + (taxableIncome - 394600) * 0.32;
-    if (taxableIncome <= 751600) return 114462.00 + (taxableIncome - 501050) * 0.35;
+    if (taxableIncome <= 206700)
+      return 11157.00 + (taxableIncome - 96950) * 0.22;
+    if (taxableIncome <= 394600)
+      return 35302.00 + (taxableIncome - 206700) * 0.24;
+    if (taxableIncome <= 501050)
+      return 80398.00 + (taxableIncome - 394600) * 0.32;
+    if (taxableIncome <= 751600)
+      return 114462.00 + (taxableIncome - 501050) * 0.35;
     return 202154.50 + (taxableIncome - 751600) * 0.37;
   }
 
@@ -97,11 +105,10 @@ class UsSalaryEngine {
     bool marriedFilingJointly = false,
     double preTaxDeductions = 0,
   }) {
-    final stdDeduction = marriedFilingJointly
-        ? _stdDeductionMfj2025
-        : _stdDeductionSingle2025;
-    final taxableIncome =
-        (grossAnnual - stdDeduction - preTaxDeductions).clamp(0.0, double.infinity);
+    final stdDeduction =
+        marriedFilingJointly ? _stdDeductionMfj2025 : _stdDeductionSingle2025;
+    final taxableIncome = (grossAnnual - stdDeduction - preTaxDeductions)
+        .clamp(0.0, double.infinity);
     return marriedFilingJointly
         ? _federalTaxOnTaxableMfj(taxableIncome)
         : _federalTaxOnTaxable(taxableIncome);
@@ -309,8 +316,9 @@ class UsSalaryEngine {
     bool marriedFilingJointly = false,
     double preTaxDeductions = 0,
   }) {
-    final federal =
-        federalTax(grossAnnual, marriedFilingJointly: marriedFilingJointly, preTaxDeductions: preTaxDeductions);
+    final federal = federalTax(grossAnnual,
+        marriedFilingJointly: marriedFilingJointly,
+        preTaxDeductions: preTaxDeductions);
     final ficaAmt = fica(grossAnnual);
     final stateAmt = stateTax(grossAnnual, state);
     final total = federal + ficaAmt + stateAmt;
@@ -396,12 +404,14 @@ class UkSalaryEngine {
 
   /// England & Wales income tax 2026/27. Personal allowance: £12,570.
   /// Allowance is tapered by £1 per £2 of income over £100,000.
-  static double _englandWalesIncomeTax(double grossAnnual, {double salarySacrifice = 0}) {
+  static double _englandWalesIncomeTax(double grossAnnual,
+      {double salarySacrifice = 0}) {
     final adjustedGross = grossAnnual - salarySacrifice;
     // Taper personal allowance above £100,000: £1 reduction per £2 excess
     double pa = _personalAllowance;
     if (adjustedGross > 100000) {
-      pa = (_personalAllowance - (adjustedGross - 100000) / 2).clamp(0.0, double.infinity);
+      pa = (_personalAllowance - (adjustedGross - 100000) / 2)
+          .clamp(0.0, double.infinity);
     }
     final taxable = (adjustedGross - pa).clamp(0.0, double.infinity);
     if (taxable <= 0) return 0;
@@ -411,12 +421,14 @@ class UkSalaryEngine {
   }
 
   /// Scottish income tax 2026/27. Personal allowance: £12,570 (tapered above £100k).
-  static double _scottishIncomeTax(double grossAnnual, {double salarySacrifice = 0}) {
+  static double _scottishIncomeTax(double grossAnnual,
+      {double salarySacrifice = 0}) {
     final adjustedGross = grossAnnual - salarySacrifice;
     // Taper personal allowance above £100,000
     double pa = _personalAllowance;
     if (adjustedGross > 100000) {
-      pa = (_personalAllowance - (adjustedGross - 100000) / 2).clamp(0.0, double.infinity);
+      pa = (_personalAllowance - (adjustedGross - 100000) / 2)
+          .clamp(0.0, double.infinity);
     }
     final taxable = (adjustedGross - pa).clamp(0.0, double.infinity);
     if (taxable <= 0) return 0;
@@ -457,14 +469,19 @@ class UkSalaryEngine {
   }) =>
       scotland
           ? _scottishIncomeTax(grossAnnual, salarySacrifice: salarySacrifice)
-          : _englandWalesIncomeTax(grossAnnual, salarySacrifice: salarySacrifice);
+          : _englandWalesIncomeTax(grossAnnual,
+              salarySacrifice: salarySacrifice);
 
   /// NI Class 1 (employee) 2026/27: 8% on £12,570–£50,270, 2% above.
   /// Salary sacrifice reduces NIable earnings.
-  static double nationalInsurance(double grossAnnual, {double salarySacrifice = 0}) {
+  static double nationalInsurance(double grossAnnual,
+      {double salarySacrifice = 0}) {
     final niableGross = grossAnnual - salarySacrifice;
     if (niableGross <= _niPrimaryThreshold) return 0;
-    final lower = (niableGross.clamp(_niPrimaryThreshold, _niUpperEarningsLimit) - _niPrimaryThreshold) * 0.08;
+    final lower =
+        (niableGross.clamp(_niPrimaryThreshold, _niUpperEarningsLimit) -
+                _niPrimaryThreshold) *
+            0.08;
     final upper = niableGross > _niUpperEarningsLimit
         ? (niableGross - _niUpperEarningsLimit) * 0.02
         : 0.0;
@@ -492,9 +509,11 @@ class UkSalaryEngine {
   }) {
     if (salarySacrifice <= 0) return (0, 0);
     final taxWithout = incomeTax(grossAnnual, scotland: scotland);
-    final taxWith = incomeTax(grossAnnual, scotland: scotland, salarySacrifice: salarySacrifice);
+    final taxWith = incomeTax(grossAnnual,
+        scotland: scotland, salarySacrifice: salarySacrifice);
     final niWithout = nationalInsurance(grossAnnual);
-    final niWith = nationalInsurance(grossAnnual, salarySacrifice: salarySacrifice);
+    final niWith =
+        nationalInsurance(grossAnnual, salarySacrifice: salarySacrifice);
     return (taxWithout - taxWith, niWithout - niWith);
   }
 
@@ -509,9 +528,11 @@ class UkSalaryEngine {
     bool scotland = false,
     double salarySacrifice = 0,
   }) {
-    final income = incomeTax(grossAnnual, scotland: scotland, salarySacrifice: salarySacrifice);
+    final income = incomeTax(grossAnnual,
+        scotland: scotland, salarySacrifice: salarySacrifice);
     final ni = nationalInsurance(grossAnnual, salarySacrifice: salarySacrifice);
-    final sl = studentLoan ? studentLoanRepayment(grossAnnual, plan: loanPlan) : 0.0;
+    final sl =
+        studentLoan ? studentLoanRepayment(grossAnnual, plan: loanPlan) : 0.0;
     // ficaTax stores NI + student loan so the result model stays unchanged.
     final ficaTotal = ni + sl;
     final total = income + ficaTotal;
@@ -557,7 +578,8 @@ class CaSalaryEngine {
 
   /// CPP1 2025: 5.95% on earnings $3,500–$71,300 (YMPE).
   static double cpp1(double grossAnnual) {
-    final pensionable = grossAnnual.clamp(_cpp1BasicExemption, _ympe2025) - _cpp1BasicExemption;
+    final pensionable =
+        grossAnnual.clamp(_cpp1BasicExemption, _ympe2025) - _cpp1BasicExemption;
     return pensionable * _cpp1Rate;
   }
 
@@ -569,7 +591,8 @@ class CaSalaryEngine {
   }
 
   /// Combined CPP (CPP1 + CPP2) 2025.
-  static double cpp(double grossAnnual) => cpp1(grossAnnual) + cpp2(grossAnnual);
+  static double cpp(double grossAnnual) =>
+      cpp1(grossAnnual) + cpp2(grossAnnual);
 
   /// EI 2025: 1.66% up to insurable max $65,700.
   static double ei(double grossAnnual) {

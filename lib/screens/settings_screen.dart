@@ -144,7 +144,8 @@ class _PremiumSection extends StatelessWidget {
                 ]
               : [
                   // ── UK: Lifetime "Best Value" card (shown above standard) ──
-                  if (FlavorConfig.isUK) _LifetimeCard(premiumDesc: premiumDesc),
+                  if (FlavorConfig.isUK)
+                    _LifetimeCard(premiumDesc: premiumDesc),
 
                   CalcwiseSettingsTile(
                     icon: Icons.star_rounded,
@@ -475,8 +476,7 @@ class _LifetimeCard extends StatelessWidget {
                                 horizontal: AppSpacing.smPlus, vertical: 2),
                             decoration: BoxDecoration(
                               color: CalcwiseSemanticColors.premiumGold,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.sm),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: const Text(
                               'BEST VALUE',

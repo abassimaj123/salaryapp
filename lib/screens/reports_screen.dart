@@ -3,12 +3,7 @@ import '../core/flavor_config.dart';
 import '../main.dart' show isSpanishNotifier;
 import 'tax_breakdown_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
-    show
-        CalcwiseAdFooter,
-        AppDuration,
-        AppSpacing,
-        AppRadius,
-        AppTextSize;
+    show CalcwiseAdFooter, AppDuration, AppSpacing, AppRadius, AppTextSize;
 
 /// Reports screen — salary and tax breakdown hub
 class ReportsScreen extends StatelessWidget {

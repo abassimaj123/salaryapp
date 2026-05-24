@@ -163,8 +163,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                                 vertical: AppSpacing.sm),
                             decoration: BoxDecoration(
                               color: AppTheme.warning.withValues(alpha: 0.12),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.lg),
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
                               border: Border.all(
                                   color:
                                       AppTheme.warning.withValues(alpha: 0.4)),
@@ -490,7 +489,8 @@ class _BracketProgressBar extends StatelessWidget {
   Color _color(double rate) {
     if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
     if (rate <= 0.12) return CalcwiseSemanticColors.successDark;
-    if (rate <= 0.22) return CalcwiseSemanticColors.premiumGold; // bracket color
+    if (rate <= 0.22)
+      return CalcwiseSemanticColors.premiumGold; // bracket color
     if (rate <= 0.24) return CalcwiseSemanticColors.warnIcon;
     if (rate <= 0.32) return CalcwiseSemanticColors.alertText;
     if (rate <= 0.35) return CalcwiseSemanticColors.errorDark;
