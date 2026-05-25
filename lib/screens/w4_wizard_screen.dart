@@ -434,7 +434,7 @@ class _StepIndicator extends StatelessWidget {
                       Text(
                         labels[i],
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppTextSize.xs,
                           color:
                               isActive ? AppTheme.primary : AppTheme.labelGray,
                           fontWeight:

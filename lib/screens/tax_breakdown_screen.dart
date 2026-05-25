@@ -462,7 +462,7 @@ class _TaxBreakdownSection extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.labelGray)),
       );
@@ -676,7 +676,7 @@ class _StateComparisonCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.labelGray)),
       );

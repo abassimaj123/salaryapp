@@ -483,7 +483,7 @@ class _LifetimeCard extends StatelessWidget {
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 9,
+                                fontSize: AppTextSize.xxs,
                                 letterSpacing: 0.5,
                               ),
                             ),

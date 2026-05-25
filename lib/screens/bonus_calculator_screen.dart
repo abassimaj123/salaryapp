@@ -844,7 +844,7 @@ class _MethodCard extends StatelessWidget {
                     child: const Text('BEST',
                         style: TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: AppTextSize.xxs,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5)),
                   ),
@@ -854,7 +854,7 @@ class _MethodCard extends StatelessWidget {
                         fontSize: AppTextSize.md, fontWeight: FontWeight.w700)),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(subtitle,
-                    style: TextStyle(fontSize: 10, color: AppTheme.labelGray)),
+                    style: TextStyle(fontSize: AppTextSize.xs, color: AppTheme.labelGray)),
               ],
             ),
           ),
