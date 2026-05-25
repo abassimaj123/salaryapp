@@ -104,7 +104,8 @@ class CalculatorScreen extends StatefulWidget {
   State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorScreenState extends State<CalculatorScreen> {
+class _CalculatorScreenState extends State<CalculatorScreen>
+    with CalcwiseAutoCalcMixin {
   final _formKey = GlobalKey<FormState>();
   final _salaryCtrl = TextEditingController(text: '75,000');
   final _scrollCtrl = ScrollController();
@@ -125,22 +126,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   // UK salary sacrifice
   double _salarySacrifice = 0; // £/year pre-tax deduction
 
-  Timer? _debounce;
   Timer? _saveDebounce;
 
   @override
   void initState() {
     super.initState();
     analyticsService.logScreenView('calculator');
-    _salaryCtrl.addListener(_debouncedCalculate);
+    _salaryCtrl.addListener(() => _scheduleCalcAndSave());
 
     // Trigger initial calculation with default values after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _debouncedCalculate());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scheduleCalcAndSave());
   }
 
-  void _debouncedCalculate() {
-    _debounce?.cancel();
-    _debounce = Timer(AppDuration.page, _calculate);
+  /// Schedule calc (via mixin) + auto-save 2 s after last change.
+  void _scheduleCalcAndSave() {
+    scheduleCalc(_calculate);
     // Save 2 s after last change — one history entry per pause, not per keystroke
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 2000), () {
@@ -150,9 +151,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _saveDebounce?.cancel();
-    _salaryCtrl.removeListener(_debouncedCalculate);
+    _salaryCtrl.removeListener(() => _scheduleCalcAndSave());
     _salaryCtrl.dispose();
     _salarySacrificeCtrl.dispose();
     _scrollCtrl.dispose();
@@ -365,7 +365,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       onChanged: (f) {
                                         HapticFeedback.selectionClick();
                                         setState(() => _frequency = f);
-                                        _debouncedCalculate();
+                                        _scheduleCalcAndSave();
                                       },
                                     ),
                                     if (FlavorConfig.isUS) ...[
@@ -386,7 +386,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                                   // selected city.
                                                   _usCity = null;
                                                 });
-                                                _debouncedCalculate();
+                                                _scheduleCalcAndSave();
                                               },
                                             ),
                                           ),
@@ -400,7 +400,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                                     onChanged: (v) {
                                                       setState(
                                                           () => _usCity = v);
-                                                      _debouncedCalculate();
+                                                      _scheduleCalcAndSave();
                                                     },
                                                   )
                                                 : const SizedBox.shrink(),
@@ -415,7 +415,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         useAlt: useAlt,
                                         onChanged: (v) {
                                           setState(() => _caProvince = v!);
-                                          _debouncedCalculate();
+                                          _scheduleCalcAndSave();
                                         },
                                       ),
                                       SizedBox(height: AppSpacing.sm),
@@ -428,7 +428,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                             _caRequiredGross = null;
                                             _showResults = false;
                                           });
-                                          _debouncedCalculate();
+                                          _scheduleCalcAndSave();
                                         },
                                       ),
                                     ],
@@ -457,7 +457,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                           activeColor: AppTheme.primary,
                                           onChanged: (v) {
                                             ukScotlandNotifier.value = v;
-                                            _debouncedCalculate();
+                                            _scheduleCalcAndSave();
                                           },
                                         ),
                                       ),
@@ -484,7 +484,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                           activeColor: AppTheme.primary,
                                           onChanged: (v) {
                                             ukStudentLoanNotifier.value = v;
-                                            _debouncedCalculate();
+                                            _scheduleCalcAndSave();
                                           },
                                         ),
                                       ),
@@ -494,7 +494,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         controller: _salarySacrificeCtrl,
                                         onChanged: (v) {
                                           setState(() => _salarySacrifice = v);
-                                          _debouncedCalculate();
+                                          _scheduleCalcAndSave();
                                         },
                                       ),
                                     ],

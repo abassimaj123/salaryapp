@@ -56,10 +56,10 @@ void main() {
   });
 
   group('Regression guard — UsSalaryEngine', () {
-    test('RG-US-1: federal tax 75k (bracket 22%)', () {
+    test(r'RG-US-1: federal tax 75k (2025: taxable=60k after $15k std deduction)', () {
       final tax = UsSalaryEngine.federalTax(75000);
-      // 5426 + (75000 - 47150) × 0.22 = 5426 + 6127 = 11553
-      expect(tax, closeTo(11553, 50));
+      // 2025: 1192.5+4386+22%×(60000-48475)=1192.5+4386+2535.5=8114
+      expect(tax, closeTo(8114, 50));
     });
 
     test('RG-US-2: FICA = SS 6.2% + Medicare 1.45% sur 75k', () {
