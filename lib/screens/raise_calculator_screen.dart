@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:calcwise_core/calcwise_core.dart';
 
 import '../core/flavor_config.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Raise Calculator Screen ──────────────────────────────────────────────────
 //
@@ -49,12 +48,13 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
   void initState() {
     super.initState();
     // Pre-fill from explicit param or last-used salary from main calc
+    final _fmt = NumberFormat('#,###');
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
-      _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
+      _salaryCtrl.text = _fmt.format(widget.initialSalary!.round());
     } else if (salaryNotifier.value > 0) {
-      _salaryCtrl.text = salaryNotifier.value.toStringAsFixed(0);
+      _salaryCtrl.text = _fmt.format(salaryNotifier.value.round());
     } else {
-      _salaryCtrl.text = '75000';
+      _salaryCtrl.text = '75,000';
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _calculate();
@@ -373,12 +373,15 @@ class _InputSection extends StatelessWidget {
             controller: salaryCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))
+              CurrencyInputFormatter(
+                  locale: FlavorConfig.isCA
+                      ? 'en_CA'
+                      : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
             ],
             decoration: InputDecoration(
               prefixText: '$sym ',
               labelText: salaryLabel,
-              hintText: '60000',
+              hintText: '60,000',
             ),
             style: const TextStyle(
                 fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
@@ -492,12 +495,15 @@ class _InputSection extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 prefixText: '$sym ',
                 labelText: flatField,
-                hintText: flatHint,
+                hintText: 'e.g. 5,000',
               ),
               style: const TextStyle(
                   fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),

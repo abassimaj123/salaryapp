@@ -193,7 +193,7 @@ class BonusCalculatorScreen extends StatefulWidget {
 class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _salaryCtrl = TextEditingController();
-  final _bonusCtrl = TextEditingController(text: '5000');
+  final _bonusCtrl = TextEditingController(text: '5,000');
   final _scrollCtrl = ScrollController();
 
   String _usState = 'CA';
@@ -206,7 +206,9 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    _salaryCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    _salaryCtrl.text = salary > 0
+        ? NumberFormat('#,###').format(salary.round())
+        : '75,000';
     // Load saved province for CA flavor
     if (FlavorConfig.isCA) {
       SharedPreferences.getInstance().then((prefs) {
@@ -382,12 +384,15 @@ class _InputCard extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 labelText: salaryLabel,
                 prefixText: '$symbol ',
-                hintText: '75000',
+                hintText: '75,000',
               ),
               style: const TextStyle(
                   fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
@@ -405,12 +410,15 @@ class _InputCard extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 labelText: bonusLabel,
                 prefixText: '$symbol ',
-                hintText: '5000',
+                hintText: '5,000',
                 helperText: FlavorConfig.isUS
                     ? (es
                         ? '22% tasa suplementaria federal (37% si > \$1M)'
