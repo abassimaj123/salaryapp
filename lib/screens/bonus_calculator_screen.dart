@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
@@ -200,13 +201,19 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   int _payPeriods = 26; // biweekly default
 
   BonusResult? _result;
-  bool _isFirstLoad = true;
 
   @override
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
     _salaryCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    // Load saved province for CA flavor
+    if (FlavorConfig.isCA) {
+      SharedPreferences.getInstance().then((prefs) {
+        final saved = prefs.getString('salary_ca_province');
+        if (saved != null && mounted) setState(() => _caProvince = saved);
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _calculate();
     });
@@ -221,7 +228,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   }
 
   double _parse(TextEditingController c) {
-    final raw = c.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
+    // Strip all thousand-separator variants (comma, non-breaking space, etc.)
+    final raw = c.text.replaceAll(RegExp('[,   ]'), '').replaceAll(RegExp(r'[^\d.]'), '');
     return double.tryParse(raw) ?? 0;
   }
 
@@ -244,19 +252,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     }
 
     setState(() => _result = res);
-
-    if (!_isFirstLoad) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollCtrl.hasClients) {
-          _scrollCtrl.animateTo(
-            _scrollCtrl.position.maxScrollExtent,
-            duration: AppDuration.slow,
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-    _isFirstLoad = false;
   }
 
   @override

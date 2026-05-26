@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -111,17 +112,16 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   final _scrollCtrl = ScrollController();
   final _salarySacrificeCtrl = TextEditingController(text: '0');
 
+  static const _kProvinceKey = 'salary_ca_province';
+
   PayFrequency _frequency = PayFrequency.annual;
   String _usState = 'CA';
-  // Smart Auto: default province based on detected device locale language.
-  // isSpanishNotifier.value == true means French for the CA flavor.
-  String _caProvince = FlavorConfig.isCA && isSpanishNotifier.value ? 'QC' : 'ON';
+  // Loaded from SharedPreferences or detected from device locale in initState.
+  String _caProvince = 'ON';
   String? _usCity; // local-tax city key (see local_taxes.dart)
   SalaryResult? _result;
   double _localTax = 0; // computed local-tax amount (US only)
   bool _showResults = false;
-  bool _isFirstLoad = true; // suppresses auto-scroll on first calc
-  bool _paywallShownForHistory = false; // prevents repeated paywall popups
 
   // CA reverse-calculation mode
   bool _caReverseMode = false; // false = gross→net, true = net→gross
@@ -138,9 +138,37 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     analyticsService.logScreenView('calculator');
     _salaryCtrl.addListener(() => _scheduleCalcAndSave());
 
+    // Load saved province (or auto-detect from device locale on first install).
+    if (FlavorConfig.isCA) _loadSavedProvince();
+
     // Trigger initial calculation only — skip save to avoid paywall on cold start.
     WidgetsBinding.instance
         .addPostFrameCallback((_) => scheduleCalc(_calculate));
+  }
+
+  /// Loads the saved province from SharedPreferences.
+  /// Falls back to device locale detection on first install (fr → QC, else → ON).
+  Future<void> _loadSavedProvince() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kProvinceKey);
+    if (!mounted) return;
+    if (saved != null && saved.isNotEmpty) {
+      setState(() => _caProvince = saved);
+    } else {
+      // First install: detect from device locale
+      final locale = WidgetsBinding.instance.platformDispatcher.locale;
+      final detected = locale.languageCode == 'fr' ? 'QC' : 'ON';
+      setState(() => _caProvince = detected);
+      await prefs.setString(_kProvinceKey, detected);
+    }
+    // Re-trigger calc with the correct province
+    scheduleCalc(_calculate);
+  }
+
+  /// Persists the selected province so it's remembered across sessions.
+  Future<void> _saveProvince(String province) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kProvinceKey, province);
   }
 
   /// Schedule calc (via mixin) + auto-save 2 s after last change.
@@ -170,9 +198,9 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final rawText = _salaryCtrl.text;
-    // CurrencyInputFormatter always uses '.' for decimals — commas are thousand
-    // separators only. Stripping them is sufficient; never replace ',' with '.'.
-    final raw = rawText.replaceAll(',', '');
+    // Strip ALL thousand-separator variants: ASCII comma, non-breaking space (fr_CA),
+    // narrow non-breaking space. Never replace ',' with '.' — dot stays decimal.
+    final raw = rawText.replaceAll(RegExp(r'[,    ]'), '');
     final input = double.tryParse(raw.replaceAll(_nonDigitDot, '')) ?? 0;
     final inputAnnual = _frequency.toAnnual(input);
 
@@ -234,40 +262,19 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       'frequency': _frequency.name,
     });
 
-    // Scroll to results after user interaction (skip auto-scroll on first load)
-    if (!_isFirstLoad) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollCtrl.hasClients) {
-          _scrollCtrl.animateTo(
-            _scrollCtrl.position.maxScrollExtent,
-            duration: AppDuration.slow,
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-    _isFirstLoad = false;
+    // No auto-scroll: the results section appears below the input card;
+    // the user scrolls manually. Auto-scrolling caused results to go off-screen.
   }
 
   Future<void> _saveToHistory(SalaryResult res) async {
-    final currentCount = await DatabaseService.instance.count();
-    if (currentCount >= freemiumService.historyLimit) {
-      // Show paywall at most once per screen session to avoid spam
-      if (mounted && !_paywallShownForHistory) {
-        _paywallShownForHistory = true;
-        final isEs = FlavorConfig.isUS && isSpanishNotifier.value;
-        final isFr = FlavorConfig.isCA && isSpanishNotifier.value;
-        analyticsService.logPaywallViewed('history_limit');
-        PaywallSoft.show(
-          context,
-          isSpanish: isEs,
-          isFrench: isFr,
-          featureTitle: isFr
-              ? 'Historique illimité'
-              : (isEs ? 'Historial ilimitado' : 'Unlimited history'),
-        );
+    // Premium / rewarded users: unlimited saves — skip count check.
+    if (!freemiumService.hasFullAccess) {
+      final currentCount = await DatabaseService.instance.count();
+      if (currentCount >= freemiumService.historyLimit) {
+        // Auto-save silently skipped when at free limit.
+        // Paywall is triggered by PaywallSessionService (session-based), not here.
+        return;
       }
-      return;
     }
     final region =
         FlavorConfig.isUS ? _usState : (FlavorConfig.isCA ? _caProvince : '');
@@ -425,6 +432,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                         useAlt: useAlt,
                                         onChanged: (v) {
                                           setState(() => _caProvince = v!);
+                                          _saveProvince(v!);
                                           _scheduleCalcAndSave();
                                         },
                                       ),

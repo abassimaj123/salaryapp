@@ -55,9 +55,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
   void _calculate() {
     final grossA = double.tryParse(
-        _grossACtrl.text.replaceAll(',', '').replaceAll(r'$', ''));
+        _grossACtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', ''));
     final grossB = double.tryParse(
-        _grossBCtrl.text.replaceAll(',', '').replaceAll(r'$', ''));
+        _grossBCtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', ''));
 
     if (grossA == null || grossA <= 0 || grossB == null || grossB <= 0) {
       return;

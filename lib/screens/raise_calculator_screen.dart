@@ -194,9 +194,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
   double _parse(String text) {
     if (text.isEmpty) return 0;
-    // Strip thousand-separator commas only — never replace with '.'
+    // Strip all thousand-separator variants (comma, non-breaking space, narrow NBSP)
     return double.tryParse(
-            text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '')) ??
+            text.replaceAll(RegExp('[,   ]'), '').replaceAll(RegExp(r'[^\d.]'), '')) ??
         0;
   }
 

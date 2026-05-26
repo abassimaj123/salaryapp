@@ -99,9 +99,8 @@ class _RaiseScreenState extends State<RaiseScreen> {
 
   double _parseAmount(String text) {
     if (text.isEmpty) return 0;
-    final raw = (text.contains('.') && text.contains(','))
-        ? text.replaceAll(',', '')
-        : text.replaceAll(',', '.');
+    // Strip all thousand-separator variants (comma, non-breaking space, narrow NBSP)
+    final raw = text.replaceAll(RegExp('[,   ]'), '');
     return double.tryParse(raw.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
   }
 
@@ -250,7 +249,7 @@ class _InputCard extends StatelessWidget {
                   return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
                 }
                 final val = double.tryParse(
-                    v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                    v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) {
                   return fr
                       ? 'Montant invalide'
@@ -319,7 +318,7 @@ class _InputCard extends StatelessWidget {
                   return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
                 }
                 final val = double.tryParse(
-                    v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                    v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                 if (val == null || val <= 0) {
                   return fr
                       ? 'Valeur invalide'
