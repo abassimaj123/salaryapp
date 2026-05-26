@@ -4,6 +4,7 @@ import '../core/freemium/freemium_service.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../core/freemium/iap_service.dart';
+import '../widgets/tool_hub_card.dart';
 import 'raise_calculator_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
@@ -15,7 +16,6 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseAdFooter,
         AppDuration,
         AppSpacing,
-        AppRadius,
         AppTextSize,
         PaywallTrigger,
         PaywallHard,
@@ -30,9 +30,28 @@ class ToolsScreen extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+
+        String t(String en, String esStr, String frStr) =>
+            fr ? frStr : (es ? esStr : en);
+
+        Future<void> push(Widget screen) async {
+          if (!context.mounted) return;
+          await Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => screen,
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+              transitionDuration: AppDuration.base,
+            ),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
-            title: Text(useAlt ? 'Herramientas' : 'Tools'),
+            title: Text(t('Tools', 'Herramientas', 'Outils')),
             elevation: 0,
           ),
           body: Column(
@@ -40,96 +59,120 @@ class ToolsScreen extends StatelessWidget {
               Expanded(
                 child: ListView(
                   key: const PageStorageKey('tools_hub'),
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.sm, AppSpacing.lg,
+                      AppSpacing.lg),
                   children: [
-                    _ToolCard(
+                    // Section description
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          bottom: AppSpacing.md, top: AppSpacing.xs),
+                      child: Text(
+                        t(
+                          'Calculators to plan raises, bonuses, and more.',
+                          'Calculadoras para planear aumentos, bonificaciones y más.',
+                          'Calculateurs pour planifier augmentations, primes et plus.',
+                        ),
+                        style: TextStyle(
+                          fontSize: AppTextSize.sm,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+
+                    // ── Raise Calculator ── all flavors ──────────────────────
+                    ToolHubCard(
                       icon: Icons.trending_up_rounded,
-                      title: useAlt
-                          ? 'Calculadora de Aumento'
-                          : 'Raise Calculator',
-                      subtitle: useAlt
-                          ? 'Calcular el impacto de un aumento en tu salario'
-                          : 'Calculate the impact of a raise on your salary',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const RaiseCalculatorScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
+                      title: t('Raise Calculator', 'Calculadora de Aumento',
+                          'Calculateur d\'augmentation'),
+                      subtitle: t(
+                        'Calculate the impact of a raise on your salary.',
+                        'Calcular el impacto de un aumento en tu salario.',
+                        'Calculer l\'impact d\'une augmentation sur votre salaire.',
+                      ),
+                      onTap: () => push(const RaiseCalculatorScreen()),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    _ToolCard(
+
+                    // ── Bonus Calculator ── all flavors ──────────────────────
+                    ToolHubCard(
                       icon: Icons.card_giftcard_rounded,
-                      title: useAlt
-                          ? 'Calculadora de Bonificación'
-                          : 'Bonus Calculator',
-                      subtitle: useAlt
-                          ? 'Estimar impuestos y ganancias netas en bonificaciones'
-                          : 'Estimate taxes and net gains on bonuses',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const BonusCalculatorScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
+                      title: t('Bonus Calculator', 'Calculadora de Bonificación',
+                          'Calculateur de prime'),
+                      subtitle: t(
+                        'Estimate taxes and net gains on bonuses.',
+                        'Estimar impuestos y ganancias netas en bonificaciones.',
+                        'Estimer les impôts et gains nets sur les primes.',
+                      ),
+                      onTap: () => push(const BonusCalculatorScreen()),
                     ),
-                    if (FlavorConfig.isUS) ...[
+
+                    // ── CA-specific ──────────────────────────────────────────
+                    if (FlavorConfig.isCA) ...[
                       const SizedBox(height: AppSpacing.md),
-                      _ToolCard(
-                        icon: Icons.assignment_rounded,
-                        title:
-                            useAlt ? 'Asistente W-4' : 'W-4 Withholding Wizard',
-                        subtitle: useAlt
-                            ? 'Optimiza tu retención federal'
-                            : 'Get your federal withholding exactly right',
-                        onTap: () async {
-                          if (!freemiumService.hasFullAccess &&
-                              paywallSession.sessionCount >= 5) {
-                            analyticsService.logFeatureGated('w4_wizard');
-                            await PaywallSoft.show(
-                              context,
-                              isSpanish: useAlt,
-                              featureTitle: useAlt
-                                  ? 'Asistente W-4'
-                                  : 'W-4 Withholding Wizard',
-                              featureSubtitle: useAlt
-                                  ? 'Optimiza tu retención federal'
-                                  : 'Get your federal withholding exactly right',
-                              priceLabel:
-                                  IAPService.instance.localizedPrice.value,
-                              onUnlock: () => IAPService.instance.buy(),
-                            );
-                            return;
-                          }
-                          if (!context.mounted) return;
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (_, __, ___) =>
-                                  const W4WizardScreen(),
-                              transitionsBuilder: (_, anim, __, child) =>
-                                  FadeTransition(opacity: anim, child: child),
-                              transitionDuration: AppDuration.base,
-                            ),
-                          );
-                        },
+                      ToolHubCard(
+                        icon: Icons.account_balance_rounded,
+                        title: fr ? 'Optimiseur REER' : 'RRSP Optimizer',
+                        subtitle: fr
+                            ? 'Réduisez votre impôt avec vos cotisations REER.'
+                            : 'Reduce your tax with optimal RRSP contributions.',
+                        onTap: () => push(const RrspOptimizerScreen()),
                       ),
                     ],
+
+                    // ── US-specific ──────────────────────────────────────────
                     if (FlavorConfig.isUS) ...[
                       const SizedBox(height: AppSpacing.md),
-                      _ToolCard(
+                      ToolHubCard(
+                        icon: Icons.assignment_rounded,
+                        title: es ? 'Asistente W-4' : 'W-4 Withholding Wizard',
+                        subtitle: es
+                            ? 'Optimiza tu retención federal.'
+                            : 'Get your federal withholding exactly right.',
+                        isPremium: true,
+                        onTap: () async {
+                          if (!freemiumService.hasFullAccess) {
+                            final trigger =
+                                await paywallSession.recordAction();
+                            if (!context.mounted) return;
+                            if (trigger == PaywallTrigger.hard) {
+                              analyticsService.logPaywallViewed('session_hard');
+                              analyticsService.logFeatureGated('w4_wizard');
+                              await PaywallHard.show(context,
+                                  isSpanish: es,
+                                  onPurchase: IAPService.instance.buy);
+                              return;
+                            } else if (trigger == PaywallTrigger.soft) {
+                              analyticsService.logPaywallViewed('session_soft');
+                              analyticsService.logFeatureGated('w4_wizard');
+                              await PaywallSoft.show(
+                                context,
+                                isSpanish: es,
+                                featureTitle: es
+                                    ? 'Asistente W-4'
+                                    : 'W-4 Withholding Wizard',
+                                featureSubtitle: es
+                                    ? 'Optimiza tu retención federal'
+                                    : 'Get your federal withholding exactly right',
+                                priceLabel:
+                                    IAPService.instance.localizedPrice.value,
+                                onUnlock: IAPService.instance.buy,
+                              );
+                              // Soft paywall — continue to screen after dismissal
+                            }
+                          }
+                          if (!context.mounted) return;
+                          await push(const W4WizardScreen());
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
                         icon: Icons.compare_arrows_rounded,
-                        title:
-                            useAlt ? 'Comparar Salarios' : 'Salary Comparison',
-                        subtitle: useAlt
-                            ? 'Compara dos ofertas: neto, impuestos, mensual'
-                            : 'Compare two offers: net pay, taxes, monthly',
+                        title: es ? 'Comparar Salarios' : 'Salary Comparison',
+                        subtitle: es
+                            ? 'Compara dos ofertas: neto, impuestos, mensual.'
+                            : 'Compare two offers side by side: net pay, taxes, monthly.',
+                        isPremium: true,
                         onTap: () async {
                           analyticsService.logCalculationCompleted(
                               params: {'action': 'salary_comparison_tapped'});
@@ -137,67 +180,29 @@ class ToolsScreen extends StatelessWidget {
                           if (!context.mounted) return;
                           if (trigger == PaywallTrigger.hard) {
                             analyticsService.logPaywallViewed('session_hard');
-                            PaywallHard.show(context);
+                            await PaywallHard.show(context, isSpanish: es);
                             return;
                           } else if (trigger == PaywallTrigger.soft) {
                             analyticsService.logPaywallViewed('session_soft');
-                            PaywallSoft.show(context,
-                                featureTitle: useAlt
+                            await PaywallSoft.show(context,
+                                isSpanish: es,
+                                featureTitle: es
                                     ? 'Comparar Salarios'
                                     : 'Salary Comparison');
                           }
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (_, __, ___) =>
-                                  const SalaryComparisonScreen(),
-                              transitionsBuilder: (_, anim, __, child) =>
-                                  FadeTransition(opacity: anim, child: child),
-                              transitionDuration: AppDuration.base,
-                            ),
-                          );
+                          if (!context.mounted) return;
+                          await push(const SalaryComparisonScreen());
                         },
                       ),
-                    ], // end FlavorConfig.isUS (Salary Comparison)
-                    if (FlavorConfig.isUS) ...[
                       const SizedBox(height: AppSpacing.md),
-                      _ToolCard(
+                      ToolHubCard(
                         icon: Icons.savings_rounded,
-                        title:
-                            useAlt ? 'Optimizador 401(k)' : '401(k) Optimizer',
-                        subtitle: useAlt
-                            ? 'Minimiza impuestos con aportes al 401(k)'
-                            : 'Minimize taxes with optimal 401(k) contributions',
-                        onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const RetirementOptimizerScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (FlavorConfig.isCA) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      _ToolCard(
-                        icon: Icons.account_balance_rounded,
-                        title: useAlt ? 'Optimiseur REER' : 'RRSP Optimizer',
-                        subtitle: useAlt
-                            ? 'Réduisez votre impôt avec vos cotisations REER'
-                            : 'Reduce your tax with optimal RRSP contributions',
-                        onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const RrspOptimizerScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          ),
-                        ),
+                        title: es ? 'Optimizador 401(k)' : '401(k) Optimizer',
+                        subtitle: es
+                            ? 'Minimiza impuestos con aportes al 401(k).'
+                            : 'Minimize taxes with optimal 401(k) contributions.',
+                        onTap: () =>
+                            push(const RetirementOptimizerScreen()),
                       ),
                     ],
                   ],
@@ -208,63 +213,6 @@ class ToolsScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ToolCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ToolCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon,
-              color: Theme.of(context).colorScheme.primary, size: 22),
-        ),
-        title: Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: AppTextSize.body)),
-        subtitle: Text(subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: AppTextSize.sm)),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      ),
     );
   }
 }

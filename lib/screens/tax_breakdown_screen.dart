@@ -126,7 +126,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
     final raw =
-        _salaryCtrl.text.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '');
+        _salaryCtrl.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     final v = double.tryParse(raw) ?? 0;
     if (v > 0) _run(v);
   }
@@ -257,7 +257,7 @@ class _SalaryInput extends StatelessWidget {
               return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
             }
             final val = double.tryParse(
-                v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
             if (val == null || val <= 0) {
               return fr
                   ? 'Montant invalide'
@@ -360,7 +360,8 @@ class _TaxBreakdownSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
 
         // Progress bar visualization
-        _BracketProgressBar(brackets: brackets, grossAnnual: grossAnnual),
+        _BracketProgressBar(
+            brackets: brackets, grossAnnual: grossAnnual, es: es, fr: fr),
         const SizedBox(height: AppSpacing.xl),
 
         // Bracket table
@@ -482,9 +483,15 @@ class _TaxBreakdownSection extends StatelessWidget {
 class _BracketProgressBar extends StatelessWidget {
   final List<_BracketResult> brackets;
   final double grossAnnual;
+  final bool es;
+  final bool fr;
 
-  const _BracketProgressBar(
-      {required this.brackets, required this.grossAnnual});
+  const _BracketProgressBar({
+    required this.brackets,
+    required this.grossAnnual,
+    this.es = false,
+    this.fr = false,
+  });
 
   Color _color(double rate) {
     if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
@@ -512,8 +519,10 @@ class _BracketProgressBar extends StatelessWidget {
             Row(children: [
               Icon(Icons.bar_chart_rounded, size: 18, color: AppTheme.primary),
               const SizedBox(width: AppSpacing.sm),
-              Text('Tax Visualization',
-                  style: TextStyle(
+              Text(fr
+                      ? 'Visualisation fiscale'
+                      : (es ? 'Visualización fiscal' : 'Tax Visualization'),
+                  style: const TextStyle(
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
