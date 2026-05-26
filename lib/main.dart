@@ -40,7 +40,10 @@ import 'screens/tools_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 
-final paywallSession = PaywallSessionService(appKey: 'salaryapp');
+final paywallSession = PaywallSessionService(
+  appKey: 'salaryapp',
+  hasFullAccess: () => freemiumService.hasFullAccess,
+);
 
 final adService = CalcwiseAdService(
   config: CalcwiseAdConfig(
@@ -110,13 +113,16 @@ void main() async {
   CalcwiseAdFooter.configure(
     adService: adService,
     freemium: freemiumService,
-    isSpanishNotifier: isSpanishNotifier,
+    // CA: isSpanishNotifier means French — pass as isFrenchNotifier instead
+    isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
+    isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
     onGetPremium: () => IAPService.instance.buy(),
   );
   CalcwiseRewardAdSheet.configure(
     adService: adService,
     freemium: freemiumService,
-    isSpanishNotifier: isSpanishNotifier,
+    isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
+    isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
   );
   runApp(const SalaryApp());
 }

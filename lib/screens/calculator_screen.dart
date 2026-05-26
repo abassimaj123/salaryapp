@@ -260,11 +260,11 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         analyticsService.logPaywallViewed('history_limit');
         PaywallSoft.show(
           context,
-          featureTitle: isEs
-              ? 'Historial ilimitado'
-              : isFr
-                  ? 'Historique illimité'
-                  : 'Unlimited history',
+          isSpanish: isEs,
+          isFrench: isFr,
+          featureTitle: isFr
+              ? 'Historique illimité'
+              : (isEs ? 'Historial ilimitado' : 'Unlimited history'),
         );
       }
       return;

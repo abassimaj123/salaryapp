@@ -319,7 +319,11 @@ class _RewardedSection extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
                     isRewarded
-                        ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min left'
+                        ? (fr
+                            ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min restantes'
+                            : (es
+                                ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min restantes'
+                                : '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min left'))
                         : (fr
                             ? 'Regardez une pub pour 60 min sans pub'
                             : (es
