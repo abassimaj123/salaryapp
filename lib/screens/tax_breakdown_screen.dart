@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
 import '../widgets/paywall_hard.dart';
@@ -748,7 +749,13 @@ class _PremiumStateTeaser extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => PaywallHard.show(outerCtx),
+                onPressed: () => PaywallHard.show(outerCtx,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: freemiumService.isPremiumNotifier.value
+                        ? null
+                        : IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy),
                 child: Text(btnLabel),
               ),
             ),

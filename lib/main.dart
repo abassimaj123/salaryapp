@@ -285,7 +285,11 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
                 onRewardAd: () => CalcwiseRewardAdSheet.show(context),
-                onPremium: () => PaywallHard.show(context),
+                onPremium: () => PaywallHard.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy),
               ),
             ],
           ),
@@ -299,7 +303,11 @@ class _MainShellState extends State<MainShell> {
               if (!mounted) return;
               if (trigger == PaywallTrigger.hard) {
                 analyticsService.logPaywallViewed('session_hard');
-                PaywallHard.show(context);
+                PaywallHard.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy);
               } else if (trigger == PaywallTrigger.soft) {
                 analyticsService.logPaywallViewed('session_soft');
                 PaywallSoft.show(context,
