@@ -192,7 +192,7 @@ class BonusCalculatorScreen extends StatefulWidget {
 class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _salaryCtrl = TextEditingController();
-  final _bonusCtrl = TextEditingController();
+  final _bonusCtrl = TextEditingController(text: '5000');
   final _scrollCtrl = ScrollController();
 
   String _usState = 'CA';
@@ -200,14 +200,13 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   int _payPeriods = 26; // biweekly default
 
   BonusResult? _result;
+  bool _isFirstLoad = true;
 
   @override
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    if (salary > 0) {
-      _salaryCtrl.text = salary.toStringAsFixed(0);
-    }
+    _salaryCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _calculate();
     });
@@ -246,15 +245,18 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
 
     setState(() => _result = res);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: AppDuration.slow,
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (!_isFirstLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: AppDuration.slow,
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+    _isFirstLoad = false;
   }
 
   @override

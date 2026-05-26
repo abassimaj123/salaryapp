@@ -255,9 +255,12 @@ class _MainShellState extends State<MainShell> {
                 const Icon(Icons.calculate_rounded,
                     color: Colors.white, size: 22),
                 const SizedBox(width: 8),
-                Text(
-                  appTitle,
-                  style: const TextStyle(color: Colors.white),
+                Flexible(
+                  child: Text(
+                    appTitle,
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -293,7 +296,12 @@ class _MainShellState extends State<MainShell> {
                 PaywallHard.show(context);
               } else if (trigger == PaywallTrigger.soft) {
                 analyticsService.logPaywallViewed('session_soft');
-                PaywallSoft.show(context, featureTitle: 'Unlimited Saves');
+                PaywallSoft.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    featureTitle: fr
+                        ? 'Historique illimité'
+                        : (es ? 'Historial ilimitado' : 'Unlimited History'));
               }
             },
             destinations: [
@@ -305,12 +313,16 @@ class _MainShellState extends State<MainShell> {
               NavigationDestination(
                 icon: const Icon(Icons.bar_chart_rounded),
                 selectedIcon: const Icon(Icons.bar_chart_rounded),
-                label: useAlt ? 'Reportes' : 'Reports',
+                label: fr
+                    ? 'Rapports'
+                    : (es ? 'Reportes' : 'Reports'),
               ),
               NavigationDestination(
                 icon: const Icon(Icons.build_rounded),
                 selectedIcon: const Icon(Icons.build),
-                label: useAlt ? 'Herramientas' : 'Tools',
+                label: fr
+                    ? 'Outils'
+                    : (es ? 'Herramientas' : 'Tools'),
               ),
               NavigationDestination(
                 icon: const Icon(Icons.history_rounded),

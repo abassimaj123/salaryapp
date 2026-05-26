@@ -6,7 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/flavor_config.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -48,8 +48,13 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill from explicit param or last-used salary from main calc
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
       _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
+    } else if (salaryNotifier.value > 0) {
+      _salaryCtrl.text = salaryNotifier.value.toStringAsFixed(0);
+    } else {
+      _salaryCtrl.text = '75000';
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _calculate();
@@ -189,8 +194,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
   double _parse(String text) {
     if (text.isEmpty) return 0;
+    // Strip thousand-separator commas only — never replace with '.'
     return double.tryParse(
-            text.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '')) ??
+            text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '')) ??
         0;
   }
 
@@ -379,7 +385,7 @@ class _InputSection extends StatelessWidget {
             validator: (v) {
               if (v == null || v.trim().isEmpty) return req;
               final val = double.tryParse(
-                  v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                  v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
               if (val == null || val <= 0) return invalid;
               return null;
             },
@@ -499,7 +505,7 @@ class _InputSection extends StatelessWidget {
                 if (!isPercent) {
                   if (v == null || v.trim().isEmpty) return req;
                   final val = double.tryParse(
-                      v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                      v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                   if (val == null || val <= 0) return invalid;
                 }
                 return null;

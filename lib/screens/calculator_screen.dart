@@ -113,11 +113,15 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
   PayFrequency _frequency = PayFrequency.annual;
   String _usState = 'CA';
-  String _caProvince = 'ON';
+  // Smart Auto: default province based on detected device locale language.
+  // isSpanishNotifier.value == true means French for the CA flavor.
+  String _caProvince = FlavorConfig.isCA && isSpanishNotifier.value ? 'QC' : 'ON';
   String? _usCity; // local-tax city key (see local_taxes.dart)
   SalaryResult? _result;
   double _localTax = 0; // computed local-tax amount (US only)
   bool _showResults = false;
+  bool _isFirstLoad = true; // suppresses auto-scroll on first calc
+  bool _paywallShownForHistory = false; // prevents repeated paywall popups
 
   // CA reverse-calculation mode
   bool _caReverseMode = false; // false = gross→net, true = net→gross
@@ -134,12 +138,13 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     analyticsService.logScreenView('calculator');
     _salaryCtrl.addListener(() => _scheduleCalcAndSave());
 
-    // Trigger initial calculation with default values after first frame
+    // Trigger initial calculation only — skip save to avoid paywall on cold start.
     WidgetsBinding.instance
-        .addPostFrameCallback((_) => _scheduleCalcAndSave());
+        .addPostFrameCallback((_) => scheduleCalc(_calculate));
   }
 
   /// Schedule calc (via mixin) + auto-save 2 s after last change.
+  /// Called from user interactions (listener, chips, toggles) — never from initState.
   void _scheduleCalcAndSave() {
     scheduleCalc(_calculate);
     // Save 2 s after last change — one history entry per pause, not per keystroke
@@ -165,9 +170,9 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final rawText = _salaryCtrl.text;
-    final raw = (rawText.contains('.') && rawText.contains(','))
-        ? rawText.replaceAll(',', '')
-        : rawText.replaceAll(',', '.');
+    // CurrencyInputFormatter always uses '.' for decimals — commas are thousand
+    // separators only. Stripping them is sufficient; never replace ',' with '.'.
+    final raw = rawText.replaceAll(',', '');
     final input = double.tryParse(raw.replaceAll(_nonDigitDot, '')) ?? 0;
     final inputAnnual = _frequency.toAnnual(input);
 
@@ -229,22 +234,27 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       'frequency': _frequency.name,
     });
 
-    // Scroll to results after next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: AppDuration.slow,
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    // Scroll to results after user interaction (skip auto-scroll on first load)
+    if (!_isFirstLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: AppDuration.slow,
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+    _isFirstLoad = false;
   }
 
   Future<void> _saveToHistory(SalaryResult res) async {
     final currentCount = await DatabaseService.instance.count();
     if (currentCount >= freemiumService.historyLimit) {
-      if (mounted) {
+      // Show paywall at most once per screen session to avoid spam
+      if (mounted && !_paywallShownForHistory) {
+        _paywallShownForHistory = true;
         final isEs = FlavorConfig.isUS && isSpanishNotifier.value;
         final isFr = FlavorConfig.isCA && isSpanishNotifier.value;
         analyticsService.logPaywallViewed('history_limit');
@@ -630,10 +640,8 @@ class _SalaryInputCard extends StatelessWidget {
                     ? 'Veuillez entrer un montant'
                     : (es ? 'Ingrese un monto' : 'Please enter an amount');
               }
-              final normalized = (v.contains('.') && v.contains(','))
-                  ? v.replaceAll(',', '')
-                  : v.replaceAll(',', '.');
-              final val = double.tryParse(normalized);
+              // Commas are thousand separators — strip them, never swap with '.'
+              final val = double.tryParse(v.replaceAll(',', ''));
               if (val == null || val <= 0) {
                 return fr
                     ? 'Montant invalide'
@@ -664,7 +672,9 @@ class _FrequencyChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: useAlt ? 'Frecuencia de pago' : 'Pay frequency',
+      label: FlavorConfig.isCA && useAlt
+          ? 'Fréquence de paie'
+          : (FlavorConfig.isUS && useAlt ? 'Frecuencia de pago' : 'Pay frequency'),
       container: true,
       child: Wrap(
         spacing: 8,
@@ -2176,22 +2186,34 @@ class _CaReverseModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile.adaptive(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Text(
-        reverseMode ? 'Calculate from net' : 'Calculate from gross',
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
-      subtitle: Text(
-        reverseMode
-            ? 'Enter desired take-home — get required gross'
-            : 'Enter gross salary — get take-home pay',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      value: reverseMode,
-      activeColor: AppTheme.primary,
-      onChanged: onChanged,
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSpanishNotifier,
+      builder: (context, useAlt, _) {
+        final fr = FlavorConfig.isCA && useAlt;
+        return SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: Text(
+            reverseMode
+                ? (fr ? 'Calculer depuis le net' : 'Calculate from net')
+                : (fr ? 'Calculer depuis le brut' : 'Calculate from gross'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          subtitle: Text(
+            reverseMode
+                ? (fr
+                    ? 'Entrez le salaire net souhaité — obtenez le brut requis'
+                    : 'Enter desired take-home — get required gross')
+                : (fr
+                    ? 'Entrez le salaire brut — obtenez le net'
+                    : 'Enter gross salary — get take-home pay'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          value: reverseMode,
+          activeColor: AppTheme.primary,
+          onChanged: onChanged,
+        );
+      },
     );
   }
 }
