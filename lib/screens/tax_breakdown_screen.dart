@@ -437,7 +437,7 @@ class _TaxBreakdownSection extends StatelessWidget {
 
         // Premium: state tax comparison
         ValueListenableBuilder<bool>(
-          valueListenable: freemiumService.isPremiumNotifier,
+          valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (context, isPremium, _) => isPremium
               ? _StateComparisonCard(grossAnnual: grossAnnual, es: es, fr: fr)
               : _PremiumStateTeaser(es: es, fr: fr, context: context),
@@ -754,7 +754,7 @@ class _PremiumStateTeaser extends StatelessWidget {
                 onPressed: () => PaywallHard.show(outerCtx,
                     isSpanish: es,
                     isFrench: fr,
-                    priceLabel: freemiumService.isPremiumNotifier.value
+                    priceLabel: freemiumService.hasFullAccess
                         ? null
                         : IAPService.instance.localizedPrice.value,
                     onPurchase: IAPService.instance.buy),

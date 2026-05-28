@@ -110,7 +110,7 @@ class _PremiumSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         final premiumDesc = fr
             ? AppStringsFR.premiumDesc
@@ -286,7 +286,7 @@ class _RewardedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         if (isPremium) return const SizedBox.shrink();
         return ValueListenableBuilder<bool>(

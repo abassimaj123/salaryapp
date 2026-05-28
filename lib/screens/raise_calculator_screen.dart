@@ -539,10 +539,10 @@ class _ResultsSection extends StatelessWidget {
   });
 
   String _fmt(double v) =>
-      AmountFormatter.format(v.round().toDouble(), FlavorConfig.currencyCode);
+      AmountFormatter.ui(v.round().toDouble(), FlavorConfig.currencyCode);
 
   String _fmt2(double v) =>
-      AmountFormatter.format(v, FlavorConfig.currencyCode);
+      AmountFormatter.ui(v, FlavorConfig.currencyCode);
 
   @override
   Widget build(BuildContext context) {

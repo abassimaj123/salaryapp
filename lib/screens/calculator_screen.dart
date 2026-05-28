@@ -1169,7 +1169,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         // Premium CTA if user is free
         ValueListenableBuilder<bool>(
-          valueListenable: freemiumService.isPremiumNotifier,
+          valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (_, isPremium, __) => isPremium
               ? const SizedBox.shrink()
               : PremiumCtaWidget(
@@ -1743,7 +1743,7 @@ class _PdfExportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
         return SizedBox(
           width: double.infinity,
@@ -1903,7 +1903,7 @@ class _CsvExportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
         return SizedBox(
           width: double.infinity,

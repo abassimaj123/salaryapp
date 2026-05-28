@@ -507,7 +507,7 @@ class _ResultsSection extends StatelessWidget {
       {required this.result, required this.es, required this.fr});
 
   String _fmt(double v) =>
-      AmountFormatter.format(v, FlavorConfig.currencyCode);
+      AmountFormatter.ui(v, FlavorConfig.currencyCode);
 
   String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 

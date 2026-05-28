@@ -143,7 +143,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         final showCta = !isPremium;
         return ListView(

@@ -155,7 +155,7 @@ class HistoryDetailScreen extends StatelessWidget {
                 ),
               ),
               ValueListenableBuilder<bool>(
-                valueListenable: freemiumService.isPremiumNotifier,
+                valueListenable: freemiumService.hasFullAccessNotifier,
                 builder: (_, isPremium, __) => isPremium
                     ? const SizedBox.shrink()
                     : const CalcwiseAdFooter(),
