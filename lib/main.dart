@@ -301,6 +301,7 @@ class _MainShellState extends State<MainShell> {
               setState(() => _index = i);
               final trigger = await paywallSession.recordAction();
               if (!mounted) return;
+              if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
               if (trigger == PaywallTrigger.hard) {
                 analyticsService.logPaywallViewed('session_hard');
                 PaywallHard.show(context,
