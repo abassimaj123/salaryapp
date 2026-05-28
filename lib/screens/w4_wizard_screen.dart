@@ -228,9 +228,8 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    if (salary > 0) {
-      _salaryCtrl.text = salary.toStringAsFixed(0);
-    }
+    _salaryCtrl.text =
+        salary > 0 ? salary.toStringAsFixed(0) : '75000';
   }
 
   @override

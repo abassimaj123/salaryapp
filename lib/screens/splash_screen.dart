@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart'
-    show isOnboardingComplete, AppDuration;
+    show CalcwiseSplash, isOnboardingComplete, AppDuration;
+import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import 'onboarding_screen.dart';
 
-/// Minimal splash — shows brand color while async init runs.
-/// The animated 3-dot entrance is handled by the native Android splash
-/// (windowSplashScreenAnimatedIcon in values-v31/styles.xml).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
@@ -21,7 +19,20 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       analyticsService.logAppOpen();
     } catch (_) {}
-    _navigate();
+  }
+
+  String _flavorSuffix() {
+    if (FlavorConfig.isCA) return 'CA';
+    if (FlavorConfig.isUK) return 'UK';
+    return 'US';
+  }
+
+  String _flavorTagline() => 'Know your true take-home pay';
+
+  List<String> _flavorChips() {
+    if (FlavorConfig.isCA) return ['Income Tax', 'CPP & EI', 'Net Pay'];
+    if (FlavorConfig.isUK) return ['Income Tax', 'National Insurance', 'Net Pay'];
+    return ['Federal Tax', 'FICA', 'Net Pay'];
   }
 
   Future<void> _navigate() async {
@@ -42,8 +53,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => CalcwiseSplash(
+        appName: 'Salary',
+        appSuffix: _flavorSuffix(),
+        tagline: _flavorTagline(),
+        chips: _flavorChips(),
+        badgeIcon: Icons.account_balance_wallet_rounded,
         backgroundColor: AppTheme.primary,
-        body: const SizedBox.expand(),
+        onComplete: () async => _navigate(),
       );
 }

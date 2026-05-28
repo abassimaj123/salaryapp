@@ -8,7 +8,6 @@ import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Bonus / Supplemental Pay Calculator (all flavors) ───────────────────────
@@ -507,10 +506,8 @@ class _ResultsSection extends StatelessWidget {
   const _ResultsSection(
       {required this.result, required this.es, required this.fr});
 
-  String get _symbol => FlavorConfig.currencySymbol;
-
   String _fmt(double v) =>
-      NumberFormat.currency(symbol: _symbol, decimalDigits: 2).format(v);
+      AmountFormatter.format(v, FlavorConfig.currencyCode);
 
   String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 

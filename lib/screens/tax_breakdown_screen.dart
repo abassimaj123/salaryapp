@@ -9,8 +9,8 @@ import '../core/freemium/iap_service.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
 import '../widgets/paywall_hard.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:calcwise_core/calcwise_core.dart'
+    show CalcwiseAdFooter, AppSpacing, AppRadius, AppTextSize, CalcwiseSemanticColors;
 
 // ─── 2024 US Federal Tax Brackets (single filer) ─────────────────────────────
 
@@ -95,7 +95,7 @@ class TaxBreakdownScreen extends StatefulWidget {
 
 class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _salaryCtrl = TextEditingController();
+  final _salaryCtrl = TextEditingController(text: '75000');
 
   double? _grossAnnual;
   List<_BracketResult> _brackets = [];
@@ -105,8 +105,10 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     super.initState();
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
       _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
-      _run(widget.initialSalary!);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override

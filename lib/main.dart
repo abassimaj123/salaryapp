@@ -15,12 +15,12 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseRewardAdSheet,
         CalcwiseAppBarActions,
         PaywallTrigger,
-        PaywallHard,
         PaywallSoft,
         AppDuration,
         iapErrorNotifier,
         showIapErrorSnackBar,
         showPremiumWelcomeSnackBar;
+import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';

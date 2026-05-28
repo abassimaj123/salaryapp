@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:calcwise_core/calcwise_core.dart' hide PaywallHard;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;

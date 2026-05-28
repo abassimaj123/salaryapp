@@ -20,15 +20,15 @@
         android:pathData="M28,26 L72,26 L72,44 L28,44 Z"/>
 
     <!-- Keypad dots — 3x2 grid -->
-    <path android:fillColor="#E67E22"
+    <path android:fillColor="#C8102E"
         android:pathData="M32,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
-    <path android:fillColor="#E67E22"
+    <path android:fillColor="#C8102E"
         android:pathData="M50,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
     <path android:fillColor="#EF4444"
         android:pathData="M68,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
-    <path android:fillColor="#E67E22"
+    <path android:fillColor="#C8102E"
         android:pathData="M32,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
-    <path android:fillColor="#E67E22"
+    <path android:fillColor="#C8102E"
         android:pathData="M50,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>
     <path android:fillColor="#EF4444"
         android:pathData="M68,68 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"/>

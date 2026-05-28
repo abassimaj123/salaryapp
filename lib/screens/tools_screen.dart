@@ -18,8 +18,8 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppSpacing,
         AppTextSize,
         PaywallTrigger,
-        PaywallHard,
         PaywallSoft;
+import '../widgets/paywall_hard.dart';
 
 /// Tools screen — hub for salary calculators and utilities
 class ToolsScreen extends StatelessWidget {

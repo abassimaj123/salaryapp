@@ -11,13 +11,13 @@ class AppTheme {
 
   // ─── Color accessors for screens ──────────────────────────────────────────
   static Color get primary {
-    if (FlavorConfig.isCA) return const Color(0xFFE67E22); // Burnt Orange
+    if (FlavorConfig.isCA) return const Color(0xFFC8102E); // Canada Red
     if (FlavorConfig.isUS) return const Color(0xFFDC2626); // Red
     return const Color(0xFF1F2937); // Black
   }
 
   static Color get accent {
-    if (FlavorConfig.isCA) return const Color(0xFFEF4444);
+    if (FlavorConfig.isCA) return const Color(0xFFFF3D5A);
     if (FlavorConfig.isUS) return const Color(0xFFF59E0B);
     return const Color(0xFFD4AF37);
   }
@@ -46,7 +46,7 @@ class AppTheme {
   static LinearGradient get primaryGradient {
     if (FlavorConfig.isCA) {
       return const LinearGradient(
-        colors: [Color(0xFFE67E22), Color(0xFFC86D1F)],
+        colors: [Color(0xFFC8102E), Color(0xFFA50D24)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );

@@ -538,13 +538,11 @@ class _ResultsSection extends StatelessWidget {
     required this.onShare,
   });
 
-  String _fmt(double v) => NumberFormat.currency(
-          symbol: FlavorConfig.currencySymbol, decimalDigits: 0)
-      .format(v);
+  String _fmt(double v) =>
+      AmountFormatter.format(v.round().toDouble(), FlavorConfig.currencyCode);
 
-  String _fmt2(double v) => NumberFormat.currency(
-          symbol: FlavorConfig.currencySymbol, decimalDigits: 2)
-      .format(v);
+  String _fmt2(double v) =>
+      AmountFormatter.format(v, FlavorConfig.currencyCode);
 
   @override
   Widget build(BuildContext context) {
