@@ -1,3 +1,4 @@
+import 'package:calcwise_core/calcwise_core.dart';
 import 'package:flutter/material.dart';
 
 /// A single outflow from gross pay (a tax, deduction, or net pay).
@@ -178,7 +179,7 @@ class _SankeyPainter extends CustomPainter {
             TextSpan(
               text: '${f.label}  $pct%\n',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w600,
                 color: textColor,
               ),
@@ -186,7 +187,7 @@ class _SankeyPainter extends CustomPainter {
             TextSpan(
               text: amount,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 color: mutedColor,
               ),
             ),
@@ -210,14 +211,14 @@ class _SankeyPainter extends CustomPainter {
           TextSpan(
             text: 'Gross\n',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppTextSize.xs,
               fontWeight: FontWeight.w700,
               color: textColor,
             ),
           ),
           TextSpan(
             text: _formatAmount(gross),
-            style: TextStyle(fontSize: 10, color: mutedColor),
+            style: TextStyle(fontSize: AppTextSize.xs, color: mutedColor),
           ),
         ],
       ),

@@ -1,0 +1,679 @@
+import 'dart:math' show min, pow;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../core/flavor_config.dart';
+import '../core/salary_engine.dart';
+import '../core/theme/app_theme.dart';
+import '../core/analytics/analytics_service.dart';
+import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../widgets/result_card.dart';
+import 'package:calcwise_core/calcwise_core.dart'
+    show
+        CalcwiseAdFooter,
+        CalcwiseHeroCard,
+        AppDuration,
+        AppSpacing,
+        AppRadius,
+        AppTextSize,
+        PaywallSoft;
+
+// ─── RRSP Optimizer (CA flavor only) ────────────────────────────────────────
+//
+// How much RRSP contribution minimizes tax to reach a target federal bracket.
+// 2025 RRSP hard cap: $31,560 (18% of prior year earned income, max $31,560).
+// Basic Personal Amount 2025: $16,129.
+
+const String _kRrspUseCount = 'rrsp_optimizer_use_count';
+const int _kGateAfterUses = 3;
+
+// ─── Federal bracket ceilings 2025 (post-BPA taxable income) ─────────────────
+// These are the tops of each bracket applied to (grossIncome - BPA).
+// 15%  → up to $57,375 taxable    (ceiling relative to BPA-adjusted income)
+// 20.5%→ up to $114,750 taxable
+// 26%  → up to $158,519 taxable
+// 29%  → up to $220,000 taxable
+// 33%  → above $220,000
+
+class _Bracket {
+  final String label;
+  final double rate;
+  final double taxableMax; // top of bracket in BPA-adjusted taxable income
+
+  const _Bracket(this.label, this.rate, this.taxableMax);
+}
+
+const _brackets = [
+  _Bracket('15%', 0.15, 57375),
+  _Bracket('20.5%', 0.205, 114750),
+  _Bracket('26%', 0.26, 158519),
+  _Bracket('29%', 0.29, 220000),
+  _Bracket('33%', 0.33, double.infinity),
+];
+
+const _provinces = [
+  'AB',
+  'BC',
+  'MB',
+  'NB',
+  'NL',
+  'NS',
+  'ON',
+  'PE',
+  'QC',
+  'SK',
+];
+
+const _provinceNames = {
+  'AB': 'Alberta',
+  'BC': 'British Columbia',
+  'MB': 'Manitoba',
+  'NB': 'New Brunswick',
+  'NL': 'Newfoundland',
+  'NS': 'Nova Scotia',
+  'ON': 'Ontario',
+  'PE': 'PEI',
+  'QC': 'Québec',
+  'SK': 'Saskatchewan',
+};
+
+class _RrspResult {
+  final double grossIncome;
+  final double rrspRoom;
+  final double contribution;
+  final double taxSaving;
+  final double netCost;
+  final double remainingRoom;
+  final double taxableAfterRrsp;
+  final String bracketLabel;
+  final double marginalRate;
+
+  const _RrspResult({
+    required this.grossIncome,
+    required this.rrspRoom,
+    required this.contribution,
+    required this.taxSaving,
+    required this.netCost,
+    required this.remainingRoom,
+    required this.taxableAfterRrsp,
+    required this.bracketLabel,
+    required this.marginalRate,
+  });
+}
+
+class _RrspEngine {
+  _RrspEngine._();
+
+  static const double _bpa2025 = 16129;
+
+  static double calcRrspToReachBracket(
+      double grossIncome, double targetBracketCeiling, double rrspRoom) {
+    final taxableAfterBPA = grossIncome - _bpa2025;
+    if (taxableAfterBPA <= targetBracketCeiling) return 0;
+    return min(taxableAfterBPA - targetBracketCeiling, rrspRoom);
+  }
+
+  static double _marginalRate(double grossIncome, double province) {
+    // Federal marginal rate on gross - BPA
+    final taxable = (grossIncome - _bpa2025).clamp(0.0, double.infinity);
+    if (taxable <= 57375) return 0.15;
+    if (taxable <= 114750) return 0.205;
+    if (taxable <= 158519) return 0.26;
+    if (taxable <= 220000) return 0.29;
+    return 0.33;
+  }
+
+  static _RrspResult calculate({
+    required double grossIncome,
+    required double rrspRoom,
+    required int targetBracketIndex,
+    required String province,
+  }) {
+    final bracket = _brackets[targetBracketIndex];
+    final contribution =
+        calcRrspToReachBracket(grossIncome, bracket.taxableMax, rrspRoom);
+
+    final marginalRate = _marginalRate(grossIncome, 0);
+    // Also fold in approximate provincial rate
+    final provRate = _estimateProvincialMarginalRate(grossIncome, province);
+    final effectiveMarginal = marginalRate + provRate;
+
+    final taxSaving = contribution * effectiveMarginal;
+    final netCost = contribution - taxSaving;
+    final remainingRoom = (rrspRoom - contribution).clamp(0.0, double.infinity);
+    final taxableAfterRrsp =
+        ((grossIncome - _bpa2025 - contribution).clamp(0.0, double.infinity));
+
+    // Determine actual bracket after RRSP
+    String finalBracket = '33%';
+    if (taxableAfterRrsp <= 57375) {
+      finalBracket = '15%';
+    } else if (taxableAfterRrsp <= 114750) {
+      finalBracket = '20.5%';
+    } else if (taxableAfterRrsp <= 158519) {
+      finalBracket = '26%';
+    } else if (taxableAfterRrsp <= 220000) {
+      finalBracket = '29%';
+    }
+
+    return _RrspResult(
+      grossIncome: grossIncome,
+      rrspRoom: rrspRoom,
+      contribution: contribution,
+      taxSaving: taxSaving,
+      netCost: netCost,
+      remainingRoom: remainingRoom,
+      taxableAfterRrsp: taxableAfterRrsp,
+      bracketLabel: finalBracket,
+      marginalRate: effectiveMarginal,
+    );
+  }
+
+  static double _estimateProvincialMarginalRate(
+      double grossIncome, String province) {
+    // Approximate provincial marginal rate at this income level
+    switch (province) {
+      case 'QC':
+        if (grossIncome > 126000) return 0.2575;
+        if (grossIncome > 103545) return 0.24;
+        if (grossIncome > 51780) return 0.19;
+        return 0.14;
+      case 'ON':
+        if (grossIncome > 220000) return 0.1316;
+        if (grossIncome > 150000) return 0.1216;
+        if (grossIncome > 102894) return 0.1116;
+        if (grossIncome > 51446) return 0.0915;
+        return 0.0505;
+      case 'BC':
+        if (grossIncome > 172602) return 0.1680;
+        if (grossIncome > 127299) return 0.1470;
+        if (grossIncome > 104835) return 0.1229;
+        if (grossIncome > 91310) return 0.1050;
+        if (grossIncome > 45654) return 0.0770;
+        return 0.0506;
+      default:
+        return 0.10;
+    }
+  }
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
+class RrspOptimizerScreen extends StatefulWidget {
+  const RrspOptimizerScreen({super.key});
+
+  @override
+  State<RrspOptimizerScreen> createState() => _RrspOptimizerScreenState();
+}
+
+class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
+  final _grossCtrl = TextEditingController();
+  final _rrspRoomCtrl = TextEditingController(text: '31560');
+
+  String _province = 'ON';
+  int _targetBracketIndex = 1; // 20.5% default
+
+  _RrspResult? _result;
+  bool _hasCalculated = false;
+
+  int _useCount = 0;
+  bool _gated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final salary = salaryNotifier.value;
+    _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    _loadUseCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
+  }
+
+  Future<void> _loadUseCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _useCount = prefs.getInt(_kRrspUseCount) ?? 0;
+    });
+  }
+
+  Future<void> _incrementUseCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    _useCount++;
+    await prefs.setInt(_kRrspUseCount, _useCount);
+  }
+
+  @override
+  void dispose() {
+    _grossCtrl.dispose();
+    _rrspRoomCtrl.dispose();
+    super.dispose();
+  }
+
+  double _parse(TextEditingController c) {
+    final raw = c.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(raw) ?? 0;
+  }
+
+  void _calculate() async {
+    final gross = _parse(_grossCtrl);
+    final room = _parse(_rrspRoomCtrl);
+    if (gross <= 0) return;
+
+    HapticFeedback.mediumImpact();
+    FocusScope.of(context).unfocus();
+
+    await _incrementUseCount();
+
+    final result = _RrspEngine.calculate(
+      grossIncome: gross,
+      rrspRoom: room.clamp(0, 31560),
+      targetBracketIndex: _targetBracketIndex,
+      province: _province,
+    );
+
+    // Gate after 3 uses if not premium
+    final shouldGate =
+        !freemiumService.hasFullAccess && _useCount > _kGateAfterUses;
+
+    setState(() {
+      _result = result;
+      _hasCalculated = true;
+      _gated = shouldGate;
+    });
+
+    analyticsService.logRrspImpactCalculated();
+  }
+
+  Future<void> _showPaywall(bool fr) async {
+    await PaywallSoft.show(
+      context,
+      isSpanish: false,
+      featureTitle: fr ? 'Optimiseur REER' : 'RRSP Optimizer',
+      featureSubtitle: fr
+          ? 'Débloquez les résultats détaillés REER'
+          : 'Unlock full RRSP optimization results',
+      priceLabel: IAPService.instance.localizedPrice.value,
+      onUnlock: () => IAPService.instance.buy(),
+    );
+    if (mounted) {
+      setState(() {
+        _gated = !freemiumService.hasFullAccess;
+      });
+    }
+  }
+
+  String _fmt(double v) =>
+      NumberFormat.currency(symbol: 'CA\$', decimalDigits: 0).format(v);
+
+  String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
+
+  @override
+  Widget build(BuildContext context) {
+    if (!FlavorConfig.isCA) {
+      return const Scaffold(body: Center(child: Text('CA flavor only')));
+    }
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSpanishNotifier,
+      builder: (context, useAlt, _) {
+        final fr = FlavorConfig.isCA && useAlt;
+
+        final titleStr = fr ? 'Optimiseur REER' : 'RRSP Optimizer';
+        final grossLabel = fr ? 'Revenu annuel brut' : 'Gross Annual Income';
+        final rrspRoomLabel =
+            fr ? 'Droits REER disponibles' : 'RRSP Contribution Room';
+        final bracketLabel = fr ? 'Tranche cible' : 'Target Federal Bracket';
+        final provinceLabel = fr ? 'Province' : 'Province';
+        final calcLabel = fr ? 'Calculer' : 'Calculate';
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(titleStr),
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fr
+                            ? 'Combien cotiser au REER pour réduire votre tranche d\'imposition ?'
+                            : 'How much to contribute to RRSP to drop to your target tax bracket?',
+                        style: TextStyle(
+                          fontSize: AppTextSize.md,
+                          color: AppTheme.labelGray,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Inputs ──────────────────────────────────────────────
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextFormField(
+                                controller: _grossCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[\d.,]')),
+                                ],
+                                decoration: InputDecoration(
+                                  labelText: grossLabel,
+                                  prefixText: 'CA\$ ',
+                                  hintText: '85000',
+                                ),
+                                style: const TextStyle(
+                                    fontSize: AppTextSize.bodyLg,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _rrspRoomCtrl,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'[\d.,]')),
+                                ],
+                                decoration: InputDecoration(
+                                  labelText: rrspRoomLabel,
+                                  prefixText: 'CA\$ ',
+                                  hintText: '31560',
+                                  helperText: fr
+                                      ? 'Max 2025 : 31 560 \$ (18% du revenu gagné)'
+                                      : '2025 max: \$31,560 (18% of prior year earned income)',
+                                ),
+                                style: const TextStyle(
+                                    fontSize: AppTextSize.bodyLg,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Province selector ────────────────────────────────────
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                provinceLabel,
+                                style: TextStyle(
+                                    fontSize: AppTextSize.md,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.labelGray),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _province,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                items: _provinces
+                                    .map((p) => DropdownMenuItem(
+                                          value: p,
+                                          child: Text(_provinceNames[p] ?? p,
+                                              style: const TextStyle(
+                                                  fontSize: AppTextSize.body)),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) {
+                                  if (v != null) setState(() => _province = v);
+                                  analyticsService
+                                      .logProvinceSwitched(v ?? _province);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Target bracket ───────────────────────────────────────
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bracketLabel,
+                                style: TextStyle(
+                                    fontSize: AppTextSize.md,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.labelGray),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: List.generate(
+                                  _brackets.length,
+                                  (i) {
+                                    final isSelected = i == _targetBracketIndex;
+                                    return ChoiceChip(
+                                      label: Text(_brackets[i].label),
+                                      selected: isSelected,
+                                      selectedColor: AppTheme.primary,
+                                      labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppTheme.labelGray,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        fontSize: AppTextSize.md,
+                                      ),
+                                      onSelected: (_) => setState(
+                                          () => _targetBracketIndex = i),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _calculate,
+                          child: Text(
+                            calcLabel,
+                            style: const TextStyle(
+                                fontSize: AppTextSize.bodyLg,
+                                fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+
+                      // ── Results ──────────────────────────────────────────────
+                      if (_hasCalculated && _result != null) ...[
+                        const SizedBox(height: 24),
+                        _buildResults(context, _result!, fr),
+                      ],
+
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+              const CalcwiseAdFooter(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResults(BuildContext context, _RrspResult r, bool fr) {
+    final heroLabel =
+        fr ? 'Cotisation REER recommandée' : 'Recommended RRSP Contribution';
+    final heroValue = _fmt(r.contribution);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Hero card
+        CalcwiseHeroCard(
+          label: heroLabel,
+          value: heroValue,
+          secondary: r.contribution == 0
+              ? (fr
+                  ? 'Vous êtes déjà dans la tranche cible'
+                  : 'You\'re already in the target bracket')
+              : null,
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primary,
+              AppTheme.primary.withValues(alpha: 0.75)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Gated results
+        if (_gated)
+          _GateCard(
+            fr: fr,
+            onUnlock: () => _showPaywall(fr),
+          )
+        else ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                children: [
+                  MetricRow(
+                    label: fr
+                        ? 'Remboursement fiscal estimé'
+                        : 'Estimated Tax Refund',
+                    value: _fmt(r.taxSaving),
+                    valueColor: AppTheme.success,
+                  ),
+                  MetricRow(
+                    label: fr
+                        ? 'Coût net après remboursement'
+                        : 'Net Cost After Refund',
+                    value: _fmt(r.netCost),
+                    valueColor: AppTheme.primary,
+                  ),
+                  MetricRow(
+                    label:
+                        fr ? 'Taux marginal combiné' : 'Combined Marginal Rate',
+                    value: _pct(r.marginalRate),
+                  ),
+                  MetricRow(
+                    label: fr
+                        ? 'Tranche après cotisation'
+                        : 'Bracket After Contribution',
+                    value: r.bracketLabel,
+                    valueColor: AppTheme.success,
+                  ),
+                  MetricRow(
+                    label: fr ? 'Droits REER restants' : 'Remaining RRSP Room',
+                    value: _fmt(r.remainingRoom),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              fr
+                  ? '* Estimations basées sur les taux fédéraux 2025 et les taux provinciaux approximatifs. Consultez un conseiller fiscal pour un avis personnalisé.'
+                  : '* Estimates based on 2025 federal rates and approximate provincial rates. Consult a tax advisor for personalized advice.',
+              style: TextStyle(
+                fontSize: AppTextSize.xs,
+                color: AppTheme.labelGray,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Gate card shown when use count > threshold and not premium ───────────────
+
+class _GateCard extends StatelessWidget {
+  final bool fr;
+  final VoidCallback onUnlock;
+
+  const _GateCard({required this.fr, required this.onUnlock});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.lock_rounded, color: AppTheme.primary, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            fr ? 'Résultats détaillés' : 'Full RRSP Results',
+            style: TextStyle(
+                fontSize: AppTextSize.bodyLg,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            fr
+                ? 'Débloquez l\'économie fiscale, le coût net et les droits restants.'
+                : 'Unlock tax savings, net cost, and remaining room.',
+            textAlign: TextAlign.center,
+            style:
+                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onUnlock,
+              child: Text(
+                fr ? 'Passer à Premium' : 'Go Premium',
+                style: const TextStyle(
+                    fontSize: AppTextSize.body, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

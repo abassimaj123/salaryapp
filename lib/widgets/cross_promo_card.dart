@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/flavor_config.dart';
+import '../core/theme/app_theme.dart';
 import '../main.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 
@@ -26,7 +27,7 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
   static const _targetTaglineFr = 'Meilleur prêt auto — rapide';
 
   static const _targetId = 'com.calcwise.autoloan';
-  static const _accentColor = Color(0xFF0B5C2E);
+  static const _accentColor = AppTheme.crossPromoGreen;
 
   @override
   void initState() {
@@ -67,6 +68,7 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
   Widget build(BuildContext context) {
     if (!_checked || _dismissed || widget.isPremium)
       return const SizedBox.shrink();
+    final ct = CalcwiseTheme.of(context);
     return Container(
       margin:
           const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
@@ -102,35 +104,41 @@ class _CrossPromoCardState extends State<CrossPromoCard> {
               child: const Text('CalqWise',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: AppTextSize.xxs,
                       fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 6),
             Text(
                 _altLabel(
                     'Also from us', 'También de nosotros', 'Aussi de nous'),
-                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                style: TextStyle(
+                    fontSize: AppTextSize.xs,
+                    color: CalcwiseTheme.of(context).textSecondary)),
           ]),
           const SizedBox(height: AppSpacing.xxs),
-          const Text(_targetName,
+          Text(_targetName,
               style: TextStyle(
                   fontSize: AppTextSize.md,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B))),
+                  color: CalcwiseTheme.of(context).textPrimary)),
           Text(_altLabel(_targetTagline, _targetTaglineEs, _targetTaglineFr),
-              style: const TextStyle(
-                  fontSize: AppTextSize.xs, color: Color(0xFF64748B))),
+              style: TextStyle(
+                  fontSize: AppTextSize.xs,
+                  color: CalcwiseTheme.of(context).textSecondary)),
         ])),
         const SizedBox(width: AppSpacing.sm),
         Column(children: [
-          GestureDetector(
-            onTap: _dismiss,
-            child: const Icon(Icons.close_rounded,
-                size: 16, color: Color(0xFF94A3B8)),
+          IconButton(
+            onPressed: _dismiss,
+            tooltip: 'Dismiss',
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: EdgeInsets.zero,
+            icon: Icon(Icons.close_rounded, size: 16, color: ct.textSecondary),
           ),
           const SizedBox(height: AppSpacing.sm),
-          GestureDetector(
+          InkWell(
             onTap: _open,
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.smPlus, vertical: 5),

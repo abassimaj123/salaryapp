@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show CalcwiseAppBarActions, CalcwiseRewardAdSheet, AppDuration;
+import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
-import '../main.dart' show paywallSession;
+import '../core/freemium/iap_service.dart';
+import '../main.dart' show paywallSession, isSpanishNotifier;
 import '../screens/settings_screen.dart';
+import 'paywall_hard.dart';
 
 /// Standard AppBar trailing actions used across all SalaryApp tab screens.
 /// Delegates to CalcwiseAppBarActions for a single source of truth.
@@ -12,19 +15,31 @@ class AppBarActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CalcwiseAppBarActions(
-      freemium: freemiumService,
-      session: paywallSession,
-      onSettings: () => Navigator.push(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const SettingsScreen(),
-          transitionsBuilder: (_, anim, __, child) =>
-              FadeTransition(opacity: anim, child: child),
-          transitionDuration: AppDuration.base,
-        ),
-      ),
-      onRewardAd: () => CalcwiseRewardAdSheet.show(context),
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSpanishNotifier,
+      builder: (context, useAlt, _) {
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+        return CalcwiseAppBarActions(
+          freemium: freemiumService,
+          session: paywallSession,
+          onSettings: () => Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const SettingsScreen(),
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+              transitionDuration: AppDuration.base,
+            ),
+          ),
+          onRewardAd: () => CalcwiseRewardAdSheet.show(context),
+          onPremium: () => PaywallHard.show(context,
+              isSpanish: es,
+              isFrench: fr,
+              priceLabel: IAPService.instance.localizedPrice.value,
+              onPurchase: IAPService.instance.buy),
+        );
+      },
     );
   }
 }

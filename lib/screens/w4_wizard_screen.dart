@@ -6,7 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -225,6 +225,14 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
   _W4Result? _result;
 
   @override
+  void initState() {
+    super.initState();
+    final salary = salaryNotifier.value;
+    _salaryCtrl.text =
+        salary > 0 ? salary.toStringAsFixed(0) : '75000';
+  }
+
+  @override
   void dispose() {
     _pageCtrl.dispose();
     _salaryCtrl.dispose();
@@ -425,7 +433,7 @@ class _StepIndicator extends StatelessWidget {
                       Text(
                         labels[i],
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppTextSize.xs,
                           color:
                               isActive ? AppTheme.primary : AppTheme.labelGray,
                           fontWeight:
@@ -1046,12 +1054,18 @@ class _Step3Results extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: isRefund
                   ? LinearGradient(
-                      colors: [AppTheme.success, const Color(0xFF059669)],
+                      colors: [
+                        AppTheme.success,
+                        CalcwiseSemanticColors.successDeep
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : LinearGradient(
-                      colors: [AppTheme.error, const Color(0xFFDC2626)],
+                      colors: [
+                        AppTheme.error,
+                        CalcwiseSemanticColors.errorDark
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

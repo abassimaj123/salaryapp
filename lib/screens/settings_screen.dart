@@ -110,7 +110,7 @@ class _PremiumSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         final premiumDesc = fr
             ? AppStringsFR.premiumDesc
@@ -143,6 +143,10 @@ class _PremiumSection extends StatelessWidget {
                   ),
                 ]
               : [
+                  // ── UK: Lifetime "Best Value" card (shown above standard) ──
+                  if (FlavorConfig.isUK)
+                    _LifetimeCard(premiumDesc: premiumDesc),
+
                   CalcwiseSettingsTile(
                     icon: Icons.star_rounded,
                     label: getPremium,
@@ -251,7 +255,9 @@ class _LangChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.smPlus),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary : const Color(0xFFF1F5F9),
+          color: selected
+              ? AppTheme.primary
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(AppRadius.mdPlus),
           border: Border.all(
             color: selected ? AppTheme.primary : AppTheme.divider,
@@ -280,7 +286,7 @@ class _RewardedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         if (isPremium) return const SizedBox.shrink();
         return ValueListenableBuilder<bool>(
@@ -313,7 +319,11 @@ class _RewardedSection extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: Text(
                     isRewarded
-                        ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min left'
+                        ? (fr
+                            ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min restantes'
+                            : (es
+                                ? '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min restantes'
+                                : '${freemiumService.rewardedRemaining?.inMinutes ?? 0} min left'))
                         : (fr
                             ? 'Regardez une pub pour 60 min sans pub'
                             : (es
@@ -396,6 +406,136 @@ class _LinksSection extends StatelessWidget {
               'https://play.google.com/store/apps/developer?id=CalqWise'),
         ),
       ],
+    );
+  }
+}
+
+// ─── UK Lifetime IAP card ─────────────────────────────────────────────────────
+
+/// "Best Value — Lifetime" purchase card shown only in the UK flavor.
+///
+/// TODO(play-console): The product 'premium_lifetime_uk' must be created as a
+/// non-consumable one-time product in Play Console before publishing the UK AAB.
+class _LifetimeCard extends StatelessWidget {
+  final String premiumDesc;
+  const _LifetimeCard({required this.premiumDesc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        onTap: () => IAPService.instance.buyLifetime(),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppTheme.premiumPurple, AppTheme.premiumPurpleDeep],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.premiumPurple.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
+            child: Row(
+              children: [
+                // Crown icon
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.smPlus),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.mdPlus),
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded,
+                      color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: AppSpacing.mdPlus),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Lifetime Access',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: AppTextSize.bodyMd,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.smPlus, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: CalcwiseSemanticColors.premiumGold,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: const Text(
+                              'BEST VALUE',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w800,
+                                fontSize: AppTextSize.xxs,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        premiumDesc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: AppTextSize.sm,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                // Price — live from Play Store, fallback to placeholder
+                ValueListenableBuilder<String?>(
+                  valueListenable: IAPService.instance.localizedLifetimePrice,
+                  builder: (_, price, __) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        // TODO: replace placeholder once product is in Play Console
+                        price ?? '£X.XX',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: AppTextSize.title,
+                        ),
+                      ),
+                      const Text(
+                        'one time',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: AppTextSize.xs,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

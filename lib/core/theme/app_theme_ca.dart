@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import 'app_theme_base.dart';
 
-/// Canada Theme - Professional Burnt Orange with Red Accents
+/// Canada Theme - Canada Red (matches MortgageCA icon palette)
 class AppThemeCA {
   static const Color primaryLight =
-      Color(0xFFE67E22); // Burnt Orange (improved contrast)
-  static const Color primaryDark = Color(0xFFC86D1F); // Deep Burnt Orange
+      Color(0xFFC8102E); // Canada Red
+  static const Color primaryDark = Color(0xFFA50D24); // Deep Canada Red
   static const Color secondaryLight =
-      Color(0xFFEF4444); // Red for icons/accents
-  static const Color secondaryDark = Color(0xFFDC2626); // Dark Red
-  static const Color background = Color(0xFFFFFBF7); // Warm white
-  static const Color backgroundDark = Color(0xFF2D1810); // Dark warm brown
+      Color(0xFFFF3D5A); // Lighter red accent
+  static const Color secondaryDark = Color(0xFFE8112A); // Medium Canada Red
+  static const Color background = Color(0xFFFFF5F6); // Light warm white
+  static const Color backgroundDark = Color(0xFF1A0509); // Dark red-tinted
   static const Color cardWhite = Colors.white;
-  static const Color cardDark = Color(0xFF3F2415);
+  static const Color cardDark = Color(0xFF2D0A10); // Dark red card
 
   static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,
@@ -28,11 +29,11 @@ class AppThemeCA {
             AppThemeBase.inputDecorationTheme(primaryColor: primaryLight),
         extensions: [
           CalcwiseTheme.light(
-              primary: Color(0xFFE67E22),
-              accent: Color(0xFFEF4444),
-              primaryDeep: Color(0xFFC86D1F))
+              primary: Color(0xFFC8102E),
+              accent: Color(0xFFFF3D5A),
+              primaryDeep: Color(0xFFA50D24))
         ],
-        fontFamily: 'Inter',
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       );
 
   static ThemeData get darkTheme => ThemeData(
@@ -50,10 +51,10 @@ class AppThemeCA {
         ),
         extensions: [
           CalcwiseTheme.dark(
-              primary: Color(0xFFE67E22),
-              accent: Color(0xFFEF4444),
-              primaryDeep: Color(0xFFC86D1F))
+              primary: Color(0xFFC8102E),
+              accent: Color(0xFFFF3D5A),
+              primaryDeep: Color(0xFFA50D24))
         ],
-        fontFamily: 'Inter',
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       );
 }

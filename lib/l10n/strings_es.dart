@@ -1,5 +1,5 @@
 class AppStringsES {
-  static const appName = 'Salary Calculator';
+  static const appName = 'Calculadora de Salario';
   static const calculator = 'Calculadora';
   static const history = 'Historial';
   static const settings = 'Configuración';

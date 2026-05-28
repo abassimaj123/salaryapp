@@ -5,11 +5,12 @@ import 'package:intl/intl.dart';
 import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../main.dart' show isSpanishNotifier;
 import '../widgets/result_card.dart';
 import '../widgets/paywall_hard.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:calcwise_core/calcwise_core.dart'
+    show CalcwiseAdFooter, AppSpacing, AppRadius, AppTextSize, CalcwiseSemanticColors;
 
 // ─── 2024 US Federal Tax Brackets (single filer) ─────────────────────────────
 
@@ -94,7 +95,7 @@ class TaxBreakdownScreen extends StatefulWidget {
 
 class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _salaryCtrl = TextEditingController();
+  final _salaryCtrl = TextEditingController(text: '75000');
 
   double? _grossAnnual;
   List<_BracketResult> _brackets = [];
@@ -104,8 +105,10 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     super.initState();
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
       _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
-      _run(widget.initialSalary!);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override
@@ -126,7 +129,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
     final raw =
-        _salaryCtrl.text.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '');
+        _salaryCtrl.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     final v = double.tryParse(raw) ?? 0;
     if (v > 0) _run(v);
   }
@@ -156,6 +159,36 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (!FlavorConfig.isUS) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm),
+                            decoration: BoxDecoration(
+                              color: AppTheme.warning.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(
+                                  color:
+                                      AppTheme.warning.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.info_outline_rounded,
+                                  color: AppTheme.warning, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  fr
+                                      ? 'Affichage des tranches fédérales américaines (US IRS 2024)'
+                                      : 'Showing US Federal tax brackets (IRS 2024)',
+                                  style: TextStyle(
+                                      fontSize: AppTextSize.sm,
+                                      color: AppTheme.warning),
+                                ),
+                              ),
+                            ]),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
                         _SalaryInput(controller: _salaryCtrl, es: es, fr: fr),
                         const SizedBox(height: AppSpacing.lg),
                         ElevatedButton(
@@ -227,7 +260,7 @@ class _SalaryInput extends StatelessWidget {
               return fr ? 'Requis' : (es ? 'Requerido' : 'Required');
             }
             final val = double.tryParse(
-                v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
             if (val == null || val <= 0) {
               return fr
                   ? 'Montant invalide'
@@ -330,7 +363,8 @@ class _TaxBreakdownSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
 
         // Progress bar visualization
-        _BracketProgressBar(brackets: brackets, grossAnnual: grossAnnual),
+        _BracketProgressBar(
+            brackets: brackets, grossAnnual: grossAnnual, es: es, fr: fr),
         const SizedBox(height: AppSpacing.xl),
 
         // Bracket table
@@ -403,7 +437,7 @@ class _TaxBreakdownSection extends StatelessWidget {
 
         // Premium: state tax comparison
         ValueListenableBuilder<bool>(
-          valueListenable: freemiumService.isPremiumNotifier,
+          valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (context, isPremium, _) => isPremium
               ? _StateComparisonCard(grossAnnual: grossAnnual, es: es, fr: fr)
               : _PremiumStateTeaser(es: es, fr: fr, context: context),
@@ -432,7 +466,7 @@ class _TaxBreakdownSection extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.labelGray)),
       );
@@ -452,14 +486,21 @@ class _TaxBreakdownSection extends StatelessWidget {
 class _BracketProgressBar extends StatelessWidget {
   final List<_BracketResult> brackets;
   final double grossAnnual;
+  final bool es;
+  final bool fr;
 
-  const _BracketProgressBar(
-      {required this.brackets, required this.grossAnnual});
+  const _BracketProgressBar({
+    required this.brackets,
+    required this.grossAnnual,
+    this.es = false,
+    this.fr = false,
+  });
 
   Color _color(double rate) {
     if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
     if (rate <= 0.12) return CalcwiseSemanticColors.successDark;
-    if (rate <= 0.22) return const Color(0xFFF5C518);
+    if (rate <= 0.22)
+      return CalcwiseSemanticColors.premiumGold; // bracket color
     if (rate <= 0.24) return CalcwiseSemanticColors.warnIcon;
     if (rate <= 0.32) return CalcwiseSemanticColors.alertText;
     if (rate <= 0.35) return CalcwiseSemanticColors.errorDark;
@@ -481,8 +522,10 @@ class _BracketProgressBar extends StatelessWidget {
             Row(children: [
               Icon(Icons.bar_chart_rounded, size: 18, color: AppTheme.primary),
               const SizedBox(width: AppSpacing.sm),
-              Text('Tax Visualization',
-                  style: TextStyle(
+              Text(fr
+                      ? 'Visualisation fiscale'
+                      : (es ? 'Visualización fiscal' : 'Tax Visualization'),
+                  style: const TextStyle(
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
@@ -645,7 +688,7 @@ class _StateComparisonCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Text(text,
             style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTextSize.xs,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.labelGray)),
       );
@@ -708,7 +751,13 @@ class _PremiumStateTeaser extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => PaywallHard.show(outerCtx),
+                onPressed: () => PaywallHard.show(outerCtx,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: freemiumService.hasFullAccess
+                        ? null
+                        : IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy),
                 child: Text(btnLabel),
               ),
             ),

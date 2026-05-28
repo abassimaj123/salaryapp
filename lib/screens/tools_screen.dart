@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import '../main.dart' show isSpanishNotifier, paywallSession;
+import '../core/freemium/freemium_service.dart';
 import '../core/analytics/analytics_service.dart';
-import '../widgets/app_bar_actions.dart';
-import 'raise_screen.dart';
+import '../core/flavor_config.dart';
+import '../core/freemium/iap_service.dart';
+import '../widgets/tool_hub_card.dart';
+import 'raise_calculator_screen.dart';
 import 'bonus_calculator_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'salary_comparison_screen.dart';
+import 'rrsp_optimizer_screen.dart';
+import 'retirement_optimizer_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         AppDuration,
+        AppSpacing,
+        AppTextSize,
         PaywallTrigger,
-        PaywallHard,
         PaywallSoft;
-
-// Local spacing constants (mirrors calcwise_core tokens)
-const double _spMd = 12.0;
-const double _spLg = 16.0;
-const double _spSm = 8.0;
-const double _radLg = 12.0;
-const double _textBody = 14.0;
-const double _textSm = 12.0;
+import '../widgets/paywall_hard.dart';
 
 /// Tools screen — hub for salary calculators and utilities
 class ToolsScreen extends StatelessWidget {
@@ -31,105 +30,181 @@ class ToolsScreen extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+
+        String t(String en, String esStr, String frStr) =>
+            fr ? frStr : (es ? esStr : en);
+
+        Future<void> push(Widget screen) async {
+          if (!context.mounted) return;
+          await Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => screen,
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+              transitionDuration: AppDuration.base,
+            ),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
-            title: Text(useAlt ? 'Herramientas' : 'Tools'),
+            title: Text(t('Tools', 'Herramientas', 'Outils')),
             elevation: 0,
-            actions: const [AppBarActions()],
           ),
           body: Column(
             children: [
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(_spLg),
+                  key: const PageStorageKey('tools_hub'),
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.sm, AppSpacing.lg,
+                      AppSpacing.lg),
                   children: [
-                    _ToolCard(
+                    // Section description
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          bottom: AppSpacing.md, top: AppSpacing.xs),
+                      child: Text(
+                        t(
+                          'Calculators to plan raises, bonuses, and more.',
+                          'Calculadoras para planear aumentos, bonificaciones y más.',
+                          'Calculateurs pour planifier augmentations, primes et plus.',
+                        ),
+                        style: TextStyle(
+                          fontSize: AppTextSize.sm,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+
+                    // ── Raise Calculator ── all flavors ──────────────────────
+                    ToolHubCard(
                       icon: Icons.trending_up_rounded,
-                      title: useAlt
-                          ? 'Calculadora de Aumento'
-                          : 'Raise Calculator',
-                      subtitle: useAlt
-                          ? 'Calcular el impacto de un aumento en tu salario'
-                          : 'Calculate the impact of a raise on your salary',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const RaiseScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
+                      title: t('Raise Calculator', 'Calculadora de Aumento',
+                          'Calculateur d\'augmentation'),
+                      subtitle: t(
+                        'Calculate the impact of a raise on your salary.',
+                        'Calcular el impacto de un aumento en tu salario.',
+                        'Calculer l\'impact d\'une augmentation sur votre salaire.',
+                      ),
+                      onTap: () => push(const RaiseCalculatorScreen()),
                     ),
-                    const SizedBox(height: _spMd),
-                    _ToolCard(
+                    const SizedBox(height: AppSpacing.md),
+
+                    // ── Bonus Calculator ── all flavors ──────────────────────
+                    ToolHubCard(
                       icon: Icons.card_giftcard_rounded,
-                      title: useAlt
-                          ? 'Calculadora de Bonificación'
-                          : 'Bonus Calculator',
-                      subtitle: useAlt
-                          ? 'Estimar impuestos y ganancias netas en bonificaciones'
-                          : 'Estimate taxes and net gains on bonuses',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const BonusCalculatorScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
+                      title: t('Bonus Calculator', 'Calculadora de Bonificación',
+                          'Calculateur de prime'),
+                      subtitle: t(
+                        'Estimate taxes and net gains on bonuses.',
+                        'Estimar impuestos y ganancias netas en bonificaciones.',
+                        'Estimer les impôts et gains nets sur les primes.',
+                      ),
+                      onTap: () => push(const BonusCalculatorScreen()),
                     ),
-                    const SizedBox(height: _spMd),
-                    _ToolCard(
-                      icon: Icons.assignment_rounded,
-                      title: 'W4 Wizard',
-                      subtitle: useAlt
-                          ? 'Asistente para optimizar tu formulario W4'
-                          : 'Wizard to optimize your W4 withholding',
-                      onTap: () => Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const W4WizardScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          )),
-                    ),
-                    const SizedBox(height: _spMd),
-                    _ToolCard(
-                      icon: Icons.compare_arrows_rounded,
-                      title: useAlt ? 'Comparar Salarios' : 'Salary Comparison',
-                      subtitle: useAlt
-                          ? 'Compara dos ofertas: neto, impuestos, mensual'
-                          : 'Compare two offers: net pay, taxes, monthly',
-                      onTap: () async {
-                        analyticsService.logCalculationCompleted(
-                            params: {'action': 'salary_comparison_tapped'});
-                        final trigger = await paywallSession.recordAction();
-                        if (!context.mounted) return;
-                        if (trigger == PaywallTrigger.hard) {
-                          analyticsService.logPaywallViewed('session_hard');
-                          PaywallHard.show(context);
-                          return;
-                        } else if (trigger == PaywallTrigger.soft) {
-                          analyticsService.logPaywallViewed('session_soft');
-                          PaywallSoft.show(context,
-                              featureTitle: useAlt
-                                  ? 'Comparar Salarios'
-                                  : 'Salary Comparison');
-                        }
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const SalaryComparisonScreen(),
-                            transitionsBuilder: (_, anim, __, child) =>
-                                FadeTransition(opacity: anim, child: child),
-                            transitionDuration: AppDuration.base,
-                          ),
-                        );
-                      },
-                    ),
+
+                    // ── CA-specific ──────────────────────────────────────────
+                    if (FlavorConfig.isCA) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
+                        icon: Icons.account_balance_rounded,
+                        title: fr ? 'Optimiseur REER' : 'RRSP Optimizer',
+                        subtitle: fr
+                            ? 'Réduisez votre impôt avec vos cotisations REER.'
+                            : 'Reduce your tax with optimal RRSP contributions.',
+                        onTap: () => push(const RrspOptimizerScreen()),
+                      ),
+                    ],
+
+                    // ── US-specific ──────────────────────────────────────────
+                    if (FlavorConfig.isUS) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
+                        icon: Icons.assignment_rounded,
+                        title: es ? 'Asistente W-4' : 'W-4 Withholding Wizard',
+                        subtitle: es
+                            ? 'Optimiza tu retención federal.'
+                            : 'Get your federal withholding exactly right.',
+                        isPremium: true,
+                        onTap: () async {
+                          if (!freemiumService.hasFullAccess) {
+                            final trigger =
+                                await paywallSession.recordAction();
+                            if (!context.mounted) return;
+                            if (trigger == PaywallTrigger.hard) {
+                              analyticsService.logPaywallViewed('session_hard');
+                              analyticsService.logFeatureGated('w4_wizard');
+                              await PaywallHard.show(context,
+                                  isSpanish: es,
+                                  onPurchase: IAPService.instance.buy);
+                              return;
+                            } else if (trigger == PaywallTrigger.soft) {
+                              analyticsService.logPaywallViewed('session_soft');
+                              analyticsService.logFeatureGated('w4_wizard');
+                              await PaywallSoft.show(
+                                context,
+                                isSpanish: es,
+                                featureTitle: es
+                                    ? 'Asistente W-4'
+                                    : 'W-4 Withholding Wizard',
+                                featureSubtitle: es
+                                    ? 'Optimiza tu retención federal'
+                                    : 'Get your federal withholding exactly right',
+                                priceLabel:
+                                    IAPService.instance.localizedPrice.value,
+                                onUnlock: IAPService.instance.buy,
+                              );
+                              // Soft paywall — continue to screen after dismissal
+                            }
+                          }
+                          if (!context.mounted) return;
+                          await push(const W4WizardScreen());
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
+                        icon: Icons.compare_arrows_rounded,
+                        title: es ? 'Comparar Salarios' : 'Salary Comparison',
+                        subtitle: es
+                            ? 'Compara dos ofertas: neto, impuestos, mensual.'
+                            : 'Compare two offers side by side: net pay, taxes, monthly.',
+                        isPremium: true,
+                        onTap: () async {
+                          analyticsService.logCalculationCompleted(
+                              params: {'action': 'salary_comparison_tapped'});
+                          final trigger = await paywallSession.recordAction();
+                          if (!context.mounted) return;
+                          if (trigger == PaywallTrigger.hard) {
+                            analyticsService.logPaywallViewed('session_hard');
+                            await PaywallHard.show(context, isSpanish: es);
+                            return;
+                          } else if (trigger == PaywallTrigger.soft) {
+                            analyticsService.logPaywallViewed('session_soft');
+                            await PaywallSoft.show(context,
+                                isSpanish: es,
+                                featureTitle: es
+                                    ? 'Comparar Salarios'
+                                    : 'Salary Comparison');
+                          }
+                          if (!context.mounted) return;
+                          await push(const SalaryComparisonScreen());
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
+                        icon: Icons.savings_rounded,
+                        title: es ? 'Optimizador 401(k)' : '401(k) Optimizer',
+                        subtitle: es
+                            ? 'Minimiza impuestos con aportes al 401(k).'
+                            : 'Minimize taxes with optimal 401(k) contributions.',
+                        onTap: () =>
+                            push(const RetirementOptimizerScreen()),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -138,42 +213,6 @@ class ToolsScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ToolCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ToolCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radLg)),
-      child: ListTile(
-        leading: Icon(icon, size: 28),
-        title: Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: _textBody)),
-        subtitle: Text(subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: _textSm)),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: _spLg, vertical: _spSm),
-      ),
     );
   }
 }

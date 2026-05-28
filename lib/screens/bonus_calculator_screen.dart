@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Bonus / Supplemental Pay Calculator (all flavors) ───────────────────────
@@ -192,7 +192,7 @@ class BonusCalculatorScreen extends StatefulWidget {
 class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _salaryCtrl = TextEditingController();
-  final _bonusCtrl = TextEditingController();
+  final _bonusCtrl = TextEditingController(text: '5,000');
   final _scrollCtrl = ScrollController();
 
   String _usState = 'CA';
@@ -200,6 +200,25 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   int _payPeriods = 26; // biweekly default
 
   BonusResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    final salary = salaryNotifier.value;
+    _salaryCtrl.text = salary > 0
+        ? NumberFormat('#,###').format(salary.round())
+        : '75,000';
+    // Load saved province for CA flavor
+    if (FlavorConfig.isCA) {
+      SharedPreferences.getInstance().then((prefs) {
+        final saved = prefs.getString('salary_ca_province');
+        if (saved != null && mounted) setState(() => _caProvince = saved);
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
+  }
 
   @override
   void dispose() {
@@ -210,7 +229,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   }
 
   double _parse(TextEditingController c) {
-    final raw = c.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
+    // Strip all thousand-separator variants (comma, non-breaking space, etc.)
+    final raw = c.text.replaceAll(RegExp('[,   ]'), '').replaceAll(RegExp(r'[^\d.]'), '');
     return double.tryParse(raw) ?? 0;
   }
 
@@ -233,16 +253,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     }
 
     setState(() => _result = res);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: AppDuration.slow,
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override
@@ -373,12 +383,15 @@ class _InputCard extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 labelText: salaryLabel,
                 prefixText: '$symbol ',
-                hintText: '75000',
+                hintText: '75,000',
               ),
               style: const TextStyle(
                   fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
@@ -396,12 +409,15 @@ class _InputCard extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 labelText: bonusLabel,
                 prefixText: '$symbol ',
-                hintText: '5000',
+                hintText: '5,000',
                 helperText: FlavorConfig.isUS
                     ? (es
                         ? '22% tasa suplementaria federal (37% si > \$1M)'
@@ -490,10 +506,8 @@ class _ResultsSection extends StatelessWidget {
   const _ResultsSection(
       {required this.result, required this.es, required this.fr});
 
-  String get _symbol => FlavorConfig.currencySymbol;
-
   String _fmt(double v) =>
-      NumberFormat.currency(symbol: _symbol, decimalDigits: 2).format(v);
+      AmountFormatter.ui(v, FlavorConfig.currencyCode);
 
   String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 
@@ -832,7 +846,7 @@ class _MethodCard extends StatelessWidget {
                     child: const Text('BEST',
                         style: TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: AppTextSize.xxs,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5)),
                   ),
@@ -842,7 +856,7 @@ class _MethodCard extends StatelessWidget {
                         fontSize: AppTextSize.md, fontWeight: FontWeight.w700)),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(subtitle,
-                    style: TextStyle(fontSize: 10, color: AppTheme.labelGray)),
+                    style: TextStyle(fontSize: AppTextSize.xs, color: AppTheme.labelGray)),
               ],
             ),
           ),

@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:calcwise_core/calcwise_core.dart' hide PaywallHard;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -29,12 +30,15 @@ import '../widgets/premium_cta_widget.dart';
 import '../widgets/result_card.dart';
 import '../widgets/insight_card.dart';
 import '../core/insight_engine.dart';
-import '../main.dart' show isSpanishNotifier;
-import 'raise_screen.dart';
+import '../main.dart'
+    show
+        isSpanishNotifier,
+        salaryNotifier,
+        ukStudentLoanNotifier,
+        ukScotlandNotifier;
 import 'tax_breakdown_screen.dart';
 import 'w4_wizard_screen.dart';
 import 'bonus_calculator_screen.dart';
-import '../widgets/app_bar_actions.dart';
 
 // ─── Pay-frequency enum ───────────────────────────────────────────────────────
 
@@ -101,34 +105,76 @@ class CalculatorScreen extends StatefulWidget {
   State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorScreenState extends State<CalculatorScreen> {
+class _CalculatorScreenState extends State<CalculatorScreen>
+    with CalcwiseAutoCalcMixin {
   final _formKey = GlobalKey<FormState>();
-  final _salaryCtrl = TextEditingController();
+  final _salaryCtrl = TextEditingController(text: '75,000');
   final _scrollCtrl = ScrollController();
+  final _salarySacrificeCtrl = TextEditingController(text: '0');
+
+  static const _kProvinceKey = 'salary_ca_province';
 
   PayFrequency _frequency = PayFrequency.annual;
   String _usState = 'CA';
+  // Loaded from SharedPreferences or detected from device locale in initState.
   String _caProvince = 'ON';
   String? _usCity; // local-tax city key (see local_taxes.dart)
   SalaryResult? _result;
   double _localTax = 0; // computed local-tax amount (US only)
   bool _showResults = false;
 
-  Timer? _debounce;
+  // CA reverse-calculation mode
+  bool _caReverseMode = false; // false = gross→net, true = net→gross
+  double? _caRequiredGross; // result of reverse calc
+
+  // UK salary sacrifice
+  double _salarySacrifice = 0; // £/year pre-tax deduction
+
   Timer? _saveDebounce;
 
   @override
   void initState() {
     super.initState();
-    _salaryCtrl.addListener(_debouncedCalculate);
+    analyticsService.logScreenView('calculator');
+    _salaryCtrl.addListener(() => _scheduleCalcAndSave());
 
-    // Trigger initial calculation with default values after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _debouncedCalculate());
+    // Load saved province (or auto-detect from device locale on first install).
+    if (FlavorConfig.isCA) _loadSavedProvince();
+
+    // Trigger initial calculation only — skip save to avoid paywall on cold start.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => scheduleCalc(_calculate));
   }
 
-  void _debouncedCalculate() {
-    _debounce?.cancel();
-    _debounce = Timer(AppDuration.page, _calculate);
+  /// Loads the saved province from SharedPreferences.
+  /// Falls back to device locale detection on first install (fr → QC, else → ON).
+  Future<void> _loadSavedProvince() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kProvinceKey);
+    if (!mounted) return;
+    if (saved != null && saved.isNotEmpty) {
+      setState(() => _caProvince = saved);
+    } else {
+      // First install: detect from device locale
+      final locale = WidgetsBinding.instance.platformDispatcher.locale;
+      final detected = locale.languageCode == 'fr' ? 'QC' : 'ON';
+      setState(() => _caProvince = detected);
+      await prefs.setString(_kProvinceKey, detected);
+    }
+    // Re-trigger calc with the correct province
+    scheduleCalc(_calculate);
+  }
+
+  /// Persists the selected province so it's remembered across sessions.
+  Future<void> _saveProvince(String province) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kProvinceKey, province);
+  }
+
+  /// Schedule calc (via mixin) + auto-save 2 s after last change.
+  /// Called from user interactions (listener, chips, toggles) — never from initState.
+  void _scheduleCalcAndSave() {
+    scheduleCalc(_calculate);
     // Save 2 s after last change — one history entry per pause, not per keystroke
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 2000), () {
@@ -138,10 +184,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _saveDebounce?.cancel();
-    _salaryCtrl.removeListener(_debouncedCalculate);
+    _salaryCtrl.removeListener(() => _scheduleCalcAndSave());
     _salaryCtrl.dispose();
+    _salarySacrificeCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -149,26 +195,39 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   void _calculate() {
-    // In auto-calc mode, skip if field is empty — no error flash
-    if (_salaryCtrl.text.trim().isEmpty) return;
     if (!_formKey.currentState!.validate()) return;
 
     final rawText = _salaryCtrl.text;
-    final raw = (rawText.contains('.') && rawText.contains(','))
-        ? rawText.replaceAll(',', '')
-        : rawText.replaceAll(',', '.');
+    // Strip ALL thousand-separator variants: ASCII comma, non-breaking space (fr_CA),
+    // narrow non-breaking space. Never replace ',' with '.' — dot stays decimal.
+    final raw = rawText.replaceAll(RegExp(r'[,    ]'), '');
     final input = double.tryParse(raw.replaceAll(_nonDigitDot, '')) ?? 0;
-    final grossAnnual = _frequency.toAnnual(input);
+    final inputAnnual = _frequency.toAnnual(input);
 
-    if (grossAnnual <= 0) return;
+    if (inputAnnual <= 0) return;
 
     SalaryResult res;
+    double? requiredGross;
+
     if (FlavorConfig.isUS) {
-      res = UsSalaryEngine.calculate(grossAnnual, _usState);
+      res = UsSalaryEngine.calculate(inputAnnual, _usState);
     } else if (FlavorConfig.isUK) {
-      res = UkSalaryEngine.calculate(grossAnnual);
+      res = UkSalaryEngine.calculate(
+        inputAnnual,
+        studentLoan: ukStudentLoanNotifier.value,
+        scotland: ukScotlandNotifier.value,
+        salarySacrifice: _salarySacrifice,
+      );
     } else {
-      res = CaSalaryEngine.calculate(grossAnnual, _caProvince);
+      // CA: reverse mode computes the gross needed to achieve target net
+      if (_caReverseMode) {
+        final targetNet = inputAnnual;
+        final gross = CaSalaryEngine.grossFromNet(targetNet, _caProvince);
+        res = CaSalaryEngine.calculate(gross, _caProvince);
+        requiredGross = gross;
+      } else {
+        res = CaSalaryEngine.calculate(inputAnnual, _caProvince);
+      }
     }
 
     // Local (city) tax — US only, applied flat to gross.
@@ -177,10 +236,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       localTax = res.grossAnnual * localTaxes[_usCity]!.rate;
     }
 
+    salaryNotifier.value = res.grossAnnual;
+
     setState(() {
       _result = res;
       _localTax = localTax;
       _showResults = true;
+      _caRequiredGross = requiredGross;
     });
 
     // Emotional trigger: good annual net salary → ask for review
@@ -200,35 +262,19 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       'frequency': _frequency.name,
     });
 
-    // Scroll to results after next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: AppDuration.slow,
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    // No auto-scroll: the results section appears below the input card;
+    // the user scrolls manually. Auto-scrolling caused results to go off-screen.
   }
 
   Future<void> _saveToHistory(SalaryResult res) async {
-    final currentCount = await DatabaseService.instance.count();
-    if (currentCount >= freemiumService.historyLimit) {
-      if (mounted) {
-        final isEs = FlavorConfig.isUS && isSpanishNotifier.value;
-        final isFr = FlavorConfig.isCA && isSpanishNotifier.value;
-        analyticsService.logPaywallViewed('history_limit');
-        PaywallSoft.show(
-          context,
-          featureTitle: isEs
-              ? 'Historial ilimitado'
-              : isFr
-                  ? 'Historique illimité'
-                  : 'Unlimited history',
-        );
+    // Premium / rewarded users: unlimited saves — skip count check.
+    if (!freemiumService.hasFullAccess) {
+      final currentCount = await DatabaseService.instance.count();
+      if (currentCount >= freemiumService.historyLimit) {
+        // Auto-save silently skipped when at free limit.
+        // Paywall is triggered by PaywallSessionService (session-based), not here.
+        return;
       }
-      return;
     }
     final region =
         FlavorConfig.isUS ? _usState : (FlavorConfig.isCA ? _caProvince : '');
@@ -255,6 +301,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       _result = null;
       _showResults = false;
       _frequency = PayFrequency.annual;
+      _caRequiredGross = null;
+      _salarySacrifice = 0;
+      _salarySacrificeCtrl.text = '0';
     });
   }
 
@@ -290,13 +339,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           appBar: AppBar(
             title: Text(appBarTitle),
             actions: [
-              if (_showResults)
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: resetLabel,
-                  onPressed: _reset,
-                ),
-              const AppBarActions(),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: resetLabel,
+                onPressed: _showResults ? _reset : null,
+              ),
             ],
           ),
           body: GestureDetector(
@@ -325,7 +372,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                     es: es,
                                     fr: fr,
                                   )),
-                              SizedBox(height: 16),
+                              SizedBox(height: AppSpacing.md),
                               CalcwiseStaggerItem(
                                   index: 1,
                                   child: Column(children: [
@@ -335,11 +382,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       onChanged: (f) {
                                         HapticFeedback.selectionClick();
                                         setState(() => _frequency = f);
-                                        _debouncedCalculate();
+                                        _scheduleCalcAndSave();
                                       },
                                     ),
                                     if (FlavorConfig.isUS) ...[
-                                      SizedBox(height: 16),
+                                      SizedBox(height: AppSpacing.md),
                                       Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -356,7 +403,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                                   // selected city.
                                                   _usCity = null;
                                                 });
-                                                _debouncedCalculate();
+                                                _scheduleCalcAndSave();
                                               },
                                             ),
                                           ),
@@ -370,7 +417,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                                     onChanged: (v) {
                                                       setState(
                                                           () => _usCity = v);
-                                                      _debouncedCalculate();
+                                                      _scheduleCalcAndSave();
                                                     },
                                                   )
                                                 : const SizedBox.shrink(),
@@ -379,18 +426,98 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                       ),
                                     ],
                                     if (FlavorConfig.isCA) ...[
-                                      SizedBox(height: 16),
+                                      SizedBox(height: AppSpacing.md),
                                       _ProvinceDropdown(
                                         value: _caProvince,
                                         useAlt: useAlt,
                                         onChanged: (v) {
                                           setState(() => _caProvince = v!);
-                                          _debouncedCalculate();
+                                          _saveProvince(v!);
+                                          _scheduleCalcAndSave();
+                                        },
+                                      ),
+                                      SizedBox(height: AppSpacing.sm),
+                                      // Reverse-calculation toggle (net → gross)
+                                      _CaReverseModeToggle(
+                                        reverseMode: _caReverseMode,
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _caReverseMode = v;
+                                            _caRequiredGross = null;
+                                            _showResults = false;
+                                          });
+                                          _scheduleCalcAndSave();
+                                        },
+                                      ),
+                                    ],
+                                    if (FlavorConfig.isUK) ...[
+                                      SizedBox(height: AppSpacing.sm),
+                                      // Scotland toggle
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: ukScotlandNotifier,
+                                        builder: (context, isScotland, _) =>
+                                            SwitchListTile.adaptive(
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                            'Scotland',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium,
+                                          ),
+                                          subtitle: Text(
+                                            'Scottish income tax rates 2026/27',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                          value: isScotland,
+                                          activeColor: AppTheme.primary,
+                                          onChanged: (v) {
+                                            ukScotlandNotifier.value = v;
+                                            _scheduleCalcAndSave();
+                                          },
+                                        ),
+                                      ),
+                                      // Student loan toggle
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: ukStudentLoanNotifier,
+                                        builder: (context, hasLoan, _) =>
+                                            SwitchListTile.adaptive(
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                            'Student Loan Repayment',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium,
+                                          ),
+                                          subtitle: Text(
+                                            'Plan 2 (£27,295) or Plan 5 (£25,000) — 9%',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                          value: hasLoan,
+                                          activeColor: AppTheme.primary,
+                                          onChanged: (v) {
+                                            ukStudentLoanNotifier.value = v;
+                                            _scheduleCalcAndSave();
+                                          },
+                                        ),
+                                      ),
+                                      // Salary sacrifice / SMART pension field
+                                      SizedBox(height: AppSpacing.sm),
+                                      _SalarySacrificeField(
+                                        controller: _salarySacrificeCtrl,
+                                        onChanged: (v) {
+                                          setState(() => _salarySacrifice = v);
+                                          _scheduleCalcAndSave();
                                         },
                                       ),
                                     ],
                                   ])),
-                              SizedBox(height: 24),
+                              SizedBox(height: AppSpacing.xl),
                               AnimatedSwitcher(
                                 duration: AppDuration.base,
                                 switchInCurve: Curves.easeOut,
@@ -422,6 +549,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                             useAlt: useAlt,
                                             es: es,
                                             fr: fr,
+                                            caReverseMode: _caReverseMode,
+                                            caRequiredGross: _caRequiredGross,
+                                            ukSalarySacrifice: _salarySacrifice,
                                           ),
                                         ),
                                       )
@@ -430,7 +560,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         child: SizedBox.shrink(),
                                       ),
                               ),
-                              SizedBox(height: 16),
+                              SizedBox(height: AppSpacing.md),
                             ],
                           ),
                         )), // CalcwisePageEntrance closes
@@ -518,10 +648,8 @@ class _SalaryInputCard extends StatelessWidget {
                     ? 'Veuillez entrer un montant'
                     : (es ? 'Ingrese un monto' : 'Please enter an amount');
               }
-              final normalized = (v.contains('.') && v.contains(','))
-                  ? v.replaceAll(',', '')
-                  : v.replaceAll(',', '.');
-              final val = double.tryParse(normalized);
+              // Commas are thousand separators — strip them, never swap with '.'
+              final val = double.tryParse(v.replaceAll(',', ''));
               if (val == null || val <= 0) {
                 return fr
                     ? 'Montant invalide'
@@ -552,7 +680,9 @@ class _FrequencyChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: useAlt ? 'Frecuencia de pago' : 'Pay frequency',
+      label: FlavorConfig.isCA && useAlt
+          ? 'Fréquence de paie'
+          : (FlavorConfig.isUS && useAlt ? 'Frecuencia de pago' : 'Pay frequency'),
       container: true,
       child: Wrap(
         spacing: 8,
@@ -720,6 +850,9 @@ class _ResultsSection extends StatefulWidget {
   final String? localTaxLabel;
   final String label;
   final bool useAlt, es, fr;
+  final bool caReverseMode;
+  final double? caRequiredGross;
+  final double ukSalarySacrifice;
 
   const _ResultsSection({
     required this.result,
@@ -729,6 +862,9 @@ class _ResultsSection extends StatefulWidget {
     required this.useAlt,
     required this.es,
     required this.fr,
+    this.caReverseMode = false,
+    this.caRequiredGross,
+    this.ukSalarySacrifice = 0,
   });
 
   @override
@@ -781,7 +917,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
 
     final stateLabel = FlavorConfig.isUS
@@ -823,6 +961,28 @@ class _ResultsSectionState extends State<_ResultsSection> {
         ),
         SizedBox(height: 12),
 
+        // CA reverse-mode: show required gross to achieve the target net
+        if (FlavorConfig.isCA &&
+            widget.caReverseMode &&
+            widget.caRequiredGross != null) ...[
+          _CaReverseResultBanner(
+            requiredGross: widget.caRequiredGross!,
+            targetNet: adjustedNetAnnual,
+            fr: fr,
+          ),
+          SizedBox(height: 12),
+        ],
+
+        // UK salary sacrifice savings banner
+        if (FlavorConfig.isUK && widget.ukSalarySacrifice > 0) ...[
+          _UkSalarySacrificeSavingsBanner(
+            grossAnnual: result.grossAnnual,
+            salarySacrifice: widget.ukSalarySacrifice,
+            scotland: ukScotlandNotifier.value,
+          ),
+          SizedBox(height: 12),
+        ],
+
         // Bi-weekly / Weekly row
         Row(children: [
           Expanded(
@@ -833,7 +993,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
               child: ResultCard(
                   label: weeklyLabel, value: _fmt(adjustedNetWeekly))),
         ]),
-        SizedBox(height: 24),
+        SizedBox(height: AppSpacing.xl),
 
         // ── Sankey paycheck flow ─────────────────────────────────────────
         Card(
@@ -852,47 +1012,53 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontSize: AppTextSize.bodyMd)),
-                SizedBox(height: 12),
-                SankeyChart(
-                  gross: result.grossAnnual,
-                  currencySymbol: FlavorConfig.currencySymbol,
-                  outflows: [
-                    if (result.federalTax > 0)
+                const SizedBox(height: AppSpacing.md),
+                Semantics(
+                  label: 'Salary breakdown: '
+                      'Gross ${_currencyFmt0.format(result.grossAnnual)}, '
+                      '${federalLabel} ${_currencyFmt0.format(result.federalTax)}, '
+                      'Net ${_currencyFmt0.format(result.netAnnual)}',
+                  child: SankeyChart(
+                    gross: result.grossAnnual,
+                    currencySymbol: FlavorConfig.currencySymbol,
+                    outflows: [
+                      if (result.federalTax > 0)
+                        SankeyFlow(
+                          label: federalLabel,
+                          value: result.federalTax,
+                          color: CalcwiseTheme.of(context).errorRed,
+                        ),
+                      if (result.ficaTax > 0)
+                        SankeyFlow(
+                          label: ficaLabel,
+                          value: result.ficaTax,
+                          color: Colors.orange,
+                        ),
+                      if (!FlavorConfig.isUK && result.stateTax > 0)
+                        SankeyFlow(
+                          label: stateLabel,
+                          value: result.stateTax,
+                          color: Colors.purple,
+                        ),
+                      if (localTax > 0)
+                        SankeyFlow(
+                          label: localLabel,
+                          value: localTax,
+                          color: AppTheme.gold, // yellow/gold
+                        ),
                       SankeyFlow(
-                        label: federalLabel,
-                        value: result.federalTax,
-                        color: CalcwiseTheme.of(context).errorRed,
+                        label: netLabel,
+                        value: adjustedNetAnnual > 0 ? adjustedNetAnnual : 0,
+                        color: AppTheme.success,
                       ),
-                    if (result.ficaTax > 0)
-                      SankeyFlow(
-                        label: ficaLabel,
-                        value: result.ficaTax,
-                        color: Colors.orange,
-                      ),
-                    if (!FlavorConfig.isUK && result.stateTax > 0)
-                      SankeyFlow(
-                        label: stateLabel,
-                        value: result.stateTax,
-                        color: Colors.purple,
-                      ),
-                    if (localTax > 0)
-                      SankeyFlow(
-                        label: localLabel,
-                        value: localTax,
-                        color: const Color(0xFFD4A017), // yellow/gold
-                      ),
-                    SankeyFlow(
-                      label: netLabel,
-                      value: adjustedNetAnnual > 0 ? adjustedNetAnnual : 0,
-                      color: AppTheme.success,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Pie chart
         Card(
@@ -911,7 +1077,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontSize: AppTextSize.bodyMd)),
-                SizedBox(height: 16),
+                SizedBox(height: AppSpacing.md),
                 SizedBox(
                   height: 200,
                   child: _TaxPieChart(
@@ -921,7 +1087,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                     stateLabel: stateLabel,
                   ),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: AppSpacing.md),
                 Divider(color: AppTheme.divider),
                 SizedBox(height: 8),
                 MetricRow(label: grossLabel, value: _fmt(result.grossAnnual)),
@@ -943,7 +1109,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                   MetricRow(
                       label: localLabel,
                       value: _fmt(localTax),
-                      valueColor: const Color(0xFFD4A017)),
+                      valueColor: AppTheme.gold),
                 MetricRow(
                     label: totalTaxLabel,
                     value: _fmt(adjustedTotalTax),
@@ -959,7 +1125,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
           ),
         ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // ── City-to-City COL Comparison ──────────────────────────────────
         _CityComparisonCard(
@@ -970,7 +1136,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
           onCityChanged: (city) => setState(() => _targetCity = city),
         ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Smart Insights
         if (FlavorConfig.isUS)
@@ -989,21 +1155,21 @@ class _ResultsSectionState extends State<_ResultsSection> {
             isSpanish: es,
           ),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Benefits & deductions estimator
         _BenefitsCard(result: result, fr: fr, es: es),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Pay Rate Converter
         _PayRateConverter(result: result, fr: fr, es: es),
 
-        SizedBox(height: 16),
+        SizedBox(height: AppSpacing.md),
 
         // Premium CTA if user is free
         ValueListenableBuilder<bool>(
-          valueListenable: freemiumService.isPremiumNotifier,
+          valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (_, isPremium, __) => isPremium
               ? const SizedBox.shrink()
               : PremiumCtaWidget(
@@ -1033,9 +1199,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
                   ? 'Solo para fines informativos. No es asesoramiento financiero.'
                   : 'For informational purposes only. Not financial advice.'),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF757575),
+          style: TextStyle(
+            fontSize: AppTextSize.xs,
+            color: AppTheme.labelGray,
           ),
         ),
       ],
@@ -1127,7 +1293,7 @@ class _CityComparisonCard extends StatelessWidget {
             if (targetCity != null &&
                 _colIndex[targetCity] != null &&
                 equivalentGross != null) ...[
-              SizedBox(height: 16),
+              SizedBox(height: AppSpacing.md),
               // Result pill
               Container(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1577,7 +1743,7 @@ class _PdfExportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
         return SizedBox(
           width: double.infinity,
@@ -1621,7 +1787,9 @@ class _PdfExportButton extends StatelessWidget {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
     final stateLabel = FlavorConfig.isUS
         ? (es ? 'Impuesto estatal' : 'State Tax')
@@ -1735,7 +1903,7 @@ class _CsvExportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
         return SizedBox(
           width: double.infinity,
@@ -1779,7 +1947,9 @@ class _CsvExportButton extends StatelessWidget {
     final ficaLabel = FlavorConfig.isUS
         ? 'FICA (SS + Medicare)'
         : (FlavorConfig.isUK
-            ? 'National Insurance'
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
             : (fr ? 'RPC + AE' : 'CPP + EI'));
     final stateLabel = FlavorConfig.isUS
         ? (es ? 'Impuesto estatal' : 'State Tax')
@@ -1947,7 +2117,7 @@ class _PayRateConverter extends StatelessWidget {
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 16),
+            SizedBox(height: AppSpacing.md),
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(3),
@@ -2009,4 +2179,242 @@ class _RateRow {
   final double gross, net;
   const _RateRow(
       {required this.period, required this.gross, required this.net});
+}
+
+// ─── CA: Reverse-calculation mode toggle ─────────────────────────────────────
+
+class _CaReverseModeToggle extends StatelessWidget {
+  final bool reverseMode;
+  final ValueChanged<bool> onChanged;
+
+  const _CaReverseModeToggle({
+    required this.reverseMode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isSpanishNotifier,
+      builder: (context, useAlt, _) {
+        final fr = FlavorConfig.isCA && useAlt;
+        return SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: Text(
+            reverseMode
+                ? (fr ? 'Calculer depuis le net' : 'Calculate from net')
+                : (fr ? 'Calculer depuis le brut' : 'Calculate from gross'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          subtitle: Text(
+            reverseMode
+                ? (fr
+                    ? 'Entrez le salaire net souhaité — obtenez le brut requis'
+                    : 'Enter desired take-home — get required gross')
+                : (fr
+                    ? 'Entrez le salaire brut — obtenez le net'
+                    : 'Enter gross salary — get take-home pay'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          value: reverseMode,
+          activeColor: AppTheme.primary,
+          onChanged: onChanged,
+        );
+      },
+    );
+  }
+}
+
+// ─── CA: Reverse-calculation result banner ────────────────────────────────────
+
+class _CaReverseResultBanner extends StatelessWidget {
+  final double requiredGross;
+  final double targetNet;
+  final bool fr;
+
+  const _CaReverseResultBanner({
+    required this.requiredGross,
+    required this.targetNet,
+    required this.fr,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final grossFmt = _currencyFmt0.format(requiredGross);
+    final netFmt = _currencyFmt0.format(targetNet);
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.swap_vert_rounded, color: AppTheme.primary, size: 22),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fr ? 'Salaire brut requis' : 'Required gross salary',
+                  style: TextStyle(
+                      fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+                ),
+                Text(
+                  grossFmt,
+                  style: TextStyle(
+                      fontSize: AppTextSize.bodyXl,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  fr
+                      ? 'Pour obtenir un net de $netFmt'
+                      : 'To achieve a take-home of $netFmt',
+                  style: TextStyle(
+                      fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── UK: Salary sacrifice savings banner ─────────────────────────────────────
+
+class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
+  final double grossAnnual;
+  final double salarySacrifice;
+  final bool scotland;
+
+  const _UkSalarySacrificeSavingsBanner({
+    required this.grossAnnual,
+    required this.salarySacrifice,
+    required this.scotland,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (taxSaving, niSaving) = UkSalaryEngine.salarySacrificeSavings(
+      grossAnnual,
+      salarySacrifice,
+      scotland: scotland,
+    );
+    final totalSaving = taxSaving + niSaving;
+    if (totalSaving <= 0) return const SizedBox.shrink();
+
+    final taxFmt = _currencyFmt0.format(taxSaving);
+    final niFmt = _currencyFmt0.format(niSaving);
+    final totalFmt = _currencyFmt0.format(totalSaving);
+    final sacrificeFmt = _currencyFmt0.format(salarySacrifice);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppTheme.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppTheme.success.withValues(alpha: 0.30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.savings_rounded, color: AppTheme.success, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Salary Sacrifice / SMART Pension Savings',
+              style: TextStyle(
+                  fontSize: AppTextSize.bodyMd,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.success),
+            ),
+          ]),
+          SizedBox(height: 8),
+          Text(
+            'On $sacrificeFmt sacrifice you save:',
+            style:
+                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+          ),
+          SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Income tax saved',
+                  style: TextStyle(fontSize: AppTextSize.sm)),
+              Text(taxFmt,
+                  style: TextStyle(
+                      fontSize: AppTextSize.sm,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.success)),
+            ],
+          ),
+          SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('NI saved', style: TextStyle(fontSize: AppTextSize.sm)),
+              Text(niFmt,
+                  style: TextStyle(
+                      fontSize: AppTextSize.sm,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.success)),
+            ],
+          ),
+          Divider(height: 16, color: AppTheme.success.withValues(alpha: 0.20)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total savings',
+                  style: TextStyle(
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.w700)),
+              Text(totalFmt,
+                  style: TextStyle(
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.success)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── UK: Salary sacrifice input field ────────────────────────────────────────
+
+class _SalarySacrificeField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<double> onChanged;
+
+  const _SalarySacrificeField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: 'Salary Sacrifice / SMART Pension',
+        prefixText: '£ ',
+        prefixIcon: const Icon(Icons.savings_outlined),
+        helperText: 'Pre-tax, pre-NI annual deduction',
+        hintText: '0',
+      ),
+      onChanged: (v) {
+        final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
+        onChanged(parsed);
+      },
+    );
+  }
 }

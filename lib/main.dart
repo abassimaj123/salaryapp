@@ -13,12 +13,14 @@ import 'package:calcwise_core/calcwise_core.dart'
         requestCalcwiseConsent,
         CalcwiseAdFooter,
         CalcwiseRewardAdSheet,
+        CalcwiseAppBarActions,
         PaywallTrigger,
-        PaywallHard,
         PaywallSoft,
         AppDuration,
         iapErrorNotifier,
-        showIapErrorSnackBar;
+        showIapErrorSnackBar,
+        showPremiumWelcomeSnackBar;
+import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
 import 'core/analytics/analytics_service.dart';
@@ -38,7 +40,10 @@ import 'screens/tools_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 
-final paywallSession = PaywallSessionService(appKey: 'salaryapp');
+final paywallSession = PaywallSessionService(
+  appKey: 'salaryapp',
+  hasFullAccess: () => freemiumService.hasFullAccess,
+);
 
 final adService = CalcwiseAdService(
   config: CalcwiseAdConfig(
@@ -55,6 +60,15 @@ final adService = CalcwiseAdService(
 // ─── Global language notifier ─────────────────────────────────────────────────
 // For US: true = Spanish  |  For CA: true = French  |  For UK: ignored
 final ValueNotifier<bool> isSpanishNotifier = ValueNotifier<bool>(false);
+
+/// Holds the last-calculated gross annual salary so secondary screens can pre-fill.
+final ValueNotifier<double> salaryNotifier = ValueNotifier<double>(75000);
+
+/// UK flavor only: whether student loan repayment is included in the calculation.
+final ValueNotifier<bool> ukStudentLoanNotifier = ValueNotifier<bool>(false);
+
+/// UK flavor only: whether Scottish income tax rates apply.
+final ValueNotifier<bool> ukScotlandNotifier = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,23 +104,25 @@ void main() async {
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
+  // Brightness-aware override is applied in MainShell.build(); set safe
+  // defaults here so the splash doesn't show a wrong nav-bar color.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF0D0B1E),
-    systemNavigationBarIconBrightness: Brightness.light,
   ));
 
   CalcwiseAdFooter.configure(
     adService: adService,
     freemium: freemiumService,
-    isSpanishNotifier: isSpanishNotifier,
+    // CA: isSpanishNotifier means French — pass as isFrenchNotifier instead
+    isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
+    isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
     onGetPremium: () => IAPService.instance.buy(),
   );
   CalcwiseRewardAdSheet.configure(
     adService: adService,
     freemium: freemiumService,
-    isSpanishNotifier: isSpanishNotifier,
+    isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
+    isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
   );
   runApp(const SalaryApp());
 }
@@ -120,6 +136,20 @@ class SalaryApp extends StatelessWidget {
       valueListenable: themeModeService.notifier,
       builder: (_, themeMode, __) => MaterialApp(
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          if (!MediaQuery.of(context).disableAnimations) return child!;
+          return Theme(
+            data: Theme.of(context).copyWith(
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: _NoAnimPageTransitionsBuilder(),
+                  TargetPlatform.iOS: _NoAnimPageTransitionsBuilder(),
+                },
+              ),
+            ),
+            child: child!,
+          );
+        },
         title: AppStringsEN.appName,
         theme: AppTheme.theme,
         darkTheme: AppTheme.dark,
@@ -157,6 +187,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _index = 0;
+  bool _wasPremium = false;
 
   static const _pages = <Widget>[
     CalculatorScreen(),
@@ -168,13 +199,27 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    _wasPremium = freemiumService.hasFullAccess;
+    freemiumService.isPremiumNotifier.addListener(_onPremiumChange);
     iapErrorNotifier.addListener(_onIapError);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) async => await paywallSession.recordSession(),
+    );
   }
 
   @override
   void dispose() {
+    freemiumService.isPremiumNotifier.removeListener(_onPremiumChange);
     iapErrorNotifier.removeListener(_onIapError);
     super.dispose();
+  }
+
+  void _onPremiumChange() {
+    final now = freemiumService.hasFullAccess;
+    if (now && !_wasPremium && mounted) {
+      showPremiumWelcomeSnackBar(context, isSpanish: isSpanishNotifier.value);
+    }
+    _wasPremium = now;
   }
 
   void _onIapError() {
@@ -188,15 +233,66 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      systemNavigationBarColor: Theme.of(context).scaffoldBackgroundColor,
+      systemNavigationBarColor: Theme.of(context).colorScheme.surface,
       systemNavigationBarIconBrightness:
           isDark ? Brightness.light : Brightness.dark,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
         final s = _strings(useAlt);
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
+        final appTitle = FlavorConfig.isUK
+            ? 'UK Salary Calculator'
+            : (FlavorConfig.isCA
+                ? (fr ? 'Calculateur de salaire' : 'CA Salary Calculator')
+                : (es ? 'Calculadora de Salario' : 'US Salary Calculator'));
         return Scaffold(
+          appBar: AppBar(
+            flexibleSpace: Container(
+              decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+            ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calculate_rounded,
+                    color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    appTitle,
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              CalcwiseAppBarActions(
+                freemium: freemiumService,
+                session: paywallSession,
+                onSettings: () => Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const SettingsScreen(),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                    transitionDuration: AppDuration.base,
+                  ),
+                ),
+                onRewardAd: () => CalcwiseRewardAdSheet.show(context),
+                onPremium: () => PaywallHard.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy),
+              ),
+            ],
+          ),
           body: IndexedStack(index: _index, children: _pages),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
@@ -207,10 +303,19 @@ class _MainShellState extends State<MainShell> {
               if (!mounted) return;
               if (trigger == PaywallTrigger.hard) {
                 analyticsService.logPaywallViewed('session_hard');
-                PaywallHard.show(context);
+                PaywallHard.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy);
               } else if (trigger == PaywallTrigger.soft) {
                 analyticsService.logPaywallViewed('session_soft');
-                PaywallSoft.show(context, featureTitle: 'Unlimited Saves');
+                PaywallSoft.show(context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    featureTitle: fr
+                        ? 'Historique illimité'
+                        : (es ? 'Historial ilimitado' : 'Unlimited History'));
               }
             },
             destinations: [
@@ -222,12 +327,16 @@ class _MainShellState extends State<MainShell> {
               NavigationDestination(
                 icon: const Icon(Icons.bar_chart_rounded),
                 selectedIcon: const Icon(Icons.bar_chart_rounded),
-                label: useAlt ? 'Reportes' : 'Reports',
+                label: fr
+                    ? 'Rapports'
+                    : (es ? 'Reportes' : 'Reports'),
               ),
               NavigationDestination(
                 icon: const Icon(Icons.build_rounded),
                 selectedIcon: const Icon(Icons.build),
-                label: useAlt ? 'Herramientas' : 'Tools',
+                label: fr
+                    ? 'Outils'
+                    : (es ? 'Herramientas' : 'Tools'),
               ),
               NavigationDestination(
                 icon: const Icon(Icons.history_rounded),
@@ -281,4 +390,17 @@ _S _strings(bool useAlt) {
   if (FlavorConfig.isUS && useAlt) return _SES();
   if (FlavorConfig.isCA && useAlt) return _SFR();
   return _SEN();
+}
+
+class _NoAnimPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimPageTransitionsBuilder();
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      child;
 }

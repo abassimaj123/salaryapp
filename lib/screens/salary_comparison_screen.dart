@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:calcwise_core/calcwise_core.dart';
-import '../main.dart' show isSpanishNotifier, paywallSession;
+import '../main.dart' show isSpanishNotifier, paywallSession, salaryNotifier;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
@@ -38,6 +38,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     super.initState();
     analyticsService.logCalculationCompleted(
         params: {'screen': 'salary_comparison_opened'});
+    final salary = salaryNotifier.value;
+    if (salary > 0) {
+      _grossACtrl.text = salary.toStringAsFixed(0);
+    }
     // Calculate with defaults immediately
     WidgetsBinding.instance.addPostFrameCallback((_) => _calculate());
   }
@@ -51,9 +55,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
   void _calculate() {
     final grossA = double.tryParse(
-        _grossACtrl.text.replaceAll(',', '').replaceAll(r'$', ''));
+        _grossACtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', ''));
     final grossB = double.tryParse(
-        _grossBCtrl.text.replaceAll(',', '').replaceAll(r'$', ''));
+        _grossBCtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', ''));
 
     if (grossA == null || grossA <= 0 || grossB == null || grossB <= 0) {
       return;
@@ -270,8 +274,6 @@ class _InputCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   borderSide: BorderSide(color: ct.cardBorder),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.smPlus, vertical: AppSpacing.smPlus),
               ),
               items: UsSalaryEngine.states
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -649,12 +651,12 @@ class _WinnerCard extends StatelessWidget {
       title = useAlt
           ? 'Oferta A — +${fmt.format(delta.abs())} neto/año'
           : 'Offer A — +${fmt.format(delta.abs())} net/year';
-      borderColor = AppTheme.primary;
+      borderColor = AppTheme.success;
     } else {
       title = useAlt
           ? 'Oferta B — +${fmt.format(delta.abs())} neto/año'
           : 'Offer B — +${fmt.format(delta.abs())} net/year';
-      borderColor = AppTheme.accent;
+      borderColor = AppTheme.success;
     }
 
     return Container(

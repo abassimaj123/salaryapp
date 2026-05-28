@@ -12,7 +12,6 @@ import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
 import '../widgets/premium_cta_widget.dart';
 import '../main.dart' show isSpanishNotifier;
-import '../widgets/app_bar_actions.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
 
@@ -113,7 +112,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 icon: Icon(Icons.refresh_rounded),
                 onPressed: _load,
               ),
-              const AppBarActions(),
             ],
           ),
           body: Column(
@@ -129,28 +127,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildBody(String empty, String limitMsg, bool fr, bool es) {
     if (_loading) {
-      return Center(child: CircularProgressIndicator());
+      return const _HistorySkeleton();
     }
 
     if (_entries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.history_rounded,
-                size: 44, color: AppTheme.labelGray.withValues(alpha: 0.4)),
-            SizedBox(height: AppSpacing.lg),
-            Text(empty,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: AppTheme.labelGray, fontSize: AppTextSize.bodyMd)),
-          ]),
-        ),
+      return CalcwiseEmptyState(
+        icon: Icons.history_edu_rounded,
+        title: fr
+            ? 'Aucun calcul sauvegardé'
+            : es
+                ? 'Sin cálculos guardados'
+                : 'No saved calculations',
+        body: empty,
       );
     }
 
     return ValueListenableBuilder<bool>(
-      valueListenable: freemiumService.isPremiumNotifier,
+      valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
         final showCta = !isPremium;
         return ListView(
@@ -326,5 +319,68 @@ class _StatCell extends StatelessWidget {
               fontSize: AppTextSize.body,
               color: color ?? Theme.of(context).textTheme.bodyLarge?.color)),
     ]);
+  }
+}
+
+// ─── History skeleton ─────────────────────────────────────────────────────────
+
+class _HistorySkeleton extends StatelessWidget {
+  const _HistorySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: 5,
+      itemBuilder: (_, __) => const Padding(
+        padding: EdgeInsets.only(bottom: AppSpacing.smPlus),
+        child: _SkeletonCard(),
+      ),
+    );
+  }
+}
+
+class _SkeletonCard extends StatefulWidget {
+  const _SkeletonCard();
+
+  @override
+  State<_SkeletonCard> createState() => _SkeletonCardState();
+}
+
+class _SkeletonCardState extends State<_SkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = CalcwiseTheme.of(context).cardBorder;
+    final shine = CalcwiseTheme.of(context).surfaceHigh;
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        height: 88,
+        decoration: BoxDecoration(
+          color: Color.lerp(base, shine, _anim.value),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+      ),
+    );
   }
 }

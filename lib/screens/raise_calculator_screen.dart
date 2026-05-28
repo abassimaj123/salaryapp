@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:calcwise_core/calcwise_core.dart';
 
 import '../core/flavor_config.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import '../widgets/result_card.dart';
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Raise Calculator Screen ──────────────────────────────────────────────────
 //
@@ -48,9 +47,18 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill from explicit param or last-used salary from main calc
+    final _fmt = NumberFormat('#,###');
     if (widget.initialSalary != null && widget.initialSalary! > 0) {
-      _salaryCtrl.text = widget.initialSalary!.toStringAsFixed(0);
+      _salaryCtrl.text = _fmt.format(widget.initialSalary!.round());
+    } else if (salaryNotifier.value > 0) {
+      _salaryCtrl.text = _fmt.format(salaryNotifier.value.round());
+    } else {
+      _salaryCtrl.text = '75,000';
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calculate();
+    });
   }
 
   @override
@@ -186,8 +194,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
   double _parse(String text) {
     if (text.isEmpty) return 0;
+    // Strip all thousand-separator variants (comma, non-breaking space, narrow NBSP)
     return double.tryParse(
-            text.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '')) ??
+            text.replaceAll(RegExp('[,   ]'), '').replaceAll(RegExp(r'[^\d.]'), '')) ??
         0;
   }
 
@@ -364,19 +373,22 @@ class _InputSection extends StatelessWidget {
             controller: salaryCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))
+              CurrencyInputFormatter(
+                  locale: FlavorConfig.isCA
+                      ? 'en_CA'
+                      : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
             ],
             decoration: InputDecoration(
               prefixText: '$sym ',
               labelText: salaryLabel,
-              hintText: '60000',
+              hintText: '60,000',
             ),
             style: const TextStyle(
                 fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return req;
               final val = double.tryParse(
-                  v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                  v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
               if (val == null || val <= 0) return invalid;
               return null;
             },
@@ -483,12 +495,15 @@ class _InputSection extends StatelessWidget {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))
+                CurrencyInputFormatter(
+                    locale: FlavorConfig.isCA
+                        ? 'en_CA'
+                        : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
               ],
               decoration: InputDecoration(
                 prefixText: '$sym ',
                 labelText: flatField,
-                hintText: flatHint,
+                hintText: 'e.g. 5,000',
               ),
               style: const TextStyle(
                   fontSize: AppTextSize.bodyLg, fontWeight: FontWeight.w600),
@@ -496,7 +511,7 @@ class _InputSection extends StatelessWidget {
                 if (!isPercent) {
                   if (v == null || v.trim().isEmpty) return req;
                   final val = double.tryParse(
-                      v.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), ''));
+                      v.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), ''));
                   if (val == null || val <= 0) return invalid;
                 }
                 return null;
@@ -523,13 +538,11 @@ class _ResultsSection extends StatelessWidget {
     required this.onShare,
   });
 
-  String _fmt(double v) => NumberFormat.currency(
-          symbol: FlavorConfig.currencySymbol, decimalDigits: 0)
-      .format(v);
+  String _fmt(double v) =>
+      AmountFormatter.ui(v.round().toDouble(), FlavorConfig.currencyCode);
 
-  String _fmt2(double v) => NumberFormat.currency(
-          symbol: FlavorConfig.currencySymbol, decimalDigits: 2)
-      .format(v);
+  String _fmt2(double v) =>
+      AmountFormatter.ui(v, FlavorConfig.currencyCode);
 
   @override
   Widget build(BuildContext context) {
@@ -572,7 +585,7 @@ class _ResultsSection extends StatelessWidget {
       ahaMsg = 'Une augmentation de ${r.raisePct.toStringAsFixed(1)}% '
           '(${_fmt(r.raiseGross)}) rapporte seulement ${_fmt(r.raiseNet)} '
           'net après impôts (${(r.marginalRate * 100).toStringAsFixed(0)}% marginal). '
-          'Maximize your 401(k) or RRSP to recoup part of that tax.';
+          'Maximisez vos cotisations REER pour récupérer une partie de cet impôt.';
     } else if (es) {
       ahaMsg = 'Tu aumento de ${r.raisePct.toStringAsFixed(1)}% '
           '(${_fmt(r.raiseGross)}) solo equivale a ${_fmt(r.raiseNet)} neto '

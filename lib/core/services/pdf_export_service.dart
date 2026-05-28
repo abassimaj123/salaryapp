@@ -316,7 +316,7 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
+                    color: CalcwiseTheme.of(context).cardBorder,
                     borderRadius: BorderRadius.circular(2)))),
         const SizedBox(height: 20),
         Icon(Icons.picture_as_pdf_rounded, size: 36, color: AppTheme.primary),
@@ -326,8 +326,9 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
                 fontSize: AppTextSize.subtitle, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Text(subtitleLabel,
-            style: const TextStyle(
-                fontSize: AppTextSize.md, color: Color(0xFF475569))),
+            style: TextStyle(
+                fontSize: AppTextSize.md,
+                color: CalcwiseTheme.of(context).textSecondary)),
         const SizedBox(height: 24),
         Opacity(
           opacity: adReady ? 1.0 : 0.45,
@@ -360,8 +361,8 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
                               fontSize: AppTextSize.bodyMd)),
                       const SizedBox(height: 2),
                       Text(freeLabel,
-                          style: const TextStyle(
-                              color: Color(0xFF475569),
+                          style: TextStyle(
+                              color: CalcwiseTheme.of(context).textSecondary,
                               fontSize: AppTextSize.md)),
                     ])),
                 if (_loading)
@@ -370,8 +371,8 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2))
                 else
-                  const Icon(Icons.chevron_right_rounded,
-                      color: Color(0xFF94A3B8)),
+                  Icon(Icons.chevron_right_rounded,
+                      color: CalcwiseTheme.of(context).textSecondary),
               ]),
             ),
           ),
@@ -398,7 +399,8 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(notNowLabel,
-                style: const TextStyle(color: Color(0xFF64748B)))),
+                style:
+                    TextStyle(color: CalcwiseTheme.of(context).textSecondary))),
       ]),
     );
   }
