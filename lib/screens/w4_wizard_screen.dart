@@ -5,8 +5,11 @@ import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../core/flavor_config.dart';
+import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../widgets/paywall_hard.dart';
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -228,8 +231,22 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
-    _salaryCtrl.text =
-        salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    _salaryCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+
+    // Hard premium gate: show PaywallHard immediately if user is not premium.
+    // The tools_screen already gates entry, but this guards direct/deep navigation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!freemiumService.hasFullAccess) {
+        final es = FlavorConfig.isUS && isSpanishNotifier.value;
+        PaywallHard.show(
+          context,
+          isSpanish: es,
+          priceLabel: IAPService.instance.localizedPrice.value,
+          onPurchase: IAPService.instance.buy,
+        );
+      }
+    });
   }
 
   @override

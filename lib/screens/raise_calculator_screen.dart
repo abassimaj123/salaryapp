@@ -591,12 +591,18 @@ class _ResultsSection extends StatelessWidget {
           '(${_fmt(r.raiseGross)}) solo equivale a ${_fmt(r.raiseNet)} neto '
           'después de impuestos (${(r.marginalRate * 100).toStringAsFixed(0)}% marginal). '
           '¡Maximiza tu 401(k) para recuperar parte de ese impuesto!';
+    } else if (FlavorConfig.isUK) {
+      ahaMsg =
+          'Your ${r.raisePct.toStringAsFixed(1)}% raise (${_fmt(r.raiseGross)}) '
+          'nets you only ${_fmt(r.raiseNet)} after taxes '
+          '(${(r.marginalRate * 100).toStringAsFixed(0)}% marginal rate). '
+          'Salary sacrifice into your pension to claw back some of that tax.';
     } else {
       ahaMsg =
           'Your ${r.raisePct.toStringAsFixed(1)}% raise (${_fmt(r.raiseGross)}) '
           'nets you only ${_fmt(r.raiseNet)} after taxes '
           '(${(r.marginalRate * 100).toStringAsFixed(0)}% marginal rate). '
-          'Max your 401(k)/RRSP/pension to claw back some of that tax.';
+          'Max your 401(k)/RRSP to claw back some of that tax.';
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

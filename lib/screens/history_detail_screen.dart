@@ -6,7 +6,9 @@ import '../core/analytics/analytics_service.dart';
 import '../core/db/database_service.dart';
 import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../core/salary_engine.dart';
+import '../core/services/pdf_export_service.dart' show PdfExportService;
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
@@ -52,6 +54,16 @@ class HistoryDetailScreen extends StatelessWidget {
           appBar: AppBar(
             title: Text(l.title),
             actions: [
+              ValueListenableBuilder<bool>(
+                valueListenable: freemiumService.hasFullAccessNotifier,
+                builder: (context, isPremium, _) => IconButton(
+                  icon: Icon(isPremium
+                      ? Icons.picture_as_pdf_rounded
+                      : Icons.lock_outline_rounded),
+                  tooltip: l.exportPdf,
+                  onPressed: () => _exportPdf(context, r, fr, es),
+                ),
+              ),
               IconButton(
                 icon: Icon(Icons.share_rounded),
                 tooltip: l.share,
@@ -151,6 +163,30 @@ class HistoryDetailScreen extends StatelessWidget {
                         label: l.netWeekly,
                         value: fmtMoney.format(r.netWeekly)),
                     SizedBox(height: AppSpacing.lg),
+
+                    // PDF export button — always visible, PaywallHard-gated
+                    ValueListenableBuilder<bool>(
+                      valueListenable: freemiumService.hasFullAccessNotifier,
+                      builder: (context, isPremium, _) => SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: Icon(isPremium
+                              ? Icons.picture_as_pdf_rounded
+                              : Icons.lock_outline_rounded),
+                          label: Text(l.exportPdf),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: BorderSide(color: AppTheme.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.xl)),
+                          ),
+                          onPressed: () => _exportPdf(context, r, fr, es),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: AppSpacing.lg),
                   ],
                 ),
               ),
@@ -165,6 +201,47 @@ class HistoryDetailScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _exportPdf(
+      BuildContext context, SalaryResult r, bool fr, bool es) async {
+    if (!freemiumService.hasFullAccess) {
+      await PdfExportService.showUnlockOrPay(
+        context,
+        () => PdfExportService.exportSalary(
+          context: context,
+          grossAnnual: r.grossAnnual,
+          federalTax: r.federalTax,
+          stateTax: r.stateTax,
+          socialSecurity: entry.flavor == 'us' ? r.ficaTax * 0.635 : 0,
+          medicare: entry.flavor == 'us' ? r.ficaTax * 0.365 : 0,
+          totalDeductions: r.totalTax,
+          netAnnual: r.netAnnual,
+          netMonthly: r.netMonthly,
+          netBiweekly: r.netBiWeekly,
+          netHourly: r.netAnnual / 2080,
+          country: entry.flavor.toUpperCase(),
+          state: entry.region,
+        ),
+      );
+      return;
+    }
+    await PdfExportService.exportSalary(
+      context: context,
+      grossAnnual: r.grossAnnual,
+      federalTax: r.federalTax,
+      stateTax: r.stateTax,
+      socialSecurity: entry.flavor == 'us' ? r.ficaTax * 0.635 : 0,
+      medicare: entry.flavor == 'us' ? r.ficaTax * 0.365 : 0,
+      totalDeductions: r.totalTax,
+      netAnnual: r.netAnnual,
+      netMonthly: r.netMonthly,
+      netBiweekly: r.netBiWeekly,
+      netHourly: r.netAnnual / 2080,
+      country: entry.flavor.toUpperCase(),
+      state: entry.region,
+    );
+    analyticsService.logPdfExported();
   }
 
   void _shareText(
@@ -258,6 +335,8 @@ class _Labels {
       ? 'Détail du calcul'
       : (es ? 'Detalle del cálculo' : 'Calculation Detail');
   String get share => fr ? 'Partager' : (es ? 'Compartir' : 'Share');
+  String get exportPdf =>
+      fr ? 'Exporter PDF' : (es ? 'Exportar PDF' : 'Export PDF');
   String get date => fr ? 'Date' : (es ? 'Fecha' : 'Date');
   String get region => fr ? 'Province' : (es ? 'Estado' : 'Region');
   String get breakdown =>

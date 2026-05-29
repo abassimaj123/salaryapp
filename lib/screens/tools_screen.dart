@@ -11,6 +11,7 @@ import 'w4_wizard_screen.dart';
 import 'salary_comparison_screen.dart';
 import 'rrsp_optimizer_screen.dart';
 import 'retirement_optimizer_screen.dart';
+import 'benefits_calculator_screen.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
@@ -106,6 +107,28 @@ class ToolsScreen extends StatelessWidget {
                       ),
                       onTap: () => push(const BonusCalculatorScreen()),
                     ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // ── Benefits Value Calculator ── all flavors ──────────────
+                    ToolHubCard(
+                      icon: Icons.volunteer_activism_rounded,
+                      title: t(
+                        'Benefits Value Calculator',
+                        'Calculadora de valor de beneficios',
+                        'Calculateur d\'avantages',
+                      ),
+                      subtitle: t(
+                        'Calculate the real value of your employer benefits and total compensation.',
+                        'Calcula el valor real de tus beneficios y compensación total.',
+                        'Calculez la valeur réelle de vos avantages et rémunération globale.',
+                      ),
+                      isPremium: !freemiumService.hasFullAccess,
+                      onTap: () async {
+                        analyticsService.logCalculationCompleted(
+                            params: {'action': 'benefits_calculator_tapped'});
+                        await push(const BenefitsCalculatorScreen());
+                      },
+                    ),
 
                     // ── CA-specific ──────────────────────────────────────────
                     if (FlavorConfig.isCA) ...[
@@ -116,7 +139,23 @@ class ToolsScreen extends StatelessWidget {
                         subtitle: fr
                             ? 'Réduisez votre impôt avec vos cotisations REER.'
                             : 'Reduce your tax with optimal RRSP contributions.',
-                        onTap: () => push(const RrspOptimizerScreen()),
+                        isPremium: !freemiumService.hasFullAccess,
+                        onTap: () async {
+                          if (!freemiumService.hasFullAccess) {
+                            analyticsService
+                                .logPaywallViewed('feature_hard');
+                            analyticsService
+                                .logFeatureGated('rrsp_optimizer');
+                            await PaywallHard.show(context,
+                                isFrench: fr,
+                                priceLabel:
+                                    IAPService.instance.localizedPrice.value,
+                                onPurchase: IAPService.instance.buy);
+                            return;
+                          }
+                          if (!context.mounted) return;
+                          await push(const RrspOptimizerScreen());
+                        },
                       ),
                     ],
 
@@ -132,34 +171,14 @@ class ToolsScreen extends StatelessWidget {
                         isPremium: true,
                         onTap: () async {
                           if (!freemiumService.hasFullAccess) {
-                            final trigger =
-                                await paywallSession.recordAction();
-                            if (!context.mounted) return;
-                            if (trigger == PaywallTrigger.hard) {
-                              analyticsService.logPaywallViewed('session_hard');
-                              analyticsService.logFeatureGated('w4_wizard');
-                              await PaywallHard.show(context,
-                                  isSpanish: es,
-                                  onPurchase: IAPService.instance.buy);
-                              return;
-                            } else if (trigger == PaywallTrigger.soft) {
-                              analyticsService.logPaywallViewed('session_soft');
-                              analyticsService.logFeatureGated('w4_wizard');
-                              await PaywallSoft.show(
-                                context,
+                            analyticsService.logPaywallViewed('feature_hard');
+                            analyticsService.logFeatureGated('w4_wizard');
+                            await PaywallHard.show(context,
                                 isSpanish: es,
-                                featureTitle: es
-                                    ? 'Asistente W-4'
-                                    : 'W-4 Withholding Wizard',
-                                featureSubtitle: es
-                                    ? 'Optimiza tu retención federal'
-                                    : 'Get your federal withholding exactly right',
                                 priceLabel:
                                     IAPService.instance.localizedPrice.value,
-                                onUnlock: IAPService.instance.buy,
-                              );
-                              // Soft paywall — continue to screen after dismissal
-                            }
+                                onPurchase: IAPService.instance.buy);
+                            return;
                           }
                           if (!context.mounted) return;
                           await push(const W4WizardScreen());

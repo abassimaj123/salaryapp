@@ -14,10 +14,14 @@ const _green = PdfColor(0.110, 0.627, 0.384); // accent green
 const _light = PdfColor(0.933, 0.976, 0.953);
 
 class PdfExportService {
-  static final _cur2 =
-      NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
-  static final _cur0 =
-      NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
+  static NumberFormat get _cur2 => NumberFormat.currency(
+      locale: FlavorConfig.locale,
+      symbol: FlavorConfig.currencySymbol,
+      decimalDigits: 2);
+  static NumberFormat get _cur0 => NumberFormat.currency(
+      locale: FlavorConfig.locale,
+      symbol: FlavorConfig.currencySymbol,
+      decimalDigits: 0);
   static final _date = DateFormat('MMMM d, yyyy');
 
   // ── Public entry point ────────────────────────────────────────────────────

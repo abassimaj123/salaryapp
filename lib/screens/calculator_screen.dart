@@ -19,6 +19,7 @@ import '../core/db/database_service.dart';
 import '../widgets/sankey_chart.dart';
 import '../main.dart' show adService;
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../main.dart' show paywallSession;
 import '../core/theme/app_theme.dart';
 import '../widgets/paywall_soft.dart';
@@ -271,8 +272,26 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     if (!freemiumService.hasFullAccess) {
       final currentCount = await DatabaseService.instance.count();
       if (currentCount >= freemiumService.historyLimit) {
-        // Auto-save silently skipped when at free limit.
-        // Paywall is triggered by PaywallSessionService (session-based), not here.
+        // Auto-save blocked at free limit — show soft paywall.
+        if (mounted) {
+          final es = FlavorConfig.isUS && isSpanishNotifier.value;
+          final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+          await PaywallSoft.show(
+            context,
+            isSpanish: es,
+            isFrench: fr,
+            featureTitle: fr
+                ? 'Historique illimité'
+                : (es ? 'Historial ilimitado' : 'Unlimited History'),
+            featureSubtitle: fr
+                ? 'Sauvegardez tous vos calculs sans limite'
+                : (es
+                    ? 'Guarda todos tus cálculos sin límite'
+                    : 'Save all your calculations without limit'),
+            priceLabel: IAPService.instance.localizedPrice.value,
+            onUnlock: () => IAPService.instance.buy(),
+          );
+        }
         return;
       }
     }
@@ -1188,6 +1207,11 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         SizedBox(height: 8),
 
+        // Total Compensation Report PDF (premium-gated)
+        _TotalCompReportButton(result: result, fr: fr, es: es),
+
+        SizedBox(height: 8),
+
         // CSV export button
         _CsvExportButton(result: result, fr: fr, es: es),
 
@@ -1880,6 +1904,251 @@ class _PdfExportButton extends StatelessWidget {
             pw.Text(value,
                 style: pw.TextStyle(
                     fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+      );
+}
+
+// ─── Total Compensation Report Button ────────────────────────────────────────
+
+class _TotalCompReportButton extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _TotalCompReportButton({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  String get _label => fr
+      ? 'Rapport de rémunération globale'
+      : (es ? 'Informe de compensación total' : 'Total Compensation Report');
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: freemiumService.hasFullAccessNotifier,
+      builder: (context, isPremium, _) {
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: Icon(isPremium
+                ? Icons.volunteer_activism_rounded
+                : Icons.lock_outline_rounded),
+            label: Text(_label),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              side: BorderSide(color: AppTheme.primary),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.xl)),
+            ),
+            onPressed: () async {
+              HapticFeedback.mediumImpact();
+              if (!isPremium) {
+                PaywallHard.show(
+                  context,
+                  isSpanish: es,
+                  isFrench: fr,
+                  priceLabel: IAPService.instance.localizedPrice.value,
+                  onPurchase: IAPService.instance.buy,
+                );
+                return;
+              }
+              await _exportTotalCompPdf(context);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportTotalCompPdf(BuildContext context) async {
+    final symbol = FlavorConfig.currencySymbol;
+    final fmtCur =
+        NumberFormat.currency(symbol: symbol, decimalDigits: 0);
+    final fmtCur2 =
+        NumberFormat.currency(symbol: symbol, decimalDigits: 2);
+
+    // Default benefit assumptions (mid-market)
+    final healthMonthly = FlavorConfig.isUK ? 120.0 : 450.0;
+    final retirementPct = FlavorConfig.isCA ? 5.0 : 4.0;
+    final ptoDays = 15.0;
+    final gross = result.grossAnnual;
+
+    final healthAnnual = healthMonthly * 12;
+    final retirementAnnual = gross * retirementPct / 100;
+    final ptoAnnual = gross / 260.0 * ptoDays;
+    final totalBenefits = healthAnnual + retirementAnnual + ptoAnnual;
+    final totalComp = gross + totalBenefits;
+
+    final retLabel = FlavorConfig.isCA
+        ? (fr ? 'Cotisation REER employeur' : 'RRSP Match')
+        : (FlavorConfig.isUK ? 'Pension Contribution' : '401(k) Match');
+
+    final federalLabel = FlavorConfig.isUK
+        ? 'Income Tax'
+        : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
+    final ficaLabel = FlavorConfig.isUS
+        ? 'FICA (SS + Medicare)'
+        : (FlavorConfig.isUK
+            ? (ukStudentLoanNotifier.value
+                ? 'NI + Student Loan'
+                : 'National Insurance')
+            : (fr ? 'RPC + AE' : 'CPP + EI'));
+    final stateLabel = FlavorConfig.isUS
+        ? (es ? 'Impuesto estatal' : 'State Tax')
+        : (fr ? 'Impôt provincial' : 'Provincial Tax');
+
+    final doc = pw.Document();
+    doc.addPage(pw.Page(
+      build: (ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            fr
+                ? 'Rapport de rémunération globale'
+                : es
+                    ? 'Informe de compensación total'
+                    : 'Total Compensation Report',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
+          pw.Divider(height: 20),
+          pw.Text(
+            fr ? 'Analyse salariale' : (es ? 'Análisis salarial' : 'Salary Breakdown'),
+            style: pw.TextStyle(
+                fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 6),
+          _pdfRow(
+              fr
+                  ? 'Salaire brut'
+                  : (es ? 'Salario bruto' : 'Gross Salary'),
+              fmtCur.format(result.grossAnnual)),
+          _pdfRow(federalLabel, fmtCur.format(result.federalTax)),
+          if (result.ficaTax > 0)
+            _pdfRow(ficaLabel, fmtCur.format(result.ficaTax)),
+          if (!FlavorConfig.isUK && result.stateTax > 0)
+            _pdfRow(stateLabel, fmtCur.format(result.stateTax)),
+          _pdfRow(
+              fr
+                  ? 'Total impôts'
+                  : (es ? 'Total impuestos' : 'Total Tax'),
+              fmtCur.format(result.totalTax)),
+          _pdfRow(
+              fr
+                  ? 'Salaire net'
+                  : (es ? 'Salario neto' : 'Net Salary'),
+              fmtCur2.format(result.netAnnual)),
+          pw.Divider(height: 20),
+          pw.Text(
+            fr
+                ? 'Avantages (hypothèses par défaut)'
+                : es
+                    ? 'Beneficios (hipótesis por defecto)'
+                    : 'Benefits (default assumptions)',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 6),
+          _pdfRow(
+              fr
+                  ? 'Assurance santé (annuelle)'
+                  : es
+                      ? 'Seguro de salud (anual)'
+                      : (FlavorConfig.isUK ? 'Private Health Insurance (annual)' : 'Health Insurance (annual)'),
+              fmtCur.format(healthAnnual)),
+          _pdfRow(retLabel, fmtCur.format(retirementAnnual)),
+          _pdfRow(
+              fr
+                  ? 'Valeur congés payés (15 j)'
+                  : es
+                      ? 'Valor vacaciones (15 días)'
+                      : (FlavorConfig.isUK ? 'Annual Leave Value (15 days)' : 'PTO Value (15 days)'),
+              fmtCur.format(ptoAnnual)),
+          pw.Divider(height: 20),
+          _pdfRow(
+              fr
+                  ? 'Total des avantages sociaux'
+                  : es
+                      ? 'Total beneficios'
+                      : 'Total Benefits Value',
+              fmtCur.format(totalBenefits),
+              bold: true),
+          _pdfRow(
+              fr
+                  ? 'Rémunération globale'
+                  : es
+                      ? 'Compensación total'
+                      : 'Total Compensation',
+              fmtCur.format(totalComp),
+              bold: true),
+          pw.SizedBox(height: 20),
+          pw.Text(
+            fr
+                ? '* Avantages basés sur des hypothèses moyennes du marché. Pour des valeurs exactes, utilisez le Calculateur d\'avantages sociaux.'
+                : es
+                    ? '* Beneficios basados en supuestos promedio del mercado. Para valores exactos usa la Calculadora de beneficios.'
+                    : '* Benefits based on mid-market assumptions. For exact values, use the Benefits Value Calculator.',
+            style: const pw.TextStyle(fontSize: 8),
+          ),
+        ],
+      ),
+    ));
+
+    try {
+      await Printing.sharePdf(
+          bytes: await doc.save(),
+          filename:
+              'total_compensation_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      analyticsService.logPdfExported();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(fr
+                ? 'Rapport exporté avec succès'
+                : es
+                    ? 'Informe exportado con éxito'
+                    : 'Report exported successfully'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(fr
+                ? 'Erreur lors de l\'export'
+                : es
+                    ? 'Error al exportar'
+                    : 'Export failed'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  pw.Widget _pdfRow(String label, String value, {bool bold = false}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 3),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label,
+                style: const pw.TextStyle(fontSize: AppTextSize.sm)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
           ],
         ),
       );

@@ -3,7 +3,6 @@ import 'dart:math' show min, pow;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
@@ -12,16 +11,15 @@ import '../core/analytics/analytics_service.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../widgets/paywall_hard.dart';
 import '../widgets/result_card.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
-        AppDuration,
         AppSpacing,
         AppRadius,
-        AppTextSize,
-        PaywallSoft;
+        AppTextSize;
 
 // ─── RRSP Optimizer (CA flavor only) ────────────────────────────────────────
 //
@@ -29,8 +27,6 @@ import 'package:calcwise_core/calcwise_core.dart'
 // 2025 RRSP hard cap: $31,560 (18% of prior year earned income, max $31,560).
 // Basic Personal Amount 2025: $16,129.
 
-const String _kRrspUseCount = 'rrsp_optimizer_use_count';
-const int _kGateAfterUses = 3;
 
 // ─── Federal bracket ceilings 2025 (post-BPA taxable income) ─────────────────
 // These are the tops of each bracket applied to (grossIncome - BPA).
@@ -118,7 +114,7 @@ class _RrspEngine {
     return min(taxableAfterBPA - targetBracketCeiling, rrspRoom);
   }
 
-  static double _marginalRate(double grossIncome, double province) {
+  static double _marginalRate(double grossIncome, [String province = '']) {
     // Federal marginal rate on gross - BPA
     final taxable = (grossIncome - _bpa2025).clamp(0.0, double.infinity);
     if (taxable <= 57375) return 0.15;
@@ -138,7 +134,7 @@ class _RrspEngine {
     final contribution =
         calcRrspToReachBracket(grossIncome, bracket.taxableMax, rrspRoom);
 
-    final marginalRate = _marginalRate(grossIncome, 0);
+    final marginalRate = _marginalRate(grossIncome, province);
     // Also fold in approximate provincial rate
     final provRate = _estimateProvincialMarginalRate(grossIncome, province);
     final effectiveMarginal = marginalRate + provRate;
@@ -221,31 +217,27 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   _RrspResult? _result;
   bool _hasCalculated = false;
 
-  int _useCount = 0;
-  bool _gated = false;
-
   @override
   void initState() {
     super.initState();
     final salary = salaryNotifier.value;
     _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
-    _loadUseCount();
+
+    // Hard premium gate: show PaywallHard immediately if not premium.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calculate();
+      if (!mounted) return;
+      if (!freemiumService.hasFullAccess) {
+        final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+        PaywallHard.show(
+          context,
+          isFrench: fr,
+          priceLabel: IAPService.instance.localizedPrice.value,
+          onPurchase: IAPService.instance.buy,
+        );
+      } else {
+        _calculate();
+      }
     });
-  }
-
-  Future<void> _loadUseCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _useCount = prefs.getInt(_kRrspUseCount) ?? 0;
-    });
-  }
-
-  Future<void> _incrementUseCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    _useCount++;
-    await prefs.setInt(_kRrspUseCount, _useCount);
   }
 
   @override
@@ -260,15 +252,13 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     return double.tryParse(raw) ?? 0;
   }
 
-  void _calculate() async {
+  void _calculate() {
     final gross = _parse(_grossCtrl);
     final room = _parse(_rrspRoomCtrl);
     if (gross <= 0) return;
 
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
-
-    await _incrementUseCount();
 
     final result = _RrspEngine.calculate(
       grossIncome: gross,
@@ -277,35 +267,12 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       province: _province,
     );
 
-    // Gate after 3 uses if not premium
-    final shouldGate =
-        !freemiumService.hasFullAccess && _useCount > _kGateAfterUses;
-
     setState(() {
       _result = result;
       _hasCalculated = true;
-      _gated = shouldGate;
     });
 
     analyticsService.logRrspImpactCalculated();
-  }
-
-  Future<void> _showPaywall(bool fr) async {
-    await PaywallSoft.show(
-      context,
-      isSpanish: false,
-      featureTitle: fr ? 'Optimiseur REER' : 'RRSP Optimizer',
-      featureSubtitle: fr
-          ? 'Débloquez les résultats détaillés REER'
-          : 'Unlock full RRSP optimization results',
-      priceLabel: IAPService.instance.localizedPrice.value,
-      onUnlock: () => IAPService.instance.buy(),
-    );
-    if (mounted) {
-      setState(() {
-        _gated = !freemiumService.hasFullAccess;
-      });
-    }
   }
 
   String _fmt(double v) =>
@@ -367,6 +334,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
+                                textInputAction: TextInputAction.next,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
                                       RegExp(r'[\d.,]')),
@@ -386,6 +354,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
+                                textInputAction: TextInputAction.done,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
                                       RegExp(r'[\d.,]')),
@@ -511,7 +480,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       ),
 
                       // ── Results ──────────────────────────────────────────────
-                      if (_hasCalculated && _result != null) ...[
+                      if (_hasCalculated && _result != null &&
+                          freemiumService.hasFullAccess) ...[
                         const SizedBox(height: 24),
                         _buildResults(context, _result!, fr),
                       ],
@@ -557,14 +527,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Gated results
-        if (_gated)
-          _GateCard(
-            fr: fr,
-            onUnlock: () => _showPaywall(fr),
-          )
-        else ...[
-          Card(
+        Card(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
@@ -603,77 +566,21 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              fr
-                  ? '* Estimations basées sur les taux fédéraux 2025 et les taux provinciaux approximatifs. Consultez un conseiller fiscal pour un avis personnalisé.'
-                  : '* Estimates based on 2025 federal rates and approximate provincial rates. Consult a tax advisor for personalized advice.',
-              style: TextStyle(
-                fontSize: AppTextSize.xs,
-                color: AppTheme.labelGray,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-// ─── Gate card shown when use count > threshold and not premium ───────────────
-
-class _GateCard extends StatelessWidget {
-  final bool fr;
-  final VoidCallback onUnlock;
-
-  const _GateCard({required this.fr, required this.onUnlock});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.lock_rounded, color: AppTheme.primary, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            fr ? 'Résultats détaillés' : 'Full RRSP Results',
-            style: TextStyle(
-                fontSize: AppTextSize.bodyLg,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.primary),
-          ),
-          const SizedBox(height: 6),
-          Text(
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
             fr
-                ? 'Débloquez l\'économie fiscale, le coût net et les droits restants.'
-                : 'Unlock tax savings, net cost, and remaining room.',
-            textAlign: TextAlign.center,
-            style:
-                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onUnlock,
-              child: Text(
-                fr ? 'Passer à Premium' : 'Go Premium',
-                style: const TextStyle(
-                    fontSize: AppTextSize.body, fontWeight: FontWeight.w700),
-              ),
+                ? '* Estimations basées sur les taux fédéraux 2025 et les taux provinciaux approximatifs. Consultez un conseiller fiscal pour un avis personnalisé.'
+                : '* Estimates based on 2025 federal rates and approximate provincial rates. Consult a tax advisor for personalized advice.',
+            style: TextStyle(
+              fontSize: AppTextSize.xs,
+              color: AppTheme.labelGray,
+              fontStyle: FontStyle.italic,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
