@@ -68,7 +68,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(ok,
-                style: TextStyle(color: CalcwiseSemanticColors.errorDark)),
+                style: TextStyle(
+                    color: CalcwiseSemanticColors.error(
+                        Theme.of(context).brightness))),
           ),
         ],
       ),
@@ -292,7 +294,8 @@ class _HistoryCard extends StatelessWidget {
               _StatCell(
                   label: rateLabel,
                   value: '${entry.result.effectiveRate.toStringAsFixed(1)}%',
-                  color: CalcwiseSemanticColors.errorDark),
+                  color: CalcwiseSemanticColors.error(
+                      Theme.of(context).brightness)),
             ]),
           ]),
         ),

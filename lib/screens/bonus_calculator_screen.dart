@@ -579,11 +579,13 @@ class _ResultsSection extends StatelessWidget {
                 isBetter: flatBetter,
                 rows: [
                   _MRow(federalLabel, _fmt(r.usFlatFederalTax!),
-                      CalcwiseSemanticColors.errorDark),
+                      CalcwiseSemanticColors.error(
+                          Theme.of(context).brightness)),
                   _MRow(stateLabel, _fmt(r.usFlatStateTax!),
                       Colors.deepOrangeAccent),
                   _MRow(totalTaxLabel, _fmt(r.usFlatTotalTax!),
-                      CalcwiseSemanticColors.errorDark),
+                      CalcwiseSemanticColors.error(
+                          Theme.of(context).brightness)),
                   _MRow(netLabel, _fmt(r.usFlatNetBonus!), AppTheme.success),
                 ],
               ),
@@ -596,7 +598,8 @@ class _ResultsSection extends StatelessWidget {
                 isBetter: !flatBetter,
                 rows: [
                   _MRow(totalTaxLabel, _fmt(r.usAggregateTotalTax!),
-                      CalcwiseSemanticColors.errorDark),
+                      CalcwiseSemanticColors.error(
+                          Theme.of(context).brightness)),
                   _MRow(
                       netLabel, _fmt(r.usAggregateNetBonus!), AppTheme.success),
                 ],
@@ -700,7 +703,8 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: federalLabel,
                     value: _fmt(r.caFederalTax!),
-                    valueColor: CalcwiseSemanticColors.errorDark),
+                    valueColor: CalcwiseSemanticColors.error(
+                        Theme.of(context).brightness)),
                 MetricRow(
                     label: provLabel,
                     value: _fmt(r.caProvincialTax!),
@@ -708,7 +712,8 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: totalLabel,
                     value: _fmt(r.caTotalTax!),
-                    valueColor: CalcwiseSemanticColors.errorDark),
+                    valueColor: CalcwiseSemanticColors.error(
+                        Theme.of(context).brightness)),
                 MetricRow(label: effLabel, value: _pct(effRate)),
                 MetricRow(
                     label: netLabel,
@@ -761,7 +766,8 @@ class _ResultsSection extends StatelessWidget {
                 MetricRow(
                     label: taxLabel,
                     value: _fmt(r.ukExtraTax!),
-                    valueColor: CalcwiseSemanticColors.errorDark),
+                    valueColor: CalcwiseSemanticColors.error(
+                        Theme.of(context).brightness)),
                 MetricRow(label: effLabel, value: _pct(effRate)),
                 MetricRow(
                     label: netLabel,

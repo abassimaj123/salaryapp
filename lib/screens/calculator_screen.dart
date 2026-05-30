@@ -1558,7 +1558,8 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                     fontSize: AppTextSize.bodyMd,
                     color: _netAfter > 0
                         ? AppTheme.success
-                        : CalcwiseSemanticColors.errorDark),
+                        : CalcwiseSemanticColors.error(
+                            Theme.of(context).brightness)),
               ),
             ]),
             SizedBox(height: 4),

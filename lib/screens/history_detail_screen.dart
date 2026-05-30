@@ -107,7 +107,8 @@ class HistoryDetailScreen extends StatelessWidget {
                         icon: Icons.trending_down,
                         label: federalLabel,
                         value: fmtMoney.format(r.federalTax),
-                        valueColor: CalcwiseSemanticColors.errorDark),
+                        valueColor: CalcwiseSemanticColors.error(
+                            Theme.of(context).brightness)),
                     if (r.ficaTax > 0) ...[
                       SizedBox(height: AppSpacing.sm),
                       _DetailCard(
@@ -122,20 +123,23 @@ class HistoryDetailScreen extends StatelessWidget {
                           icon: Icons.trending_down,
                           label: stateLabel,
                           value: fmtMoney.format(r.stateTax),
-                          valueColor: CalcwiseSemanticColors.alertText),
+                          valueColor: CalcwiseSemanticColors.alert(
+                              Theme.of(context).brightness)),
                     ],
                     SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.receipt_long_rounded,
                         label: l.totalTax,
                         value: fmtMoney.format(r.totalTax),
-                        valueColor: CalcwiseSemanticColors.errorDark),
+                        valueColor: CalcwiseSemanticColors.error(
+                            Theme.of(context).brightness)),
                     SizedBox(height: AppSpacing.sm),
                     _DetailCard(
                         icon: Icons.percent,
                         label: l.effectiveRate,
                         value: '${r.effectiveRate.toStringAsFixed(1)}%',
-                        valueColor: CalcwiseSemanticColors.errorDark),
+                        valueColor: CalcwiseSemanticColors.error(
+                            Theme.of(context).brightness)),
                     SizedBox(height: AppSpacing.lg),
 
                     // Net pay breakdown

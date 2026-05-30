@@ -408,10 +408,12 @@ class _TaxBreakdownSection extends StatelessWidget {
                         children: [
                           _td('\$${_shortNum(b.min)}–${b.max == double.infinity ? '∞' : '\$${_shortNum(b.max)}'}'),
                           _td('${(b.rate * 100).toStringAsFixed(0)}%',
-                              color: _bracketColor(b.rate)),
+                              color: _bracketColor(
+                                  b.rate, Theme.of(context).brightness)),
                           _td(_fmt2(b.amountInBracket)),
                           _td(_fmt2(b.taxOwed),
-                              color: CalcwiseSemanticColors.errorDark),
+                              color: CalcwiseSemanticColors.error(
+                                  Theme.of(context).brightness)),
                         ],
                       ),
                     TableRow(
@@ -424,7 +426,8 @@ class _TaxBreakdownSection extends StatelessWidget {
                         _td(''),
                         _td(_fmt2(totalFederal),
                             bold: true,
-                            color: CalcwiseSemanticColors.errorDark),
+                            color: CalcwiseSemanticColors.error(
+                                Theme.of(context).brightness)),
                       ],
                     ),
                   ],
@@ -452,14 +455,14 @@ class _TaxBreakdownSection extends StatelessWidget {
     return v.toStringAsFixed(0);
   }
 
-  Color _bracketColor(double rate) {
-    if (rate <= 0.10) return CalcwiseSemanticColors.successDeep;
-    if (rate <= 0.12) return CalcwiseSemanticColors.successDark;
+  Color _bracketColor(double rate, Brightness b) {
+    if (rate <= 0.10) return CalcwiseSemanticColors.success(b);
+    if (rate <= 0.12) return CalcwiseSemanticColors.success(b);
     if (rate <= 0.22) return CalcwiseSemanticColors.warnIcon;
     if (rate <= 0.24) return CalcwiseSemanticColors.warnIcon;
-    if (rate <= 0.32) return CalcwiseSemanticColors.alertText;
-    if (rate <= 0.35) return CalcwiseSemanticColors.errorDark;
-    return CalcwiseSemanticColors.errorDark;
+    if (rate <= 0.32) return CalcwiseSemanticColors.alert(b);
+    if (rate <= 0.35) return CalcwiseSemanticColors.error(b);
+    return CalcwiseSemanticColors.error(b);
   }
 
   Widget _th(String text) => Padding(
@@ -672,7 +675,9 @@ class _StateComparisonCard extends StatelessWidget {
                           color: s.rate == 0
                               ? AppTheme.success
                               : CalcwiseSemanticColors.warnIcon),
-                      _td(_fmt(total), color: CalcwiseSemanticColors.errorDark),
+                      _td(_fmt(total),
+                          color: CalcwiseSemanticColors.error(
+                              Theme.of(context).brightness)),
                       _td(_fmt(net), color: AppTheme.success),
                     ]);
                   }(),
