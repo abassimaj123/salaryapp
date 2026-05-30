@@ -44,20 +44,6 @@ class _K401Engine {
   static double contributionLimit(bool age50Plus) =>
       age50Plus ? _limitOver50 : _limitUnder50;
 
-  static double _federalTax(double taxableIncome, _FilingStatus status) {
-    if (taxableIncome <= 0) return 0;
-    if (status == _FilingStatus.marriedFilingJointly) {
-      return UsSalaryEngine.federalTax(
-        taxableIncome +
-            (status == _FilingStatus.marriedFilingJointly
-                ? _stdMfj
-                : _stdSingle),
-        marriedFilingJointly: true,
-      );
-    }
-    return UsSalaryEngine.federalTax(taxableIncome + _stdSingle);
-  }
-
   static _RetirementResult calculate({
     required double grossIncome,
     required double contributionPct,

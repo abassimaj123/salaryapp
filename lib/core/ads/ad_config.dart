@@ -22,7 +22,7 @@ class AdConfig {
       'ca-app-pub-3940256099942544~1458002511'; // TEST
 
   // ── Android Ad Unit IDs ───────────────────────────────────────────────────────
-  // Release: replace with real IDs for com.mortgageca.calculator
+  // Release: replace with real IDs for com.salary.{us,uk,ca}.calculator
   static String get bannerAndroid => kReleaseMode
       ? 'ca-app-pub-5379540026739666/XXXXXXXXXX'
       : 'ca-app-pub-3940256099942544/6300978111';
