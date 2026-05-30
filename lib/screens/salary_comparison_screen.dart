@@ -11,9 +11,13 @@ import '../main.dart'
         ukScotlandNotifier;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
+import '../core/data/city_col_data.dart';
 import '../core/theme/app_theme.dart';
 import '../core/flavor_config.dart';
+import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../widgets/app_bar_actions.dart';
+import '../widgets/paywall_hard.dart';
 
 // ─── Salary comparison screen ─────────────────────────────────────────────────
 // Compares two salary offers side-by-side (US only):
@@ -41,6 +45,12 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
   SalaryResult? _resultA;
   SalaryResult? _resultB;
+
+  // ── Cost-of-living cities (US flavor only) ───────────────────────────────────
+  // COL adjusts each offer's net pay to national-average purchasing power so the
+  // two offers can be compared on real spending power, not nominal dollars.
+  String _cityA = 'Austin, TX';
+  String _cityB = 'San Francisco, CA';
 
   bool _hasCalculated = false;
 
@@ -100,6 +110,16 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     });
   }
 
+  /// Hard paywall for the cost-of-living comparison (US value feature).
+  Future<void> _showColPaywall(bool es) async {
+    await PaywallHard.show(
+      context,
+      isSpanish: es,
+      priceLabel: IAPService.instance.localizedPrice.value,
+      onPurchase: IAPService.instance.buy,
+    );
+  }
+
   // ── UI ──────────────────────────────────────────────────────────────────────
 
   @override
@@ -140,6 +160,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                               selectedState: _regionA,
                               onStateChanged: (v) =>
                                   setState(() => _regionA = v),
+                              selectedCity: _cityA,
+                              onCityChanged: (v) =>
+                                  setState(() => _cityA = v),
                               useAlt: useAlt,
                             ),
                           ),
@@ -154,6 +177,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                               selectedState: _regionB,
                               onStateChanged: (v) =>
                                   setState(() => _regionB = v),
+                              selectedCity: _cityB,
+                              onCityChanged: (v) =>
+                                  setState(() => _cityB = v),
                               useAlt: useAlt,
                             ),
                           ),
@@ -201,6 +227,36 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           resultB: _resultB!,
                           useAlt: useAlt,
                         ),
+
+                        // ── Cost-of-living adjustment (US flavor only) ───────
+                        if (FlavorConfig.isUS) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          ValueListenableBuilder<bool>(
+                            valueListenable:
+                                freemiumService.hasFullAccessNotifier,
+                            builder: (context, isPremium, _) {
+                              if (!isPremium) {
+                                return PaywallSoft(
+                                  featureTitle: es
+                                      ? 'Poder adquisitivo real por ciudad'
+                                      : 'Real purchasing power by city',
+                                  featureSubtitle: es
+                                      ? '\$80k en Austin ≠ \$80k en San Francisco'
+                                      : '\$80k in Austin ≠ \$80k in San Francisco',
+                                  isSpanish: es,
+                                  onUnlock: () => _showColPaywall(es),
+                                );
+                              }
+                              return _ColCard(
+                                resultA: _resultA!,
+                                resultB: _resultB!,
+                                cityA: _cityA,
+                                cityB: _cityB,
+                                useAlt: useAlt,
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -223,6 +279,8 @@ class _InputCard extends StatelessWidget {
   final TextEditingController grossCtrl;
   final String selectedState;
   final ValueChanged<String> onStateChanged;
+  final String selectedCity;
+  final ValueChanged<String> onCityChanged;
   final bool useAlt;
 
   const _InputCard({
@@ -231,6 +289,8 @@ class _InputCard extends StatelessWidget {
     required this.grossCtrl,
     required this.selectedState,
     required this.onStateChanged,
+    required this.selectedCity,
+    required this.onCityChanged,
     required this.useAlt,
   });
 
@@ -321,6 +381,39 @@ class _InputCard extends StatelessWidget {
                 if (v != null) onStateChanged(v);
               },
             ),
+
+          // City dropdown — US only. Drives cost-of-living adjustment.
+          if (FlavorConfig.isUS) ...[
+            const SizedBox(height: AppSpacing.smPlus),
+            DropdownButtonFormField<String>(
+              value: selectedCity,
+              isExpanded: true,
+              isDense: true,
+              decoration: InputDecoration(
+                labelText: es ? 'Ciudad' : 'City',
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide(color: ct.cardBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide(color: ct.cardBorder),
+                ),
+              ),
+              items: CityColData.allCities
+                  .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: AppTextSize.sm)),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) onCityChanged(v);
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -790,6 +883,269 @@ class _WinnerCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Cost-of-living card (US only, premium) ────────────────────────────────────
+//
+// COL adjustment normalizes each offer's net pay to national-average purchasing
+// power (index 100):
+//     colAdjustedNet = netAnnual / (cityIndex / 100)
+// A high-cost city (index > 100) shrinks real value; a low-cost city (< 100)
+// boosts it. The two adjusted figures are directly comparable on real spending
+// power regardless of where each offer is located.
+
+class _ColCard extends StatelessWidget {
+  final SalaryResult resultA;
+  final SalaryResult resultB;
+  final String cityA;
+  final String cityB;
+  final bool useAlt;
+
+  const _ColCard({
+    required this.resultA,
+    required this.resultB,
+    required this.cityA,
+    required this.cityB,
+    required this.useAlt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final es = FlavorConfig.isUS && useAlt;
+    final fmt = NumberFormat.currency(
+        locale: FlavorConfig.locale,
+        symbol: FlavorConfig.currencySymbol,
+        decimalDigits: 0);
+    final ct = CalcwiseTheme.of(context);
+
+    final idxA = CityColData.indexFor(cityA);
+    final idxB = CityColData.indexFor(cityB);
+
+    // Adjust each net to national-average (index 100) purchasing power.
+    final adjA = resultA.netAnnual / (idxA / 100);
+    final adjB = resultB.netAnnual / (idxB / 100);
+
+    final realDelta = adjB - adjA;
+    final realTie = realDelta.abs() < 1;
+    final realAWins = realDelta < 0;
+
+    // Nominal winner (for the "flips" insight line).
+    final nomDelta = resultB.netAnnual - resultA.netAnnual;
+    final nomAWins = nomDelta < 0;
+    final flips = !realTie && (realAWins != nomAWins);
+
+    String winnerLabel;
+    if (realTie) {
+      winnerLabel = es ? 'Empate en poder adquisitivo' : 'Equal purchasing power';
+    } else {
+      final offer = realAWins ? 'A' : 'B';
+      final amt = fmt.format(realDelta.abs());
+      winnerLabel = es
+          ? 'Oferta $offer gana en poder real (+$amt)'
+          : 'Offer $offer wins on real value (+$amt)';
+    }
+
+    // Explanatory line: what offer A's net is worth in offer B's city.
+    // e.g. "$80k in Austin ≈ $X in San Francisco in purchasing power".
+    final equivInB = resultA.netAnnual * (idxB / idxA);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.mdPlus, AppSpacing.lg, AppSpacing.sm),
+            child: Row(
+              children: [
+                Icon(Icons.public_rounded,
+                    color: AppTheme.accent, size: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    es
+                        ? 'Poder adquisitivo real (costo de vida)'
+                        : 'Real Purchasing Power (cost of living)',
+                    style: const TextStyle(
+                        fontSize: AppTextSize.md, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+            child: Column(
+              children: [
+                // Nominal net row (already shown above, repeated for contrast).
+                _ColRow(
+                  label: es ? 'Neto nominal' : 'Nominal net',
+                  cityA: cityA,
+                  cityB: cityB,
+                  valA: fmt.format(resultA.netAnnual),
+                  valB: fmt.format(resultB.netAnnual),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                // COL-adjusted row.
+                _ColRow(
+                  label: es ? 'Neto ajustado por COL' : 'COL-adjusted net',
+                  cityA: '${es ? "índice" : "index"} ${idxA.toStringAsFixed(0)}',
+                  cityB: '${es ? "índice" : "index"} ${idxB.toStringAsFixed(0)}',
+                  valA: fmt.format(adjA),
+                  valB: fmt.format(adjB),
+                  bold: true,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // Winner banner
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        winnerLabel,
+                        style: TextStyle(
+                          fontSize: AppTextSize.sm,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.accent,
+                        ),
+                      ),
+                      if (flips) ...[
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          es
+                              ? 'El ganador cambia tras ajustar por costo de vida.'
+                              : 'The winner flips once cost of living is applied.',
+                          style: TextStyle(
+                            fontSize: AppTextSize.xs,
+                            color: AppTheme.labelGray,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                // Explanatory equivalence line.
+                Text(
+                  es
+                      ? '${fmt.format(resultA.netAnnual)} en $cityA ≈ ${fmt.format(equivInB)} en $cityB en poder adquisitivo.'
+                      : '${fmt.format(resultA.netAnnual)} in $cityA ≈ ${fmt.format(equivInB)} in $cityB in purchasing power.',
+                  style: TextStyle(
+                    fontSize: AppTextSize.xs,
+                    color: AppTheme.labelGray,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── COL comparison row ────────────────────────────────────────────────────────
+
+class _ColRow extends StatelessWidget {
+  final String label;
+  final String cityA;
+  final String cityB;
+  final String valA;
+  final String valB;
+  final bool bold;
+
+  const _ColRow({
+    required this.label,
+    required this.cityA,
+    required this.cityB,
+    required this.valA,
+    required this.valB,
+    this.bold = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTextSize.sm,
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                valA,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: AppTextSize.sm,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                  color: AppTheme.primary,
+                ),
+              ),
+              Text(
+                cityA,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: AppTextSize.xs, color: AppTheme.labelGray),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                valB,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: AppTextSize.sm,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                  color: AppTheme.accent,
+                ),
+              ),
+              Text(
+                cityB,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: AppTextSize.xs, color: AppTheme.labelGray),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
