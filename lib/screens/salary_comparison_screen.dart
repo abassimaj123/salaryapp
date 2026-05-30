@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:calcwise_core/calcwise_core.dart';
-import '../main.dart' show isSpanishNotifier, paywallSession, salaryNotifier;
+import '../main.dart'
+    show
+        isSpanishNotifier,
+        paywallSession,
+        salaryNotifier,
+        ukStudentLoanNotifier,
+        ukScotlandNotifier;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
@@ -25,13 +31,30 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
   final _grossACtrl = TextEditingController(text: '60000');
   final _grossBCtrl = TextEditingController(text: '75000');
 
-  String _stateA = 'TX';
-  String _stateB = 'CA';
+  // Region codes are flavor-aware: US states, CA provinces, or '' for UK.
+  String _regionA = FlavorConfig.isUS
+      ? 'TX'
+      : (FlavorConfig.isCA ? 'ON' : '');
+  String _regionB = FlavorConfig.isUS
+      ? 'CA'
+      : (FlavorConfig.isCA ? 'BC' : '');
 
   SalaryResult? _resultA;
   SalaryResult? _resultB;
 
   bool _hasCalculated = false;
+
+  /// Flavor-aware net calculation for one offer.
+  SalaryResult _calcOne(double gross, String region) {
+    if (FlavorConfig.isUS) return UsSalaryEngine.calculate(gross, region);
+    if (FlavorConfig.isCA) return CaSalaryEngine.calculate(gross, region);
+    // UK — uses global notifiers for Scotland / student loan.
+    return UkSalaryEngine.calculate(
+      gross,
+      studentLoan: ukStudentLoanNotifier.value,
+      scotland: ukScotlandNotifier.value,
+    );
+  }
 
   @override
   void initState() {
@@ -65,15 +88,15 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
     HapticFeedback.mediumImpact();
     setState(() {
-      _resultA = UsSalaryEngine.calculate(grossA, _stateA);
-      _resultB = UsSalaryEngine.calculate(grossB, _stateB);
+      _resultA = _calcOne(grossA, _regionA);
+      _resultB = _calcOne(grossB, _regionB);
       _hasCalculated = true;
     });
     analyticsService.logCalculationCompleted(params: {
       'gross_a': grossA.round(),
       'gross_b': grossB.round(),
-      'state_a': _stateA,
-      'state_b': _stateB,
+      'region_a': _regionA,
+      'region_b': _regionB,
     });
   }
 
@@ -84,9 +107,13 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
+        final es = FlavorConfig.isUS && useAlt;
+        final fr = FlavorConfig.isCA && useAlt;
         return Scaffold(
           appBar: AppBar(
-            title: Text(useAlt ? 'Comparar Salarios' : 'Salary Comparison'),
+            title: Text(fr
+                ? 'Comparaison de salaires'
+                : (es ? 'Comparar Salarios' : 'Salary Comparison')),
             leading: const BackButton(),
             actions: const [AppBarActions()],
           ),
@@ -105,24 +132,28 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                         children: [
                           Expanded(
                             child: _InputCard(
-                              label: useAlt ? 'Oferta A' : 'Offer A',
+                              label: fr
+                                  ? 'Offre A'
+                                  : (es ? 'Oferta A' : 'Offer A'),
                               color: AppTheme.primary,
                               grossCtrl: _grossACtrl,
-                              selectedState: _stateA,
+                              selectedState: _regionA,
                               onStateChanged: (v) =>
-                                  setState(() => _stateA = v),
+                                  setState(() => _regionA = v),
                               useAlt: useAlt,
                             ),
                           ),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: _InputCard(
-                              label: useAlt ? 'Oferta B' : 'Offer B',
+                              label: fr
+                                  ? 'Offre B'
+                                  : (es ? 'Oferta B' : 'Offer B'),
                               color: AppTheme.accent,
                               grossCtrl: _grossBCtrl,
-                              selectedState: _stateB,
+                              selectedState: _regionB,
                               onStateChanged: (v) =>
-                                  setState(() => _stateB = v),
+                                  setState(() => _regionB = v),
                               useAlt: useAlt,
                             ),
                           ),
@@ -137,7 +168,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           onPressed: _calculate,
                           icon: const Icon(Icons.compare_arrows_rounded),
                           label: Text(
-                            useAlt ? 'Comparar' : 'Compare',
+                            fr ? 'Comparer' : (es ? 'Comparar' : 'Compare'),
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -160,8 +191,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                         _ResultsTable(
                           resultA: _resultA!,
                           resultB: _resultB!,
-                          labelA: useAlt ? 'Oferta A' : 'Offer A',
-                          labelB: useAlt ? 'Oferta B' : 'Offer B',
+                          labelA: fr ? 'Offre A' : (es ? 'Oferta A' : 'Offer A'),
+                          labelB: fr ? 'Offre B' : (es ? 'Oferta B' : 'Offer B'),
                           useAlt: useAlt,
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -206,6 +237,8 @@ class _InputCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ct = CalcwiseTheme.of(context);
+    final es = FlavorConfig.isUS && useAlt;
+    final fr = FlavorConfig.isCA && useAlt;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -242,8 +275,10 @@ class _InputCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: const TextStyle(fontSize: AppTextSize.md),
             decoration: InputDecoration(
-              labelText: useAlt ? 'Salario bruto' : 'Gross salary',
-              prefixText: r'$',
+              labelText: fr
+                  ? 'Salaire brut'
+                  : (es ? 'Salario bruto' : 'Gross salary'),
+              prefixText: '${FlavorConfig.currencySymbol} ',
               isDense: true,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.md),
@@ -257,14 +292,16 @@ class _InputCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.smPlus),
 
-          // State dropdown (US only)
-          if (FlavorConfig.isUS)
+          // Region dropdown — US states / CA provinces. UK has no sub-region.
+          if (FlavorConfig.isUS || FlavorConfig.isCA)
             DropdownButtonFormField<String>(
               value: selectedState,
               isExpanded: true,
               isDense: true,
               decoration: InputDecoration(
-                labelText: useAlt ? 'Estado' : 'State',
+                labelText: FlavorConfig.isCA
+                    ? 'Province'
+                    : (es ? 'Estado' : 'State'),
                 isDense: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -275,7 +312,9 @@ class _InputCard extends StatelessWidget {
                   borderSide: BorderSide(color: ct.cardBorder),
                 ),
               ),
-              items: UsSalaryEngine.states
+              items: (FlavorConfig.isCA
+                      ? CaSalaryEngine.provinces
+                      : UsSalaryEngine.states)
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                   .toList(),
               onChanged: (v) {
@@ -307,10 +346,27 @@ class _ResultsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt =
-        NumberFormat.currency(locale: 'en_US', symbol: r'$', decimalDigits: 0);
-    final pctFmt = NumberFormat('0.0#', 'en_US');
+    final es = FlavorConfig.isUS && useAlt;
+    final fr = FlavorConfig.isCA && useAlt;
+    final fmt = NumberFormat.currency(
+        locale: FlavorConfig.locale,
+        symbol: FlavorConfig.currencySymbol,
+        decimalDigits: 0);
+    final pctFmt = NumberFormat('0.0#', FlavorConfig.locale);
     final ct = CalcwiseTheme.of(context);
+
+    // Flavor-aware deduction labels.
+    final federalLabel = FlavorConfig.isUK
+        ? 'Income tax'
+        : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal tax'));
+    final ficaLabel = FlavorConfig.isUS
+        ? 'FICA (SS + Medicare)'
+        : (FlavorConfig.isUK
+            ? 'National Insurance'
+            : (fr ? 'RPC + AE' : 'CPP + EI'));
+    final stateLabel = FlavorConfig.isUS
+        ? (es ? 'Impuesto estatal' : 'State tax')
+        : (fr ? 'Impôt provincial' : 'Provincial tax');
 
     return Container(
       decoration: BoxDecoration(
@@ -334,7 +390,7 @@ class _ResultsTable extends StatelessWidget {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    useAlt ? 'Métrica' : 'Metric',
+                    fr ? 'Métrique' : (es ? 'Métrica' : 'Metric'),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: AppTextSize.sm),
                   ),
@@ -364,7 +420,7 @@ class _ResultsTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    useAlt ? 'Delta' : 'Diff',
+                    fr ? 'Écart' : (es ? 'Delta' : 'Diff'),
                     textAlign: TextAlign.right,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: AppTextSize.sm),
@@ -380,7 +436,9 @@ class _ResultsTable extends StatelessWidget {
             child: Column(
               children: [
                 _Row(
-                  label: useAlt ? 'Salario bruto' : 'Gross salary',
+                  label: fr
+                      ? 'Salaire brut'
+                      : (es ? 'Salario bruto' : 'Gross salary'),
                   valA: fmt.format(resultA.grossAnnual),
                   valB: fmt.format(resultB.grossAnnual),
                   delta: resultB.grossAnnual - resultA.grossAnnual,
@@ -389,7 +447,7 @@ class _ResultsTable extends StatelessWidget {
                 ),
                 const Divider(height: 16),
                 _Row(
-                  label: useAlt ? 'Impuesto federal' : 'Federal tax',
+                  label: federalLabel,
                   valA: fmt.format(resultA.federalTax),
                   valB: fmt.format(resultB.federalTax),
                   delta: resultB.federalTax - resultA.federalTax,
@@ -397,23 +455,26 @@ class _ResultsTable extends StatelessWidget {
                   invertColors: true,
                 ),
                 _Row(
-                  label: 'FICA (SS + Medicare)',
+                  label: ficaLabel,
                   valA: fmt.format(resultA.ficaTax),
                   valB: fmt.format(resultB.ficaTax),
                   delta: resultB.ficaTax - resultA.ficaTax,
                   fmt: fmt,
                   invertColors: true,
                 ),
+                if (!FlavorConfig.isUK)
+                  _Row(
+                    label: stateLabel,
+                    valA: fmt.format(resultA.stateTax),
+                    valB: fmt.format(resultB.stateTax),
+                    delta: resultB.stateTax - resultA.stateTax,
+                    fmt: fmt,
+                    invertColors: true,
+                  ),
                 _Row(
-                  label: useAlt ? 'Impuesto estatal' : 'State tax',
-                  valA: fmt.format(resultA.stateTax),
-                  valB: fmt.format(resultB.stateTax),
-                  delta: resultB.stateTax - resultA.stateTax,
-                  fmt: fmt,
-                  invertColors: true,
-                ),
-                _Row(
-                  label: useAlt ? 'Impuesto total' : 'Total tax',
+                  label: fr
+                      ? 'Total impôts'
+                      : (es ? 'Impuesto total' : 'Total tax'),
                   valA: fmt.format(resultA.totalTax),
                   valB: fmt.format(resultB.totalTax),
                   delta: resultB.totalTax - resultA.totalTax,
@@ -422,7 +483,9 @@ class _ResultsTable extends StatelessWidget {
                 ),
                 const Divider(height: 16),
                 _Row(
-                  label: useAlt ? 'Neto anual' : 'Net annual',
+                  label: fr
+                      ? 'Net annuel'
+                      : (es ? 'Neto anual' : 'Net annual'),
                   valA: fmt.format(resultA.netAnnual),
                   valB: fmt.format(resultB.netAnnual),
                   delta: resultB.netAnnual - resultA.netAnnual,
@@ -430,7 +493,9 @@ class _ResultsTable extends StatelessWidget {
                   bold: true,
                 ),
                 _Row(
-                  label: useAlt ? 'Neto mensual' : 'Net monthly',
+                  label: fr
+                      ? 'Net mensuel'
+                      : (es ? 'Neto mensual' : 'Net monthly'),
                   valA: fmt.format(resultA.netMonthly),
                   valB: fmt.format(resultB.netMonthly),
                   delta: resultB.netMonthly - resultA.netMonthly,
@@ -439,7 +504,9 @@ class _ResultsTable extends StatelessWidget {
                 ),
                 const Divider(height: 16),
                 _RowPct(
-                  label: useAlt ? 'Tasa efectiva' : 'Effective rate',
+                  label: fr
+                      ? 'Taux effectif'
+                      : (es ? 'Tasa efectiva' : 'Effective rate'),
                   valA: '${pctFmt.format(resultA.effectiveRate)}%',
                   valB: '${pctFmt.format(resultB.effectiveRate)}%',
                   delta: resultB.effectiveRate - resultA.effectiveRate,
@@ -636,26 +703,30 @@ class _WinnerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final es = FlavorConfig.isUS && useAlt;
+    final fr = FlavorConfig.isCA && useAlt;
     final delta = resultB.netAnnual - resultA.netAnnual;
-    final fmt =
-        NumberFormat.currency(locale: 'en_US', symbol: r'$', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+        locale: FlavorConfig.locale,
+        symbol: FlavorConfig.currencySymbol,
+        decimalDigits: 0);
     final isTie = delta.abs() < 1;
     final aWins = delta < 0;
+    final amt = fmt.format(delta.abs());
 
     String title;
     Color borderColor;
     if (isTie) {
-      title = useAlt ? 'Empate' : 'It\'s a tie!';
+      title = fr ? 'Égalité !' : (es ? 'Empate' : 'It\'s a tie!');
       borderColor = AppTheme.warning;
-    } else if (aWins) {
-      title = useAlt
-          ? 'Oferta A — +${fmt.format(delta.abs())} neto/año'
-          : 'Offer A — +${fmt.format(delta.abs())} net/year';
-      borderColor = AppTheme.success;
     } else {
-      title = useAlt
-          ? 'Oferta B — +${fmt.format(delta.abs())} neto/año'
-          : 'Offer B — +${fmt.format(delta.abs())} net/year';
+      final offer = aWins ? 'A' : 'B';
+      final offerLabel = fr ? 'Offre' : (es ? 'Oferta' : 'Offer');
+      title = fr
+          ? '$offerLabel $offer — +$amt net/an'
+          : (es
+              ? '$offerLabel $offer — +$amt neto/año'
+              : '$offerLabel $offer — +$amt net/year');
       borderColor = AppTheme.success;
     }
 
@@ -680,8 +751,12 @@ class _WinnerCard extends StatelessWidget {
               children: [
                 Text(
                   isTie
-                      ? (useAlt ? 'Resultado' : 'Result')
-                      : (useAlt ? 'Mejor oferta' : 'Best offer'),
+                      ? (fr
+                          ? 'Résultat'
+                          : (es ? 'Resultado' : 'Result'))
+                      : (fr
+                          ? 'Meilleure offre'
+                          : (es ? 'Mejor oferta' : 'Best offer')),
                   style: TextStyle(
                     fontSize: AppTextSize.xs,
                     color: AppTheme.labelGray,
@@ -699,9 +774,11 @@ class _WinnerCard extends StatelessWidget {
                 if (!isTie) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    useAlt
-                        ? '+${fmt.format(delta.abs() / 12)} por mes'
-                        : '+${fmt.format(delta.abs() / 12)} per month',
+                    fr
+                        ? '+${fmt.format(delta.abs() / 12)} par mois'
+                        : (es
+                            ? '+${fmt.format(delta.abs() / 12)} por mes'
+                            : '+${fmt.format(delta.abs() / 12)} per month'),
                     style: TextStyle(
                       fontSize: AppTextSize.sm,
                       color: AppTheme.labelGray,

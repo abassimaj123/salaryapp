@@ -112,6 +112,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   final _salaryCtrl = TextEditingController(text: '75,000');
   final _scrollCtrl = ScrollController();
   final _salarySacrificeCtrl = TextEditingController(text: '0');
+  final _secondIncomeCtrl = TextEditingController(text: '0');
 
   static const _kProvinceKey = 'salary_ca_province';
 
@@ -130,6 +131,17 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
   // UK salary sacrifice
   double _salarySacrifice = 0; // £/year pre-tax deduction
+
+  // UK student-loan plan selection (1, 2, 4, 5) — used when student loan is on.
+  int _ukLoanPlan = 2;
+  // UK Postgraduate (Plan 3) loan — cumulable with a main plan.
+  bool _ukPostgrad = false;
+  // UK auto-enrolment pension (qualifying earnings, 5% employee min).
+  bool _ukAutoEnrolment = false;
+
+  // Multi-jobs / second income (premium feature, all flavors).
+  bool _addSecondIncome = false;
+  double _secondIncome = 0; // annual gross of the additional job
 
   Timer? _saveDebounce;
 
@@ -189,6 +201,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     _salaryCtrl.removeListener(() => _scheduleCalcAndSave());
     _salaryCtrl.dispose();
     _salarySacrificeCtrl.dispose();
+    _secondIncomeCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -207,17 +220,25 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
     if (inputAnnual <= 0) return;
 
+    // Second income (premium) — cumulated for tax across all flavors.
+    final secondIncome = _addSecondIncome ? _secondIncome : 0.0;
+
     SalaryResult res;
     double? requiredGross;
 
     if (FlavorConfig.isUS) {
-      res = UsSalaryEngine.calculate(inputAnnual, _usState);
+      res = UsSalaryEngine.calculate(inputAnnual, _usState,
+          secondIncome: secondIncome);
     } else if (FlavorConfig.isUK) {
       res = UkSalaryEngine.calculate(
         inputAnnual,
         studentLoan: ukStudentLoanNotifier.value,
+        loanPlan: _ukLoanPlan,
+        postgradLoan: _ukPostgrad,
         scotland: ukScotlandNotifier.value,
         salarySacrifice: _salarySacrifice,
+        autoEnrolment: _ukAutoEnrolment,
+        secondIncome: secondIncome,
       );
     } else {
       // CA: reverse mode computes the gross needed to achieve target net
@@ -227,7 +248,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         res = CaSalaryEngine.calculate(gross, _caProvince);
         requiredGross = gross;
       } else {
-        res = CaSalaryEngine.calculate(inputAnnual, _caProvince);
+        res = CaSalaryEngine.calculate(inputAnnual, _caProvince,
+            secondIncome: secondIncome);
       }
     }
 
@@ -323,6 +345,11 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       _caRequiredGross = null;
       _salarySacrifice = 0;
       _salarySacrificeCtrl.text = '0';
+      _addSecondIncome = false;
+      _secondIncome = 0;
+      _secondIncomeCtrl.text = '0';
+      _ukPostgrad = false;
+      _ukAutoEnrolment = false;
     });
   }
 
@@ -498,32 +525,49 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                           },
                                         ),
                                       ),
-                                      // Student loan toggle
-                                      ValueListenableBuilder<bool>(
-                                        valueListenable: ukStudentLoanNotifier,
-                                        builder: (context, hasLoan, _) =>
-                                            SwitchListTile.adaptive(
-                                          contentPadding: EdgeInsets.zero,
-                                          dense: true,
-                                          title: Text(
-                                            'Student Loan Repayment',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium,
-                                          ),
-                                          subtitle: Text(
-                                            'Plan 2 (£27,295) or Plan 5 (£25,000) — 9%',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall,
-                                          ),
-                                          value: hasLoan,
-                                          activeColor: AppTheme.primary,
-                                          onChanged: (v) {
-                                            ukStudentLoanNotifier.value = v;
-                                            _scheduleCalcAndSave();
-                                          },
+                                      // Student loan plan selector
+                                      // None / Plan 1 / 2 / 4 / 5 — drives the
+                                      // ukStudentLoanNotifier (on when not None).
+                                      SizedBox(height: AppSpacing.sm),
+                                      _UkLoanPlanDropdown(
+                                        plan: ukStudentLoanNotifier.value
+                                            ? _ukLoanPlan
+                                            : 0,
+                                        onChanged: (plan) {
+                                          setState(() {
+                                            if (plan == 0) {
+                                              ukStudentLoanNotifier.value =
+                                                  false;
+                                            } else {
+                                              ukStudentLoanNotifier.value = true;
+                                              _ukLoanPlan = plan;
+                                            }
+                                          });
+                                          _scheduleCalcAndSave();
+                                        },
+                                      ),
+                                      // Postgraduate (Plan 3) loan toggle — 6%
+                                      SwitchListTile.adaptive(
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        title: Text(
+                                          'Postgraduate Loan (Plan 3)',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium,
                                         ),
+                                        subtitle: Text(
+                                          '£21,000 threshold — 6% (cumulable)',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                        value: _ukPostgrad,
+                                        activeColor: AppTheme.primary,
+                                        onChanged: (v) {
+                                          setState(() => _ukPostgrad = v);
+                                          _scheduleCalcAndSave();
+                                        },
                                       ),
                                       // Salary sacrifice / SMART pension field
                                       SizedBox(height: AppSpacing.sm),
@@ -534,7 +578,65 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                           _scheduleCalcAndSave();
                                         },
                                       ),
+                                      // Auto-enrolment (qualifying earnings)
+                                      SwitchListTile.adaptive(
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        title: Text(
+                                          'Auto-enrolment pension',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium,
+                                        ),
+                                        subtitle: Text(
+                                          'Qualifying earnings £6,240–£50,270, 5% employee',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                        value: _ukAutoEnrolment,
+                                        activeColor: AppTheme.primary,
+                                        onChanged: (v) {
+                                          setState(
+                                              () => _ukAutoEnrolment = v);
+                                          _scheduleCalcAndSave();
+                                        },
+                                      ),
                                     ],
+                                    // ── Second income (all flavors) ────────
+                                    SizedBox(height: AppSpacing.sm),
+                                    _SecondIncomeSection(
+                                      enabled: _addSecondIncome,
+                                      controller: _secondIncomeCtrl,
+                                      es: es,
+                                      fr: fr,
+                                      onToggle: (on) {
+                                        if (on &&
+                                            !freemiumService.hasFullAccess) {
+                                          PaywallHard.show(
+                                            context,
+                                            isSpanish: es,
+                                            isFrench: fr,
+                                            priceLabel: IAPService
+                                                .instance.localizedPrice.value,
+                                            onPurchase: IAPService.instance.buy,
+                                          );
+                                          return;
+                                        }
+                                        setState(() {
+                                          _addSecondIncome = on;
+                                          if (!on) {
+                                            _secondIncome = 0;
+                                            _secondIncomeCtrl.text = '0';
+                                          }
+                                        });
+                                        _scheduleCalcAndSave();
+                                      },
+                                      onAmountChanged: (v) {
+                                        setState(() => _secondIncome = v);
+                                        _scheduleCalcAndSave();
+                                      },
+                                    ),
                                   ])),
                               SizedBox(height: AppSpacing.xl),
                               AnimatedSwitcher(
@@ -2685,6 +2787,116 @@ class _SalarySacrificeField extends StatelessWidget {
         final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
         onChanged(parsed);
       },
+    );
+  }
+}
+
+// ─── UK student-loan plan dropdown ───────────────────────────────────────────
+
+class _UkLoanPlanDropdown extends StatelessWidget {
+  /// 0 = None, otherwise the plan number (1, 2, 4, 5).
+  final int plan;
+  final ValueChanged<int> onChanged;
+
+  const _UkLoanPlanDropdown({required this.plan, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<int>(
+      initialValue: plan,
+      decoration: const InputDecoration(
+        labelText: 'Student Loan Plan',
+        prefixIcon: Icon(Icons.school_outlined),
+        helperText: 'Plans 1/2/4/5 repay 9% above threshold',
+      ),
+      items: const [
+        DropdownMenuItem(value: 0, child: Text('None')),
+        DropdownMenuItem(value: 1, child: Text('Plan 1 (£24,990)')),
+        DropdownMenuItem(value: 2, child: Text('Plan 2 (£27,295)')),
+        DropdownMenuItem(value: 4, child: Text('Plan 4 — Scotland (£31,395)')),
+        DropdownMenuItem(value: 5, child: Text('Plan 5 (£25,000)')),
+      ],
+      onChanged: (v) => onChanged(v ?? 0),
+    );
+  }
+}
+
+// ─── Second-income section (multi-jobs, premium) ─────────────────────────────
+
+class _SecondIncomeSection extends StatelessWidget {
+  final bool enabled;
+  final TextEditingController controller;
+  final bool es, fr;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<double> onAmountChanged;
+
+  const _SecondIncomeSection({
+    required this.enabled,
+    required this.controller,
+    required this.es,
+    required this.fr,
+    required this.onToggle,
+    required this.onAmountChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPremium = freemiumService.hasFullAccess;
+    final title = fr
+        ? 'Ajouter un 2ᵉ revenu'
+        : (es ? 'Agregar 2.º ingreso' : 'Add second income');
+    final subtitle = fr
+        ? 'L\'impôt est calculé sur le revenu total cumulé'
+        : (es
+            ? 'El impuesto se calcula sobre el ingreso total combinado'
+            : 'Tax is calculated on the combined total income');
+    final fieldLabel = fr
+        ? 'Revenu annuel du 2ᵉ emploi'
+        : (es ? 'Ingreso anual del 2.º empleo' : 'Second job annual income');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          secondary: isPremium
+              ? null
+              : const Icon(Icons.lock_outline_rounded, size: 18),
+          title: Text(title,
+              style: Theme.of(context).textTheme.bodyMedium),
+          subtitle: Text(subtitle,
+              style: Theme.of(context).textTheme.bodySmall),
+          value: enabled,
+          activeColor: AppTheme.primary,
+          onChanged: onToggle,
+        ),
+        if (enabled) ...[
+          SizedBox(height: AppSpacing.xs),
+          TextFormField(
+            controller: controller,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              CurrencyInputFormatter(
+                  locale: FlavorConfig.isCA
+                      ? 'en_CA'
+                      : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
+            ],
+            decoration: InputDecoration(
+              labelText: fieldLabel,
+              prefixText: '${FlavorConfig.currencySymbol} ',
+              prefixIcon: const Icon(Icons.work_outline_rounded),
+              hintText: '0',
+            ),
+            onChanged: (v) {
+              final parsed =
+                  double.tryParse(v.replaceAll(RegExp(r'[,\s]'), '')) ?? 0;
+              onAmountChanged(parsed);
+            },
+          ),
+        ],
+      ],
     );
   }
 }

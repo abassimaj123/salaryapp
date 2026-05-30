@@ -310,12 +310,18 @@ class UsSalaryEngine {
     }
   }
 
+  /// [secondIncome] – additional W-2 gross income (annual). The two incomes are
+  /// cumulated for federal/state income tax (brackets apply to the total).
+  /// FICA Social Security is capped per employer, so cumulating taxable income
+  /// is a reasonable simplification for a take-home calculator.
   static SalaryResult calculate(
     double grossAnnual,
     String state, {
     bool marriedFilingJointly = false,
     double preTaxDeductions = 0,
+    double secondIncome = 0,
   }) {
+    grossAnnual = grossAnnual + (secondIncome > 0 ? secondIncome : 0);
     final federal = federalTax(grossAnnual,
         marriedFilingJointly: marriedFilingJointly,
         preTaxDeductions: preTaxDeductions);
@@ -488,16 +494,41 @@ class UkSalaryEngine {
     return lower + upper;
   }
 
-  /// Student loan repayment 2026/27 (9% above plan threshold).
-  /// Plan 1: £24,990 | Plan 2: £27,295 | Plan 5: £25,000 (2023+ starters, 40yr write-off)
+  /// Student loan repayment 2025/26 (9% above plan threshold).
+  /// Plan 1: £24,990 | Plan 2: £27,295 | Plan 4 (Scotland): £31,395 | Plan 5: £25,000
+  /// Plan 0 / negative = none.
   static double studentLoanRepayment(double grossAnnual, {int plan = 2}) {
     final threshold = switch (plan) {
       1 => 24990.0,
+      4 => 31395.0, // Plan 4 (Scotland) 2025/26
       5 => 25000.0,
       _ => 27295.0, // Plan 2
     };
     if (grossAnnual <= threshold) return 0;
     return (grossAnnual - threshold) * 0.09;
+  }
+
+  /// Postgraduate Loan (Plan 3) repayment 2025/26: 6% above £21,000.
+  /// Cumulable with a main undergraduate plan (1/2/4/5).
+  static double postgradLoanRepayment(double grossAnnual) {
+    const threshold = 21000.0;
+    if (grossAnnual <= threshold) return 0;
+    return (grossAnnual - threshold) * 0.06;
+  }
+
+  // ── Auto-enrolment / qualifying earnings (2025/26) ──────────────────────────
+  static const double _aeLowerThreshold = 6240; // qualifying earnings band floor
+  static const double _aeUpperThreshold = 50270; // qualifying earnings band ceiling
+
+  /// Auto-enrolment pension contribution on "qualifying earnings": the slice of
+  /// pay between £6,240 and £50,270. Statutory employee minimum is 5%.
+  /// Returned amount is treated as salary sacrifice for tax/NI in [calculate].
+  static double autoEnrolmentContribution(double grossAnnual,
+      {double employeeRate = 0.05}) {
+    final band = (grossAnnual.clamp(_aeLowerThreshold, _aeUpperThreshold) -
+            _aeLowerThreshold)
+        .clamp(0.0, double.infinity);
+    return band * employeeRate;
   }
 
   /// Calculate salary sacrifice tax + NI savings for display purposes.
@@ -518,23 +549,45 @@ class UkSalaryEngine {
   }
 
   /// [studentLoan]    – include student loan repayment (default false).
-  /// [loanPlan]       – 1, 2 (default), or 5.
+  /// [loanPlan]       – 1, 2 (default), 4 or 5.
+  /// [postgradLoan]   – include Postgraduate (Plan 3) loan, 6% above £21,000.
   /// [scotland]       – use Scottish income tax rates (default false).
   /// [salarySacrifice] – annual salary sacrifice / SMART pension amount (£).
+  /// [autoEnrolment]  – when true, add a qualifying-earnings AE pension
+  ///                    contribution ([autoEnrolmentRate], default 5%) on top
+  ///                    of [salarySacrifice], treated as pre-tax.
+  /// [secondIncome]   – additional gross income (£/yr) cumulated for tax/NI.
   static SalaryResult calculate(
     double grossAnnual, {
     bool studentLoan = false,
     int loanPlan = 2,
+    bool postgradLoan = false,
     bool scotland = false,
     double salarySacrifice = 0,
+    bool autoEnrolment = false,
+    double autoEnrolmentRate = 0.05,
+    double secondIncome = 0,
   }) {
+    // Cumulate the second income into the gross used for all UK calculations:
+    // tax bands and NI apply to the combined total, which is the most useful
+    // figure for a take-home calculator.
+    grossAnnual = grossAnnual + (secondIncome > 0 ? secondIncome : 0);
+
+    // Auto-enrolment contribution is added to any explicit salary sacrifice.
+    final aeContribution = autoEnrolment
+        ? autoEnrolmentContribution(grossAnnual, employeeRate: autoEnrolmentRate)
+        : 0.0;
+    final totalSacrifice = salarySacrifice + aeContribution;
+
     final income = incomeTax(grossAnnual,
-        scotland: scotland, salarySacrifice: salarySacrifice);
-    final ni = nationalInsurance(grossAnnual, salarySacrifice: salarySacrifice);
+        scotland: scotland, salarySacrifice: totalSacrifice);
+    final ni =
+        nationalInsurance(grossAnnual, salarySacrifice: totalSacrifice);
     final sl =
         studentLoan ? studentLoanRepayment(grossAnnual, plan: loanPlan) : 0.0;
-    // ficaTax stores NI + student loan so the result model stays unchanged.
-    final ficaTotal = ni + sl;
+    final pg = postgradLoan ? postgradLoanRepayment(grossAnnual) : 0.0;
+    // ficaTax stores NI + student loan(s) so the result model stays unchanged.
+    final ficaTotal = ni + sl + pg;
     final total = income + ficaTotal;
     final net = grossAnnual - total;
     return SalaryResult(
@@ -684,7 +737,11 @@ class CaSalaryEngine {
     }
   }
 
-  static SalaryResult calculate(double grossAnnual, String province) {
+  /// [secondIncome] – additional employment income (annual). Cumulated with the
+  /// primary income; federal + provincial brackets apply to the total.
+  static SalaryResult calculate(double grossAnnual, String province,
+      {double secondIncome = 0}) {
+    grossAnnual = grossAnnual + (secondIncome > 0 ? secondIncome : 0);
     final fed = federalTax(grossAnnual);
     // Quebec residents receive a 16.5% abatement on their federal tax
     // (QC runs its own equivalent social programs).
