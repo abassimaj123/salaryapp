@@ -744,7 +744,7 @@ class _SalaryInputCard extends StatelessWidget {
                 .titleMedium
                 ?.copyWith(color: AppTheme.primary),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           TextFormField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1064,7 +1064,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                 .textTheme
                 .titleMedium
                 ?.copyWith(color: AppTheme.primary)),
-        SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
 
         // Net take-home hero card
         CalcwiseHeroCard(
@@ -1080,7 +1080,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
             (label: effectiveLabel, value: _pct(adjustedEffectiveRate)),
           ],
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
 
         // CA reverse-mode: show required gross to achieve the target net
         if (FlavorConfig.isCA &&
@@ -1091,7 +1091,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
             targetNet: adjustedNetAnnual,
             fr: fr,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
         ],
 
         // UK salary sacrifice savings banner
@@ -1101,7 +1101,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
             salarySacrifice: widget.ukSalarySacrifice,
             scotland: ukScotlandNotifier.value,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
         ],
 
         // Bi-weekly / Weekly row
@@ -1210,7 +1210,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                 ),
                 SizedBox(height: AppSpacing.md),
                 Divider(color: AppTheme.divider),
-                SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 MetricRow(label: grossLabel, value: _fmt(result.grossAnnual)),
                 MetricRow(
                     label: federalLabel,
@@ -1302,22 +1302,22 @@ class _ResultsSectionState extends State<_ResultsSection> {
                 ),
         ),
 
-        SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
 
         // PDF export button
         _PdfExportButton(result: result, fr: fr, es: es),
 
-        SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
 
         // Total Compensation Report PDF (premium-gated)
         _TotalCompReportButton(result: result, fr: fr, es: es),
 
-        SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
 
         // CSV export button
         _CsvExportButton(result: result, fr: fr, es: es),
 
-        SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Text(
           fr
               ? 'À titre informatif seulement. Ce n\'est pas un conseil financier.'
@@ -1403,7 +1403,7 @@ class _CityComparisonCard extends StatelessWidget {
                       fontSize: AppTextSize.bodyMd,
                       fontWeight: FontWeight.w600)),
             ]),
-            SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               value: targetCity,
               decoration: InputDecoration(
@@ -1451,7 +1451,7 @@ class _CityComparisonCard extends StatelessWidget {
                           fontSize: AppTextSize.sm,
                           color: CalcwiseTheme.of(context).textSecondary),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       fr
                           ? 'Vous auriez besoin de ${_fmtCurrency(equivalentGross)}/an brut'
@@ -1465,7 +1465,7 @@ class _CityComparisonCard extends StatelessWidget {
                               ? CalcwiseTheme.of(context).errorRed
                               : AppTheme.success),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(children: [
                       Icon(
                         needsMore ? Icons.trending_up : Icons.trending_down,
@@ -1500,7 +1500,7 @@ class _CityComparisonCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 fr
                     ? "Estimation basée sur les moyennes nationales du coût de la vie. Les taxes locales varient."
@@ -1626,23 +1626,23 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                           fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w600))),
             ]),
-            SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(pctHint,
                 style: TextStyle(
                     fontSize: AppTextSize.xs, color: AppTheme.labelGray)),
-            SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             _BenefitRow(
                 label: insLabel,
                 controller: _insCtrl,
                 amount: _insAmt,
                 onChanged: () => _update(_insCtrl, (v) => _insurancePct = v)),
-            SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             _BenefitRow(
                 label: retLabel,
                 controller: _retCtrl,
                 amount: _retAmt,
                 onChanged: () => _update(_retCtrl, (v) => _retirementPct = v)),
-            SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             _BenefitRow(
                 label: uniLabel,
                 controller: _uniCtrl,
@@ -1664,7 +1664,7 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                             Theme.of(context).brightness)),
               ),
             ]),
-            SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text(fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
                   style: TextStyle(
@@ -2515,7 +2515,7 @@ class _PayRateConverter extends StatelessWidget {
                   ]),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(taxNote,
                 style: TextStyle(
                     fontSize: AppTextSize.xs,
@@ -2642,7 +2642,7 @@ class _CaReverseResultBanner extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primary),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   fr
                       ? 'Pour obtenir un net de $netFmt'
@@ -2708,7 +2708,7 @@ class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
                   color: AppTheme.success),
             ),
           ]),
-          SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'On $sacrificeFmt sacrifice you save:',
             style:

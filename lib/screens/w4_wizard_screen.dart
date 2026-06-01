@@ -306,6 +306,13 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Defensive guard — W-4 is a US-only IRS form. Should not be reachable
+    // on CA/UK flavors but guard here prevents any navigation bypass.
+    if (!FlavorConfig.isUS) {
+      return const Scaffold(
+        body: Center(child: Text('W-4 is only available in the US version.')),
+      );
+    }
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {

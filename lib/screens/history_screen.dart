@@ -253,8 +253,9 @@ class _HistoryCard extends StatelessWidget {
           )
         : const SizedBox.shrink();
 
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.smPlus),
         child: Padding(
@@ -275,9 +276,9 @@ class _HistoryCard extends StatelessWidget {
                 onTap: onDelete,
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.xs),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Icon(Icons.close_rounded,
-                      size: 16, color: AppTheme.labelGray),
+                      size: 20, color: AppTheme.labelGray),
                 ),
               ),
             ]),

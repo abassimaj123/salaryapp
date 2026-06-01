@@ -64,23 +64,6 @@ class ToolsScreen extends StatelessWidget {
                       AppSpacing.lg, AppSpacing.sm, AppSpacing.lg,
                       AppSpacing.lg),
                   children: [
-                    // Section description
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: AppSpacing.md, top: AppSpacing.xs),
-                      child: Text(
-                        t(
-                          'Calculators to plan raises, bonuses, and more.',
-                          'Calculadoras para planear aumentos, bonificaciones y más.',
-                          'Calculateurs pour planifier augmentations, primes et plus.',
-                        ),
-                        style: TextStyle(
-                          fontSize: AppTextSize.sm,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-
                     // ── Raise Calculator ── all flavors ──────────────────────
                     ToolHubCard(
                       icon: Icons.trending_up_rounded,
