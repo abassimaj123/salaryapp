@@ -1763,7 +1763,8 @@ class _TaxPieChartState extends State<_TaxPieChart> {
         _Slice(
             label: widget.ficaLabel,
             value: r.ficaTax,
-            color: cs.error),
+            color: CalcwiseTheme.of(context).warningOrange,
+            borderSide: const BorderSide(color: Colors.white, width: 2)),
       if (!FlavorConfig.isUK && r.stateTax > 0)
         _Slice(
             label: widget.stateLabel,
@@ -1812,9 +1813,11 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
+                  borderSide: s.borderSide,
                 );
               }).toList(),
             ),
+            swapAnimationDuration: const Duration(milliseconds: 350),
           ),
         ),
         SizedBox(width: 12),
@@ -1856,7 +1859,13 @@ class _Slice {
   final String label;
   final double value;
   final Color color;
-  const _Slice({required this.label, required this.value, required this.color});
+  final BorderSide borderSide;
+  const _Slice({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.borderSide = BorderSide.none,
+  });
 }
 
 // ─── PDF Export Button ────────────────────────────────────────────────────────
