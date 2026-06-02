@@ -1153,13 +1153,13 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         SankeyFlow(
                           label: ficaLabel,
                           value: result.ficaTax,
-                          color: Colors.orange,
+                          color: Theme.of(context).colorScheme.tertiary,
                         ),
                       if (!FlavorConfig.isUK && result.stateTax > 0)
                         SankeyFlow(
                           label: stateLabel,
                           value: result.stateTax,
-                          color: Colors.purple,
+                          color: Theme.of(context).colorScheme.secondary,
                         ),
                       if (localTax > 0)
                         SankeyFlow(
@@ -1753,21 +1753,22 @@ class _TaxPieChartState extends State<_TaxPieChart> {
     final r = widget.result;
     final gross = r.grossAnnual;
 
+    final cs = Theme.of(context).colorScheme;
     final sections = <_Slice>[
       _Slice(
           label: widget.federalLabel,
           value: r.federalTax,
-          color: CalcwiseTheme.of(context).errorRed),
+          color: cs.error),
       if (r.ficaTax > 0)
         _Slice(
             label: widget.ficaLabel,
             value: r.ficaTax,
-            color: CalcwiseTheme.of(context).warningOrange),
+            color: cs.error),
       if (!FlavorConfig.isUK && r.stateTax > 0)
         _Slice(
             label: widget.stateLabel,
             value: r.stateTax,
-            color: CalcwiseTheme.of(context).warningOrange),
+            color: cs.tertiary),
       _Slice(label: 'Net pay', value: r.netAnnual, color: AppTheme.success),
     ];
 
@@ -1795,13 +1796,19 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 final s = e.value;
                 final pct = s.value / gross * 100;
                 final isTouched = idx == _touched;
+                final money = NumberFormat.currency(
+                  symbol: FlavorConfig.currencySymbol,
+                  decimalDigits: 0,
+                ).format(s.value);
                 return PieChartSectionData(
                   color: s.color,
                   value: s.value,
-                  title: '${pct.toStringAsFixed(1)}%',
+                  title: isTouched
+                      ? '$money\n${pct.toStringAsFixed(1)}%'
+                      : '${pct.toStringAsFixed(1)}%',
                   radius: isTouched ? 68 : 58,
                   titleStyle: TextStyle(
-                    fontSize: isTouched ? 13 : 11,
+                    fontSize: isTouched ? 12 : 11,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
