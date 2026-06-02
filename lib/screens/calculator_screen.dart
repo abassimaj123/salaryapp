@@ -1791,7 +1791,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
               ),
               borderData: FlBorderData(show: false),
               sectionsSpace: 2,
-              centerSpaceRadius: 36,
+              centerSpaceRadius: CalcwiseChartTokens.donutCenterR,
               sections: sections.asMap().entries.map((e) {
                 final idx = e.key;
                 final s = e.value;
@@ -1807,7 +1807,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                   title: isTouched
                       ? '$money\n${pct.toStringAsFixed(1)}%'
                       : '${pct.toStringAsFixed(1)}%',
-                  radius: isTouched ? 68 : 58,
+                  radius: isTouched ? CalcwiseChartTokens.donutSectionR + 10 : CalcwiseChartTokens.donutSectionR,
                   titleStyle: TextStyle(
                     fontSize: isTouched ? 12 : 11,
                     fontWeight: FontWeight.w700,
@@ -1817,7 +1817,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 );
               }).toList(),
             ),
-            swapAnimationDuration: const Duration(milliseconds: 350),
+            swapAnimationDuration: CalcwiseChartTokens.swapDuration,
           ),
         ),
         SizedBox(width: 12),
