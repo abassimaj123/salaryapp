@@ -12,18 +12,18 @@ import '../widgets/paywall_hard.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show CalcwiseAdFooter, AppSpacing, AppRadius, AppTextSize, CalcwiseSemanticColors;
 
-// ─── 2024 US Federal Tax Brackets (single filer) ─────────────────────────────
+// ─── 2025 US Federal Tax Brackets (single filer) ─────────────────────────────
 
-const _kStandardDeduction = 14600.0;
+const _kStandardDeduction = 15000.0;
 
 const _kBrackets = <_Bracket>[
-  _Bracket(min: 0, max: 11600, rate: 0.10),
-  _Bracket(min: 11600, max: 47150, rate: 0.12),
-  _Bracket(min: 47150, max: 100525, rate: 0.22),
-  _Bracket(min: 100525, max: 191950, rate: 0.24),
-  _Bracket(min: 191950, max: 243725, rate: 0.32),
-  _Bracket(min: 243725, max: 609350, rate: 0.35),
-  _Bracket(min: 609350, max: double.infinity, rate: 0.37),
+  _Bracket(min: 0, max: 11925, rate: 0.10),
+  _Bracket(min: 11925, max: 48475, rate: 0.12),
+  _Bracket(min: 48475, max: 103350, rate: 0.22),
+  _Bracket(min: 103350, max: 197300, rate: 0.24),
+  _Bracket(min: 197300, max: 250525, rate: 0.32),
+  _Bracket(min: 250525, max: 626350, rate: 0.35),
+  _Bracket(min: 626350, max: double.infinity, rate: 0.37),
 ];
 
 /// Top-5 state flat income-tax rates for 2024 (used in premium comparison).
@@ -143,8 +143,8 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
         final fr = FlavorConfig.isCA && useAlt;
 
         final title = fr
-            ? 'Tranches d\'imposition'
-            : (es ? 'Tramos del impuesto' : 'Tax Bracket Breakdown');
+            ? 'Tranches d\'imposition 2025'
+            : (es ? 'Tramos del impuesto 2025' : 'Tax Bracket Breakdown 2025');
         final calcLabel = fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
 
         return Scaffold(
@@ -178,8 +178,8 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                               Expanded(
                                 child: Text(
                                   fr
-                                      ? 'Affichage des tranches fédérales américaines (US IRS 2024)'
-                                      : 'Showing US Federal tax brackets (IRS 2024)',
+                                      ? 'Affichage des tranches fédérales américaines (US IRS 2025)'
+                                      : 'Showing US Federal tax brackets (IRS 2025)',
                                   style: TextStyle(
                                       fontSize: AppTextSize.sm,
                                       color: AppTheme.warning),
@@ -324,7 +324,7 @@ class _TaxBreakdownSection extends StatelessWidget {
             : 'Take-Home (before state/FICA)');
     final bracketsTitle = fr
         ? 'Tranche par tranche'
-        : (es ? 'Tramo por tramo' : '2024 Federal Tax Brackets');
+        : (es ? 'Tramo por tramo' : '2025 Federal Tax Brackets');
     final bracketLabel = fr ? 'Tranche' : (es ? 'Tramo' : 'Bracket');
     final rateLabel = fr ? 'Taux' : (es ? 'Tasa' : 'Rate');
     final inBracketLabel =

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/flavor_config.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier;
 import 'tax_breakdown_screen.dart';
 import 'rrsp_optimizer_screen.dart';
 import 'retirement_optimizer_screen.dart';
@@ -38,7 +38,7 @@ class ReportsScreen extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               PageRouteBuilder(
-                pageBuilder: (_, __, ___) => const TaxBreakdownScreen(),
+                pageBuilder: (_, __, ___) => TaxBreakdownScreen(initialSalary: salaryNotifier.value),
                 transitionsBuilder: (_, anim, __, child) =>
                     FadeTransition(opacity: anim, child: child),
                 transitionDuration: AppDuration.base,

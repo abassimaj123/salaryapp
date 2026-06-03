@@ -408,9 +408,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                         ))
                                     .toList(),
                                 onChanged: (v) {
-                                  if (v != null) setState(() => _province = v);
-                                  analyticsService
-                                      .logProvinceSwitched(v ?? _province);
+                                  if (v == null) return;
+                                  analyticsService.logProvinceSwitched(v);
+                                  setState(() => _province = v);
+                                  _calculate();
                                 },
                               ),
                             ],
@@ -434,32 +435,60 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                     color: AppTheme.labelGray),
                               ),
                               const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: List.generate(
-                                  _brackets.length,
-                                  (i) {
-                                    final isSelected = i == _targetBracketIndex;
-                                    return ChoiceChip(
-                                      label: Text(_brackets[i].label),
-                                      selected: isSelected,
-                                      selectedColor: AppTheme.primary,
-                                      labelStyle: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppTheme.labelGray,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                        fontSize: AppTextSize.md,
-                                      ),
-                                      onSelected: (_) => setState(
-                                          () => _targetBracketIndex = i),
-                                    );
-                                  },
-                                ),
-                              ),
+                              Builder(builder: (context) {
+                                final gross = _parse(_grossCtrl);
+                                final taxable = (gross - _RrspEngine._bpa2025)
+                                    .clamp(0.0, double.infinity);
+                                // Index of the bracket the user is currently in
+                                int currentBracket = 0;
+                                for (int k = 0; k < _brackets.length; k++) {
+                                  if (taxable > _brackets[k].taxableMax) {
+                                    currentBracket = k + 1;
+                                  }
+                                }
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: List.generate(
+                                    _brackets.length,
+                                    (i) {
+                                      final isSelected =
+                                          i == _targetBracketIndex;
+                                      // Only grey out brackets at/above current
+                                      // when there IS a lower bracket to target.
+                                      // If already in 15% (currentBracket==0),
+                                      // don't disable anything — all will show $0
+                                      // with the "already in bracket" message.
+                                      final isDisabled =
+                                          currentBracket > 0 && i >= currentBracket;
+                                      return ChoiceChip(
+                                        label: Text(_brackets[i].label),
+                                        selected: isSelected,
+                                        selectedColor: AppTheme.primary,
+                                        disabledColor: Colors.grey.shade200,
+                                        labelStyle: TextStyle(
+                                          color: isDisabled
+                                              ? Colors.grey.shade400
+                                              : isSelected
+                                                  ? Colors.white
+                                                  : AppTheme.labelGray,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          fontSize: AppTextSize.md,
+                                        ),
+                                        onSelected: isDisabled
+                                            ? null
+                                            : (_) {
+                                                setState(() =>
+                                                    _targetBracketIndex = i);
+                                                _calculate();
+                                              },
+                                      );
+                                    },
+                                  ),
+                                );
+                              }),
                             ],
                           ),
                         ),

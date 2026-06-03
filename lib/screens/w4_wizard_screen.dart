@@ -16,7 +16,7 @@ import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── W-4 Withholding Wizard (US flavor only) ──────────────────────────────────
 //
-// Multi-step wizard implementing IRS 2024 Publication 15-T / W-4 worksheet:
+// Multi-step wizard implementing IRS 2025 Publication 15-T / W-4 worksheet:
 //   Step 1 → Filing status & multiple-jobs income
 //   Step 2 → Dependents, other deductions, extra withholding
 //   Step 3 → Results with recommended W-4 amounts + refund estimate
@@ -54,71 +54,71 @@ class _W4Result {
   });
 }
 
-// ─── IRS 2024 W-4 worksheet logic ─────────────────────────────────────────────
+// ─── IRS 2025 W-4 worksheet logic ─────────────────────────────────────────────
 
 class _W4Engine {
   _W4Engine._();
 
-  /// 2024 standard deductions
+  /// 2025 standard deductions
   static double standardDeduction(_FilingStatus status) {
     switch (status) {
       case _FilingStatus.single:
-        return 14600;
+        return 15000;
       case _FilingStatus.marriedJointly:
-        return 29200;
+        return 30000;
       case _FilingStatus.headOfHousehold:
-        return 21900;
+        return 22500;
     }
   }
 
-  /// 2024 federal tax using the correct brackets for each filing status.
+  /// 2025 federal tax using the correct brackets for each filing status.
   /// [taxableIncome] is income AFTER subtracting the standard deduction.
   static double federalTaxForStatus(
       double taxableIncome, _FilingStatus status) {
     if (taxableIncome <= 0) return 0;
     switch (status) {
       case _FilingStatus.single:
-        // 2024 single brackets applied to taxable income
-        if (taxableIncome <= 11600) return taxableIncome * 0.10;
-        if (taxableIncome <= 47150)
-          return 1160 + (taxableIncome - 11600) * 0.12;
-        if (taxableIncome <= 100525)
-          return 5426 + (taxableIncome - 47150) * 0.22;
-        if (taxableIncome <= 191950)
-          return 17168.5 + (taxableIncome - 100525) * 0.24;
-        if (taxableIncome <= 243725)
-          return 39110.5 + (taxableIncome - 191950) * 0.32;
-        if (taxableIncome <= 609350)
-          return 55678.5 + (taxableIncome - 243725) * 0.35;
-        return 183647.25 + (taxableIncome - 609350) * 0.37;
+        // 2025 single brackets applied to taxable income
+        if (taxableIncome <= 11925) return taxableIncome * 0.10;
+        if (taxableIncome <= 48475)
+          return 1192.5 + (taxableIncome - 11925) * 0.12;
+        if (taxableIncome <= 103350)
+          return 5578.5 + (taxableIncome - 48475) * 0.22;
+        if (taxableIncome <= 197300)
+          return 17651 + (taxableIncome - 103350) * 0.24;
+        if (taxableIncome <= 250525)
+          return 40199 + (taxableIncome - 197300) * 0.32;
+        if (taxableIncome <= 626350)
+          return 57231 + (taxableIncome - 250525) * 0.35;
+        return 188769.75 + (taxableIncome - 626350) * 0.37;
       case _FilingStatus.marriedJointly:
-        // MFJ 2024 brackets (taxable income after $29,200 standard deduction)
-        if (taxableIncome <= 23200) return taxableIncome * 0.10;
-        if (taxableIncome <= 94300)
-          return 2320 + (taxableIncome - 23200) * 0.12;
-        if (taxableIncome <= 201050)
-          return 10852 + (taxableIncome - 94300) * 0.22;
-        if (taxableIncome <= 383900)
-          return 34337 + (taxableIncome - 201050) * 0.24;
-        if (taxableIncome <= 487450)
-          return 78221 + (taxableIncome - 383900) * 0.32;
-        if (taxableIncome <= 731200)
-          return 111357 + (taxableIncome - 487450) * 0.35;
-        return 196669.5 + (taxableIncome - 731200) * 0.37;
+        // MFJ 2025 brackets (taxable income after $30,000 standard deduction)
+        if (taxableIncome <= 23850) return taxableIncome * 0.10;
+        if (taxableIncome <= 96950)
+          return 2385 + (taxableIncome - 23850) * 0.12;
+        if (taxableIncome <= 206700)
+          return 11157 + (taxableIncome - 96950) * 0.22;
+        if (taxableIncome <= 394600)
+          return 35302 + (taxableIncome - 206700) * 0.24;
+        if (taxableIncome <= 501050)
+          return 80398 + (taxableIncome - 394600) * 0.32;
+        if (taxableIncome <= 751600)
+          return 114462 + (taxableIncome - 501050) * 0.35;
+        return 202154.5 + (taxableIncome - 751600) * 0.37;
       case _FilingStatus.headOfHousehold:
-        // HoH 2024 brackets (taxable income after $21,900 standard deduction)
-        if (taxableIncome <= 16550) return taxableIncome * 0.10;
-        if (taxableIncome <= 63100)
-          return 1655 + (taxableIncome - 16550) * 0.12;
-        if (taxableIncome <= 100500)
-          return 7241 + (taxableIncome - 63100) * 0.22;
-        if (taxableIncome <= 191950)
-          return 15473 + (taxableIncome - 100500) * 0.24;
-        if (taxableIncome <= 243700)
-          return 37415 + (taxableIncome - 191950) * 0.32;
-        if (taxableIncome <= 609350)
-          return 53977 + (taxableIncome - 243700) * 0.35;
-        return 181954.5 + (taxableIncome - 609350) * 0.37;
+        // HoH 2025 brackets (taxable income after $22,500 standard deduction)
+        if (taxableIncome <= 17000) return taxableIncome * 0.10;
+        if (taxableIncome <= 64850)
+          return 1700 + (taxableIncome - 17000) * 0.12;
+        if (taxableIncome <= 103350)
+          return 7442 + (taxableIncome - 64850) * 0.22;
+        if (taxableIncome <= 197300)
+          return 15912 + (taxableIncome - 103350) * 0.24;
+        if (taxableIncome <= 250500)
+          return 38460 + (taxableIncome - 197300) * 0.32;
+        if (taxableIncome <= 626350)
+          return 55484 + (taxableIncome - 250500) * 0.35;
+        return 187031.5 + (taxableIncome - 626350) * 0.37;
     }
   }
 
@@ -318,7 +318,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       builder: (context, useAlt, _) {
         final es = FlavorConfig.isUS && useAlt;
 
-        final title = es ? 'Asistente W-4' : 'W-4 Withholding Wizard';
+        final title = es ? 'Asistente W-4 2025' : 'W-4 Withholding Wizard 2025';
         final stepLabels = es
             ? ['Estado', 'Deducciones', 'Resultados']
             : ['Filing Status', 'Deductions', 'Results'];
@@ -984,7 +984,7 @@ class _Step3Results extends StatelessWidget {
     final r = result!;
     final isRefund = r.refundOrOwed >= 0;
 
-    final title = es ? 'Recomendaciones W-4 2024' : 'W-4 Recommendations 2024';
+    final title = es ? 'Recomendaciones W-4 2025' : 'W-4 Recommendations 2025';
     final step3Label = es
         ? 'Paso 3 — Créditos por dependientes'
         : 'Step 3 — Dependent Credits';
@@ -1011,8 +1011,8 @@ class _Step3Results extends StatelessWidget {
     final restartLabel = es ? 'Reiniciar' : 'Start Over';
     final shareLabel = es ? 'Compartir / Guardar' : 'Share / Save';
     final irsNote = es
-        ? '* Basado en el formulario W-4 del IRS 2024. Actualice su W-4 con su empleador con estos valores.'
-        : '* Based on IRS 2024 W-4 worksheet. Submit an updated W-4 to your employer with these values.';
+        ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador con estos valores.'
+        : '* Based on IRS 2025 W-4 worksheet. Submit an updated W-4 to your employer with these values.';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1042,7 +1042,7 @@ class _Step3Results extends StatelessWidget {
                           color: AppTheme.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        es ? 'Resumen W-4 2024' : 'W-4 2024 Summary',
+                        es ? 'Resumen W-4 2025' : 'W-4 2025 Summary',
                         style: TextStyle(
                             fontSize: AppTextSize.bodyMd,
                             fontWeight: FontWeight.w700,
@@ -1209,7 +1209,7 @@ class _Step3Results extends StatelessWidget {
       build: (ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('W-4 Withholding Wizard — 2024',
+          pw.Text('W-4 Withholding Wizard — 2025',
               style: pw.TextStyle(
                   fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
@@ -1239,7 +1239,7 @@ class _Step3Results extends StatelessWidget {
               '\$${r.refundOrOwed.abs().toStringAsFixed(2)}'),
           pw.SizedBox(height: 20),
           pw.Text(
-              '* Estimates based on IRS 2024 W-4 worksheet. '
+              '* Estimates based on IRS 2025 W-4 worksheet. '
               'Submit updated W-4 to your employer.',
               style: const pw.TextStyle(fontSize: 9)),
         ],

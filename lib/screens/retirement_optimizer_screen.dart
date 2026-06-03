@@ -152,7 +152,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
     final salary = salaryNotifier.value;
     _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calculate();
+      if (!mounted) return;
+      if (freemiumService.hasFullAccess) _calculate();
     });
   }
 
@@ -203,7 +204,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
       priceLabel: IAPService.instance.localizedPrice.value,
       onUnlock: () => IAPService.instance.buy(),
     );
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      if (freemiumService.hasFullAccess && !_hasCalculated) _calculate();
+    }
   }
 
   String _fmt(double v) =>
@@ -238,9 +242,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
         final stateLabel = es ? 'Estado' : 'State';
         final calcLabel = es ? 'Calcular' : 'Calculate';
 
-        // Soft gate: session >= 4 and not premium
-        final shouldGate =
-            !freemiumService.hasFullAccess && paywallSession.sessionCount >= 4;
+        // Hard gate: immediately for non-premium users
+        final shouldGate = !freemiumService.hasFullAccess;
 
         return Scaffold(
           appBar: AppBar(
