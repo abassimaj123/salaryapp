@@ -27,7 +27,6 @@ import '../widgets/paywall_hard.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../widgets/premium_cta_widget.dart';
 import '../widgets/result_card.dart';
 import '../widgets/insight_card.dart';
 import '../core/insight_engine.dart';
@@ -1293,12 +1292,14 @@ class _ResultsSectionState extends State<_ResultsSection> {
           valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (_, isPremium, __) => isPremium
               ? const SizedBox.shrink()
-              : PremiumCtaWidget(
+              : CalcwisePremiumCta(
                   feature: fr
                       ? 'Historique illimité & PDF'
                       : (es
                           ? 'Historial ilimitado y PDF'
                           : 'Unlimited History & PDF'),
+                  onTap: () => IAPService.instance.buy(),
+                  price: IAPService.instance.localizedPrice,
                 ),
         ),
 

@@ -6,11 +6,11 @@ import '../core/flavor_config.dart';
 import '../core/db/database_service.dart';
 import 'history_detail_screen.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../widgets/premium_cta_widget.dart';
 import '../main.dart' show isSpanishNotifier;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
@@ -194,10 +194,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             if (showCta) ...[
               SizedBox(height: AppSpacing.sm),
-              PremiumCtaWidget(
+              CalcwisePremiumCta(
                 feature: fr
                     ? 'Historique illimité'
                     : (es ? 'Historial ilimitado' : 'Unlimited History'),
+                onTap: () => IAPService.instance.buy(),
+                price: IAPService.instance.localizedPrice,
                 compact: true,
               ),
             ],

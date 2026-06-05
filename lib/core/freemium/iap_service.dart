@@ -15,12 +15,13 @@ class IAPService {
   // one-time product in Play Console before releasing the UK flavor.
   static const _lifetimeProductIdUK = 'premium_lifetime_uk';
 
-  late final CalcwiseIAP _iap;
+  CalcwiseIAP? _iap;
+  final _fallbackPrice = ValueNotifier<String?>(null);
 
   /// Lifetime IAP — UK flavor only. Null on CA/US.
   CalcwiseIAP? _iapLifetime;
 
-  ValueNotifier<String?> get localizedPrice => _iap.localizedPrice;
+  ValueNotifier<String?> get localizedPrice => _iap?.localizedPrice ?? _fallbackPrice;
 
   /// Localized lifetime price — null until store responds or on non-UK flavors.
   ValueNotifier<String?> get localizedLifetimePrice =>
@@ -33,8 +34,8 @@ class IAPService {
       analytics: CalcwiseAnalytics(appName: 'salaryapp'),
       onPurchaseCompleted: () => CalcwiseReviewService.instance.requestReview(),
     );
-    await _iap.initialize();
-    PaywallHard.registerPrice(_iap.localizedPrice);
+    await _iap!.initialize();
+    PaywallHard.registerPrice(_iap!.localizedPrice);
 
     // Initialize lifetime IAP only for the UK flavor.
     if (FlavorConfig.isUK) {
@@ -49,19 +50,19 @@ class IAPService {
     }
   }
 
-  Future<void> buy() => _iap.buy();
+  Future<void> buy() async => _iap?.buy();
 
   /// Purchase the Lifetime tier (UK only).
   /// Falls back to the standard product if lifetime IAP is not available.
-  Future<void> buyLifetime() => _iapLifetime?.buy() ?? _iap.buy();
+  Future<void> buyLifetime() async => await (_iapLifetime?.buy() ?? _iap?.buy());
 
   Future<void> restore() async {
-    await _iap.restore();
+    await _iap?.restore();
     await _iapLifetime?.restore();
   }
 
   void dispose() {
-    _iap.dispose();
+    _iap?.dispose();
     _iapLifetime?.dispose();
   }
 }
