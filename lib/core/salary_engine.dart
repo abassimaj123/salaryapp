@@ -240,9 +240,9 @@ class UsSalaryEngine {
       case 'OH':
         return grossAnnual * 0.04;
       case 'GA':
-        return grossAnnual * 0.055;
+        return grossAnnual * 0.0539; // 5.39% flat (2025)
       case 'NC':
-        return grossAnnual * 0.0475;
+        return grossAnnual * 0.0425; // 4.25% flat (2025)
       case 'VA':
         return grossAnnual * 0.0575;
       case 'MA':
@@ -272,7 +272,7 @@ class UsSalaryEngine {
       case 'MS':
         return grossAnnual * 0.05;
       case 'ID':
-        return grossAnnual * 0.058;
+        return grossAnnual * 0.05695; // 5.695% flat (2024+)
       case 'NM':
         return grossAnnual * 0.059;
       case 'MT':
@@ -302,7 +302,7 @@ class UsSalaryEngine {
       case 'NE':
         return grossAnnual * 0.0664;
       case 'IA':
-        return grossAnnual * 0.06;
+        return grossAnnual * 0.038; // 3.8% flat (depuis jan. 2025)
       case 'OK':
         return grossAnnual * 0.0475;
       default:
