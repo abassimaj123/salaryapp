@@ -304,9 +304,9 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
         : 'Export once — free';
     final premiumLabel = isAlt
         ? (isFr
-            ? 'Premium — \$3.99 (illimité)'
-            : 'Premium — \$3.99 (ilimitado)')
-        : 'Premium — \$3.99 (unlimited)';
+            ? 'Premium (illimité)'
+            : 'Premium (ilimitado)')
+        : 'Premium (unlimited)';
     final notNowLabel = isAlt ? (isFr ? 'Plus tard' : 'Ahora no') : 'Not now';
     return Padding(
       padding: EdgeInsets.only(
