@@ -58,30 +58,9 @@ class ToolHubCard extends StatelessWidget {
               ),
             ),
             if (isPremium)
-              Container(
-                margin: const EdgeInsets.only(left: AppSpacing.xs),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.smPlus, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star_rounded, size: 10, color: cs.primary),
-                    const SizedBox(width: 3),
-                    Text(
-                      'PRO',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: cs.primary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.xs),
+                child: Icon(Icons.lock_outline, size: 14, color: cs.primary),
               ),
           ],
         ),
