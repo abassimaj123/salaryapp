@@ -15,14 +15,13 @@ import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/local_taxes.dart';
-import '../core/db/database_service.dart';
 import '../widgets/sankey_chart.dart';
-import '../main.dart' show adService;
+import '../widgets/save_scenario_button.dart';
+import '../main.dart' show adService, historyService;
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../main.dart' show paywallSession;
 import '../core/theme/app_theme.dart';
-import '../widgets/paywall_soft.dart';
 import '../widgets/paywall_hard.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
@@ -91,8 +90,8 @@ final _currencyFmt0 = NumberFormat.currency(
   symbol: FlavorConfig.currencySymbol,
   decimalDigits: 0,
 );
-// Dollar-sign only, no locale prefix — used by COL comparison
-final _dollarFmt0 = NumberFormat.currency(symbol: '\$', decimalDigits: 0);
+// Flavor-aware currency formatter — used by COL comparison
+final _dollarFmt0 = NumberFormat.currency(symbol: FlavorConfig.currencySymbol, decimalDigits: 0);
 
 // RegExp used in _calculate() — allocated once instead of on every call
 final _nonDigitDot = RegExp(r'[^\d.]');
@@ -183,26 +182,101 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     await prefs.setString(_kProvinceKey, province);
   }
 
-  /// Schedule calc (via mixin) + auto-save 2 s after last change.
+  /// Schedule calc (via mixin) + SmartHistory auto-save (debounced internally).
   /// Called from user interactions (listener, chips, toggles) — never from initState.
   void _scheduleCalcAndSave() {
     scheduleCalc(_calculate);
-    // Save 2 s after last change — one history entry per pause, not per keystroke
+    // SmartHistory debounces the auto-save itself (ring buffer). We just need
+    // the latest result available — _calculate() runs synchronously above so
+    // schedule the auto-save after a short delay using the freshest _result.
     _saveDebounce?.cancel();
-    _saveDebounce = Timer(const Duration(milliseconds: 2000), () {
-      if (mounted && _result != null) _saveToHistory(_result!);
+    _saveDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted && _result != null) _scheduleAutoSave(_result!);
     });
   }
 
   @override
   void dispose() {
     _saveDebounce?.cancel();
+    historyService.cancelPendingSave('salaryapp', 'calculator');
     _salaryCtrl.removeListener(() => _scheduleCalcAndSave());
     _salaryCtrl.dispose();
     _salarySacrificeCtrl.dispose();
     _secondIncomeCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory: hash + payload builders ──────────────────────────────────
+
+  String get _region =>
+      FlavorConfig.isUS ? _usState : (FlavorConfig.isCA ? _caProvince : '');
+
+  /// Deterministic hash of the key scenario inputs (rounded).
+  String _scenarioHash(SalaryResult res) {
+    final inputs = <String, dynamic>{
+      'flavor': FlavorConfig.flavor,
+      'region': _region,
+      'gross': ResultHasher.roundTo(res.grossAnnual, 100),
+    };
+    if (FlavorConfig.isUS && _usCity != null) inputs['city'] = _usCity;
+    if (FlavorConfig.isUK) {
+      inputs['scotland'] = ukScotlandNotifier.value;
+      inputs['sl'] = ukStudentLoanNotifier.value ? _ukLoanPlan : 0;
+      inputs['pg'] = _ukPostgrad;
+      inputs['ae'] = _ukAutoEnrolment;
+      inputs['sacrifice'] = ResultHasher.roundTo(_salarySacrifice, 100);
+    }
+    if (FlavorConfig.isCA) inputs['reverse'] = _caReverseMode;
+    if (_addSecondIncome) {
+      inputs['second'] = ResultHasher.roundTo(_secondIncome, 100);
+    }
+    return ResultHasher.hashMixed(inputs);
+  }
+
+  Map<String, dynamic> _buildL1(SalaryResult res) => {
+        'gross': res.grossAnnual,
+        'net': res.netAnnual,
+        'region': _region,
+      };
+
+  Map<String, dynamic> _buildL2(SalaryResult res) => {
+        'flavor': FlavorConfig.flavor,
+        'region': _region,
+        ...res.toMap(),
+      };
+
+  /// Debounced ring-buffer auto-save via SmartHistoryService.
+  void _scheduleAutoSave(SalaryResult res) {
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'calculator',
+      inputHash: _scenarioHash(res),
+      l1: _buildL1(res),
+      l2: _buildL2(res),
+    );
+    adService.onSave();
+    try {
+      analyticsService.logSave();
+      analyticsService.logResultSaved();
+    } catch (_) {}
+  }
+
+  /// Pin the current scenario (Save Scenario button).
+  Future<void> _saveScenario(String? label) async {
+    final res = _result;
+    if (res == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'calculator',
+      inputHash: _scenarioHash(res),
+      l1: _buildL1(res),
+      l2: _buildL2(res),
+      label: label,
+    );
+    try {
+      analyticsService.logResultSaved();
+    } catch (_) {}
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
@@ -286,53 +360,6 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.
-  }
-
-  Future<void> _saveToHistory(SalaryResult res) async {
-    // Premium / rewarded users: unlimited saves — skip count check.
-    if (!freemiumService.hasFullAccess) {
-      final currentCount = await DatabaseService.instance.count();
-      if (currentCount >= freemiumService.historyLimit) {
-        // Auto-save blocked at free limit — show soft paywall.
-        if (mounted) {
-          final es = FlavorConfig.isUS && isSpanishNotifier.value;
-          final fr = FlavorConfig.isCA && isSpanishNotifier.value;
-          await PaywallSoft.show(
-            context,
-            isSpanish: es,
-            isFrench: fr,
-            featureTitle: fr
-                ? 'Historique illimité'
-                : (es ? 'Historial ilimitado' : 'Unlimited History'),
-            featureSubtitle: fr
-                ? 'Sauvegardez tous vos calculs sans limite'
-                : (es
-                    ? 'Guarda todos tus cálculos sin límite'
-                    : 'Save all your calculations without limit'),
-            priceLabel: IAPService.instance.localizedPrice.value,
-            onUnlock: () => IAPService.instance.buy(),
-          );
-        }
-        return;
-      }
-    }
-    final region =
-        FlavorConfig.isUS ? _usState : (FlavorConfig.isCA ? _caProvince : '');
-    try {
-      await DatabaseService.instance.insert(HistoryEntry(
-        flavor: FlavorConfig.flavor,
-        region: region,
-        timestamp: DateTime.now(),
-        result: res,
-      ));
-    } catch (_) {}
-    try {
-      analyticsService.logSave();
-    } catch (_) {}
-    try {
-      analyticsService.logResultSaved();
-    } catch (_) {}
-    adService.onSave();
   }
 
   void _reset() {
@@ -672,6 +699,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                             caReverseMode: _caReverseMode,
                                             caRequiredGross: _caRequiredGross,
                                             ukSalarySacrifice: _salarySacrifice,
+                                            onSaveScenario: _saveScenario,
                                           ),
                                         ),
                                       )
@@ -939,7 +967,7 @@ class _CityDropdown extends StatelessWidget {
 
 // ─── COL dataset ─────────────────────────────────────────────────────────────
 
-const Map<String, double> _colIndex = {
+const Map<String, double> _colIndexUS = {
   'New York, NY': 1.87,
   'San Francisco, CA': 1.79,
   'Los Angeles, CA': 1.53,
@@ -955,11 +983,19 @@ const Map<String, double> _colIndex = {
   'Nashville, TN': 0.96,
   'Columbus, OH': 0.90,
   'Detroit, MI': 0.85,
-  'Toronto, ON': 1.25,
-  'Vancouver, BC': 1.35,
-  'Calgary, AB': 1.08,
-  'Montreal, QC': 1.05,
-  'Ottawa, ON': 1.00,
+};
+
+const Map<String, double> _colIndexCA = {
+  'Toronto, ON': 1.35,
+  'Vancouver, BC': 1.32,
+  'Calgary, AB': 1.10,
+  'Ottawa, ON': 1.05,
+  'Montreal, QC': 1.03,
+  'Edmonton, AB': 1.00,
+  'Winnipeg, MB': 0.95,
+  'Halifax, NS': 0.93,
+  'Victoria, BC': 1.20,
+  'Quebec City, QC': 0.98,
 };
 
 // ─── Results section ──────────────────────────────────────────────────────────
@@ -973,6 +1009,7 @@ class _ResultsSection extends StatefulWidget {
   final bool caReverseMode;
   final double? caRequiredGross;
   final double ukSalarySacrifice;
+  final Future<void> Function(String? label) onSaveScenario;
 
   const _ResultsSection({
     required this.result,
@@ -982,6 +1019,7 @@ class _ResultsSection extends StatefulWidget {
     required this.useAlt,
     required this.es,
     required this.fr,
+    required this.onSaveScenario,
     this.caReverseMode = false,
     this.caRequiredGross,
     this.ukSalarySacrifice = 0,
@@ -1141,6 +1179,9 @@ class _ResultsSectionState extends State<_ResultsSection> {
                   child: SankeyChart(
                     gross: result.grossAnnual,
                     currencySymbol: FlavorConfig.currencySymbol,
+                    grossLabel: fr
+                        ? 'Brut'
+                        : (es ? 'Bruto' : 'Gross'),
                     outflows: [
                       if (result.federalTax > 0)
                         SankeyFlow(
@@ -1248,13 +1289,14 @@ class _ResultsSectionState extends State<_ResultsSection> {
         SizedBox(height: AppSpacing.md),
 
         // ── City-to-City COL Comparison ──────────────────────────────────
-        _CityComparisonCard(
-          result: result,
-          es: es,
-          fr: fr,
-          targetCity: _targetCity,
-          onCityChanged: (city) => setState(() => _targetCity = city),
-        ),
+        if (!FlavorConfig.isUK)
+          _CityComparisonCard(
+            result: result,
+            es: es,
+            fr: fr,
+            targetCity: _targetCity,
+            onCityChanged: (city) => setState(() => _targetCity = city),
+          ),
 
         SizedBox(height: AppSpacing.md),
 
@@ -1287,23 +1329,33 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         SizedBox(height: AppSpacing.md),
 
-        // Premium CTA if user is free
+        // Premium gate if user is free
         ValueListenableBuilder<bool>(
           valueListenable: freemiumService.hasFullAccessNotifier,
           builder: (_, isPremium, __) => isPremium
               ? const SizedBox.shrink()
-              : CalcwisePremiumCta(
-                  feature: fr
+              : CalcwisePremiumGate(
+                  title: fr
                       ? 'Historique illimité & PDF'
                       : (es
                           ? 'Historial ilimitado y PDF'
                           : 'Unlimited History & PDF'),
-                  onTap: () => IAPService.instance.buy(),
+                  description: fr
+                      ? 'Sauvegardez vos calculs et exportez en PDF.'
+                      : (es
+                          ? 'Guarda tus cálculos y exporta en PDF.'
+                          : 'Save your calculations and export to PDF.'),
+                  onUnlock: () => IAPService.instance.buy(),
                   price: IAPService.instance.localizedPrice,
                 ),
         ),
 
         const SizedBox(height: AppSpacing.md),
+
+        // Save Scenario (pin) — language-aware per flavor.
+        SaveScenarioButton(onSave: widget.onSaveScenario),
+
+        const SizedBox(height: AppSpacing.sm),
 
         // PDF export button
         _PdfExportButton(result: result, fr: fr, es: es),
@@ -1354,6 +1406,9 @@ class _CityComparisonCard extends StatelessWidget {
 
   String _fmtCurrency(double v) => _dollarFmt0.format(v);
 
+  Map<String, double> get _cityIndex =>
+      FlavorConfig.isCA ? _colIndexCA : _colIndexUS;
+
   @override
   Widget build(BuildContext context) {
     final title = fr
@@ -1371,8 +1426,8 @@ class _CityComparisonCard extends StatelessWidget {
     double? pctDiff;
     bool needsMore = false;
 
-    if (targetCity != null && _colIndex[targetCity] != null) {
-      final targetCOL = _colIndex[targetCity]!;
+    if (targetCity != null && _cityIndex[targetCity] != null) {
+      final targetCOL = _cityIndex[targetCity]!;
       // equivalentSalary (net purchasing power equivalent) based on net pay
       final equivalentNet = result.netAnnual * targetCOL / currentCOL;
       // Scale back to gross using same effective rate
@@ -1411,14 +1466,14 @@ class _CityComparisonCard extends StatelessWidget {
                 labelText: hintLabel,
                 prefixIcon: Icon(Icons.location_city_rounded),
               ),
-              items: _colIndex.keys
+              items: _cityIndex.keys
                   .map((city) =>
                       DropdownMenuItem(value: city, child: Text(city)))
                   .toList(),
               onChanged: onCityChanged,
             ),
             if (targetCity != null &&
-                _colIndex[targetCity] != null &&
+                _cityIndex[targetCity] != null &&
                 equivalentGross != null) ...[
               SizedBox(height: AppSpacing.md),
               // Result pill
@@ -1807,7 +1862,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                   value: s.value,
                   title: isTouched
                       ? '$money\n${pct.toStringAsFixed(1)}%'
-                      : '${pct.toStringAsFixed(1)}%',
+                      : (pct < 5.0 ? '' : '${pct.toStringAsFixed(1)}%'),
                   radius: isTouched ? CalcwiseChartTokens.donutSectionR + 10 : CalcwiseChartTokens.donutSectionR,
                   titleStyle: TextStyle(
                     fontSize: isTouched ? 12 : 11,

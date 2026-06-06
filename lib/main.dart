@@ -19,7 +19,9 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppDuration,
         iapErrorNotifier,
         showIapErrorSnackBar,
-        showPremiumWelcomeSnackBar;
+        showPremiumWelcomeSnackBar,
+        SmartHistoryService;
+import 'core/db/salary_database_adapter.dart';
 import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/firebase/firebase_options.dart';
@@ -43,6 +45,13 @@ import 'screens/settings_screen.dart';
 final paywallSession = PaywallSessionService(
   appKey: 'salaryapp',
   hasFullAccess: () => freemiumService.hasFullAccess,
+);
+
+/// SmartHistory ring-buffer + Save Scenario service.
+/// Free: 5 auto-saves (FIFO) + 3 pinned | Premium: 20 auto-saves + unlimited pinned.
+final historyService = SmartHistoryService(
+  db: SalaryDatabaseAdapter(),
+  freemium: freemiumService,
 );
 
 final adService = CalcwiseAdService(

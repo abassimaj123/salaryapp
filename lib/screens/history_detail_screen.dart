@@ -12,7 +12,7 @@ import '../core/services/pdf_export_service.dart' show PdfExportService;
 import '../core/theme/app_theme.dart';
 import '../main.dart' show isSpanishNotifier;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
 
 class HistoryDetailScreen extends StatelessWidget {
   final HistoryEntry entry;

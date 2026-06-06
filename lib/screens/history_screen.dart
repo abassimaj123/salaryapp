@@ -11,9 +11,9 @@ import '../core/theme/app_theme.dart';
 import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, historyService;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
-import 'package:calcwise_core/calcwise_core.dart';
+import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -22,7 +22,8 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<HistoryEntry> _entries = [];
+  List<HistoryEntry> _pinned = [];
+  List<HistoryEntry> _recent = [];
   bool _loading = true;
 
   @override
@@ -35,16 +36,57 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final data = await DatabaseService.instance.getAll();
-    if (mounted)
-      setState(() {
-        _entries = data;
-        _loading = false;
-      });
+    if (!mounted) return;
+    setState(() {
+      _pinned = data.where((e) => e.isPinned).toList();
+      _recent = data.where((e) => !e.isPinned).toList();
+      _loading = false;
+    });
   }
 
   Future<void> _delete(int id) async {
-    await DatabaseService.instance.delete(id);
+    await historyService.delete(id);
     _load();
+  }
+
+  Future<void> _unpin(int id) async {
+    await historyService.unpin(id);
+    _load();
+  }
+
+  Future<void> _rename(HistoryEntry e, bool fr, bool es) async {
+    final controller = TextEditingController(text: e.pinLabel ?? '');
+    final title = fr
+        ? 'Renommer le scénario'
+        : (es ? 'Renombrar escenario' : 'Rename Scenario');
+    final hint =
+        fr ? 'Nom du scénario' : (es ? 'Nombre del escenario' : 'Scenario name');
+    final cancel = fr ? 'Annuler' : (es ? 'Cancelar' : 'Cancel');
+    final save = fr ? 'Enregistrer' : (es ? 'Guardar' : 'Save');
+    final newLabel = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(hintText: hint),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: Text(cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(save)),
+        ],
+      ),
+    );
+    if (newLabel != null && newLabel.trim().isNotEmpty && e.id != null) {
+      await historyService.rename(e.id!, newLabel.trim());
+      _load();
+    }
   }
 
   Future<void> _confirmClearAll(bool fr, bool es) async {
@@ -99,11 +141,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? AppStringsFR.historyLimit
             : (es ? AppStringsES.historyLimit : AppStringsEN.historyLimit);
 
+        final hasEntries = _pinned.isNotEmpty || _recent.isNotEmpty;
+
         return Scaffold(
           appBar: AppBar(
             title: Text(title),
             actions: [
-              if (_entries.isNotEmpty)
+              if (hasEntries)
                 IconButton(
                   icon: Icon(Icons.delete_sweep_rounded),
                   tooltip:
@@ -132,7 +176,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return const _HistorySkeleton();
     }
 
-    if (_entries.isEmpty) {
+    if (_pinned.isEmpty && _recent.isEmpty) {
       return CalcwiseEmptyState(
         icon: Icons.history_edu_rounded,
         title: fr
@@ -147,7 +191,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return ValueListenableBuilder<bool>(
       valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (_, isPremium, __) {
-        final showCta = !isPremium;
+        // Free users only ever see up to freeRingBufferSize recent calculations.
+        final recentVisible = isPremium
+            ? _recent
+            : _recent.take(MonetizationConfig.freeRingBufferSize).toList();
+
+        final savedHeader = fr
+            ? 'Scénarios enregistrés'
+            : (es ? 'Escenarios guardados' : 'Saved Scenarios');
+        final recentHeader = fr
+            ? 'Calculs récents'
+            : (es ? 'Cálculos recientes' : 'Recent Calculations');
+
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
@@ -175,32 +230,53 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               SizedBox(height: AppSpacing.md),
             ],
-            ..._entries.map(
-              (e) => _HistoryCard(
-                entry: e,
-                fr: fr,
-                es: es,
-                onDelete: () => _delete(e.id!),
-                onTap: () => Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) =>
-                          HistoryDetailScreen(entry: e),
-                      transitionsBuilder: (_, anim, __, child) =>
-                          FadeTransition(opacity: anim, child: child),
-                      transitionDuration: AppDuration.base,
-                    )),
-              ),
-            ),
-            if (showCta) ...[
+
+            // ── Saved Scenarios (pinned) ────────────────────────────────────
+            if (_pinned.isNotEmpty) ...[
+              _SectionHeader(label: savedHeader, icon: Icons.bookmark_rounded),
               SizedBox(height: AppSpacing.sm),
-              CalcwisePremiumCta(
-                feature: fr
+              ..._pinned.map((e) => _HistoryCard(
+                    entry: e,
+                    fr: fr,
+                    es: es,
+                    isPremium: isPremium,
+                    onDelete: () => _delete(e.id!),
+                    onUnpin: () => _unpin(e.id!),
+                    onRename: () => _rename(e, fr, es),
+                    onTap: () => _openDetail(e),
+                  )),
+              SizedBox(height: AppSpacing.md),
+            ],
+
+            // ── Recent Calculations (auto-saved) ────────────────────────────
+            if (recentVisible.isNotEmpty) ...[
+              _SectionHeader(label: recentHeader, icon: Icons.schedule_rounded),
+              SizedBox(height: AppSpacing.sm),
+              ...recentVisible.map((e) => _HistoryCard(
+                    entry: e,
+                    fr: fr,
+                    es: es,
+                    isPremium: isPremium,
+                    onDelete: () => _delete(e.id!),
+                    onUnpin: () => _unpin(e.id!),
+                    onRename: () => _rename(e, fr, es),
+                    onTap: () => _openDetail(e),
+                  )),
+            ],
+
+            if (!isPremium) ...[
+              SizedBox(height: AppSpacing.sm),
+              CalcwisePremiumGate(
+                title: fr
                     ? 'Historique illimité'
                     : (es ? 'Historial ilimitado' : 'Unlimited History'),
-                onTap: () => IAPService.instance.buy(),
+                description: fr
+                    ? 'Sauvegardez tous vos calculs sans limite'
+                    : (es
+                        ? 'Guarda todos tus cálculos sin límite'
+                        : 'Save all your calculations with no limit'),
+                onUnlock: () => IAPService.instance.buy(),
                 price: IAPService.instance.localizedPrice,
-                compact: true,
               ),
             ],
           ],
@@ -208,21 +284,57 @@ class _HistoryScreenState extends State<HistoryScreen> {
       },
     );
   }
+
+  void _openDetail(HistoryEntry e) => Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => HistoryDetailScreen(entry: e),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: AppDuration.base,
+        ),
+      );
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  const _SectionHeader({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Icon(icon, size: 18, color: AppTheme.primary),
+      SizedBox(width: AppSpacing.sm),
+      Text(label,
+          style: TextStyle(
+              fontSize: AppTextSize.bodyMd,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primary)),
+    ]);
+  }
 }
 
 // ─── History card ─────────────────────────────────────────────────────────────
 
 class _HistoryCard extends StatelessWidget {
   final HistoryEntry entry;
-  final bool fr, es;
+  final bool fr, es, isPremium;
   final VoidCallback onDelete;
+  final VoidCallback onUnpin;
+  final VoidCallback onRename;
   final VoidCallback onTap;
 
   const _HistoryCard({
     required this.entry,
     required this.fr,
     required this.es,
+    required this.isPremium,
     required this.onDelete,
+    required this.onUnpin,
+    required this.onRename,
     required this.onTap,
   });
 
@@ -238,6 +350,11 @@ class _HistoryCard extends StatelessWidget {
     final grossLabel = fr ? 'Brut' : (es ? 'Bruto' : 'Gross');
     final netLabel = fr ? 'Net' : (es ? 'Neto' : 'Net');
     final rateLabel = fr ? 'Taux' : (es ? 'Tasa' : 'Rate');
+
+    final unpinLabel =
+        fr ? 'Désépingler' : (es ? 'Desfijar' : 'Unpin');
+    final renameLabel = fr ? 'Renommer' : (es ? 'Renombrar' : 'Rename');
+    final deleteLabel = fr ? 'Supprimer' : (es ? 'Eliminar' : 'Delete');
 
     final regionBadge = entry.region.isNotEmpty
         ? Container(
@@ -265,6 +382,29 @@ class _HistoryCard extends StatelessWidget {
               horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Pinned label / badge row
+            if (entry.isPinned) ...[
+              Row(children: [
+                Icon(Icons.bookmark_rounded,
+                    size: 15, color: AppTheme.primary),
+                SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    entry.pinLabel?.isNotEmpty == true
+                        ? entry.pinLabel!
+                        : (fr
+                            ? 'Scénario enregistré'
+                            : (es ? 'Escenario guardado' : 'Saved Scenario')),
+                    style: TextStyle(
+                        fontSize: AppTextSize.sm,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
+              SizedBox(height: AppSpacing.xs),
+            ],
             Row(children: [
               Icon(Icons.schedule, size: 14, color: AppTheme.labelGray),
               SizedBox(width: AppSpacing.xs),
@@ -273,15 +413,55 @@ class _HistoryCard extends StatelessWidget {
                       color: AppTheme.labelGray, fontSize: AppTextSize.sm)),
               const Spacer(),
               regionBadge,
-              SizedBox(width: AppSpacing.sm),
-              InkWell(
-                onTap: onDelete,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Icon(Icons.close_rounded,
-                      size: 20, color: AppTheme.labelGray),
-                ),
+              SizedBox(width: AppSpacing.xs),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert_rounded,
+                    size: 20, color: AppTheme.labelGray),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'unpin':
+                      onUnpin();
+                      break;
+                    case 'rename':
+                      onRename();
+                      break;
+                    case 'delete':
+                      onDelete();
+                      break;
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (entry.isPinned)
+                    PopupMenuItem(
+                      value: 'unpin',
+                      child: Row(children: [
+                        Icon(Icons.bookmark_remove_outlined, size: 18),
+                        SizedBox(width: AppSpacing.sm),
+                        Text(unpinLabel),
+                      ]),
+                    ),
+                  // Renaming a label is a premium feature.
+                  if (entry.isPinned && isPremium)
+                    PopupMenuItem(
+                      value: 'rename',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined, size: 18),
+                        SizedBox(width: AppSpacing.sm),
+                        Text(renameLabel),
+                      ]),
+                    ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded,
+                          size: 18,
+                          color: CalcwiseSemanticColors.error(
+                              Theme.of(context).brightness)),
+                      SizedBox(width: AppSpacing.sm),
+                      Text(deleteLabel),
+                    ]),
+                  ),
+                ],
               ),
             ]),
             SizedBox(height: AppSpacing.smPlus),
