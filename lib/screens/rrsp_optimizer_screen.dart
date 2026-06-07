@@ -222,6 +222,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   @override
   void initState() {
     super.initState();
+    analyticsService.logScreenView('rrsp_optimizer');
     final salary = salaryNotifier.value;
     _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
 

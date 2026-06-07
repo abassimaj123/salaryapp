@@ -71,6 +71,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
   @override
   void initState() {
     super.initState();
+    analyticsService.logScreenView('salary_comparison');
     analyticsService.logCalculationCompleted(
         params: {'screen': 'salary_comparison_opened'});
     final salary = salaryNotifier.value;
