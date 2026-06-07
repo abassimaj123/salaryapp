@@ -257,10 +257,15 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     if (FlavorConfig.isUS) netBonus = r.betterMethod == 'flat' ? r.usFlatNetBonus : r.usAggregateNetBonus;
     if (FlavorConfig.isCA) netBonus = r.caNetBonus;
     if (FlavorConfig.isUK) netBonus = r.ukNetBonus;
+    double taxOnBonus = 0;
+    if (FlavorConfig.isUS) taxOnBonus = (r.betterMethod == 'flat' ? r.usFlatTotalTax : r.usAggregateTotalTax) ?? 0;
+    if (FlavorConfig.isCA) taxOnBonus = r.caTotalTax ?? 0;
+    if (FlavorConfig.isUK) taxOnBonus = r.ukExtraTax ?? 0;
     return {
       'bonus': r.bonusAmount,
       'salary': r.grossAnnual,
       'net_bonus': netBonus ?? 0,
+      'tax_on_bonus': taxOnBonus,
     };
   }
 

@@ -238,12 +238,17 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         'gross': res.grossAnnual,
         'net': res.netAnnual,
         'region': _region,
+        'effective_rate': res.effectiveRate,
+        'total_tax': res.totalTax,
       };
 
   Map<String, dynamic> _buildL2(SalaryResult res) => {
-        'flavor': FlavorConfig.flavor,
-        'region': _region,
-        ...res.toMap(),
+        'inputs': {
+          'gross': res.grossAnnual,
+          'flavor': FlavorConfig.flavor,
+          'region': _region,
+        },
+        'results': res.toMap(),
       };
 
   /// Debounced ring-buffer auto-save via SmartHistoryService.
@@ -1353,7 +1358,8 @@ class _ResultsSectionState extends State<_ResultsSection> {
         const SizedBox(height: AppSpacing.md),
 
         // Save Scenario (pin) — language-aware per flavor.
-        SaveScenarioButton(onSave: widget.onSaveScenario),
+        if (freemiumService.hasFullAccess)
+          SaveScenarioButton(onSave: widget.onSaveScenario),
 
         const SizedBox(height: AppSpacing.sm),
 

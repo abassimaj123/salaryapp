@@ -106,6 +106,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
       'base_salary': r.baseSalary,
       'total_benefits': r.totalBenefits,
       'total_compensation': r.totalCompensation,
+      'benefits_pct': r.baseSalary > 0 ? (r.totalBenefits / r.baseSalary * 100) : 0.0,
     };
   }
 
