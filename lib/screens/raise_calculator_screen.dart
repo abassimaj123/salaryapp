@@ -8,7 +8,7 @@ import '../core/flavor_config.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 
@@ -59,7 +59,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       _salaryCtrl.text = '75,000';
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calculate();
+      if (!mounted) return;
+      AnalyticsService.instance.logScreenView('raise_calculator');
+      _calculate();
     });
   }
 
@@ -259,6 +261,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       );
     });
     _scheduleAutoSave();
+    paywallSession.recordAction();
 
     AnalyticsService.instance.logCalculation(
       grossSalary: newAnnual,

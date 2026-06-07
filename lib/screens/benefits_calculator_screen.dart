@@ -8,7 +8,8 @@ import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
+import '../core/analytics/analytics_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
@@ -63,6 +64,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     // Auto-calculate on load for all users (free users see gated results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      analyticsService.logScreenView('benefits_calculator');
       _calculate();
     });
   }
@@ -197,6 +199,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
       _hasCalculated = true;
     });
     _scheduleAutoSave();
+    paywallSession.recordAction();
   }
 
   Future<void> _sharePdf(BuildContext context, _BenefitsResult r, bool fr,

@@ -7,7 +7,8 @@ import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
+import '../core/analytics/analytics_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart';
@@ -218,7 +219,9 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calculate();
+      if (!mounted) return;
+      analyticsService.logScreenView('bonus_calculator');
+      _calculate();
     });
   }
 
@@ -343,6 +346,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
 
     setState(() => _result = res);
     _scheduleAutoSave();
+    paywallSession.recordAction();
   }
 
   @override

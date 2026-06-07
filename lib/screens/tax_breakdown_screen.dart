@@ -6,7 +6,8 @@ import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
-import '../main.dart' show isSpanishNotifier, historyService;
+import '../core/analytics/analytics_service.dart';
+import '../main.dart' show isSpanishNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
@@ -175,7 +176,9 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
           : defaultSalary,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calculate();
+      if (!mounted) return;
+      analyticsService.logScreenView('tax_breakdown');
+      _calculate();
     });
   }
 
@@ -266,6 +269,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
             v, _bracketsForFlavor(), _deductionForFlavor());
       });
       _scheduleAutoSave();
+      paywallSession.recordAction();
     }
   }
 

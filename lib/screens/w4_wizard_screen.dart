@@ -8,7 +8,8 @@ import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
+import '../core/analytics/analytics_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/paywall_hard.dart';
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
@@ -238,6 +239,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
     // The tools_screen already gates entry, but this guards direct/deep navigation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      analyticsService.logScreenView('w4_wizard');
       if (!freemiumService.hasFullAccess) {
         final es = FlavorConfig.isUS && isSpanishNotifier.value;
         PaywallHard.show(
@@ -380,6 +382,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
     setState(() => _result = result);
     _nextStep(); // advances _step to 2 — _scheduleAutoSave checks _step == 2
     _scheduleAutoSave();
+    paywallSession.recordAction();
   }
 
   @override

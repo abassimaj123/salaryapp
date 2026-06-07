@@ -74,7 +74,11 @@ class ToolsScreen extends StatelessWidget {
                         'Calcular el impacto de un aumento en tu salario.',
                         'Calculer l\'impact d\'une augmentation sur votre salaire.',
                       ),
-                      onTap: () => push(const RaiseCalculatorScreen()),
+                      onTap: () async {
+                        await paywallSession.recordAction();
+                        if (!context.mounted) return;
+                        await push(const RaiseCalculatorScreen());
+                      },
                     ),
                     const SizedBox(height: AppSpacing.md),
 
@@ -88,7 +92,11 @@ class ToolsScreen extends StatelessWidget {
                         'Estimar impuestos y ganancias netas en bonificaciones.',
                         'Estimer les impôts et gains nets sur les primes.',
                       ),
-                      onTap: () => push(const BonusCalculatorScreen()),
+                      onTap: () async {
+                        await paywallSession.recordAction();
+                        if (!context.mounted) return;
+                        await push(const BonusCalculatorScreen());
+                      },
                     ),
                     const SizedBox(height: AppSpacing.md),
 
@@ -105,10 +113,11 @@ class ToolsScreen extends StatelessWidget {
                         'Calcula el valor real de tus beneficios y compensación total.',
                         'Calculez la valeur réelle de vos avantages et rémunération globale.',
                       ),
-                      isPremium: !freemiumService.hasFullAccess,
                       onTap: () async {
                         analyticsService.logCalculationCompleted(
                             params: {'action': 'benefits_calculator_tapped'});
+                        await paywallSession.recordAction();
+                        if (!context.mounted) return;
                         await push(const BenefitsCalculatorScreen());
                       },
                     ),
@@ -122,22 +131,29 @@ class ToolsScreen extends StatelessWidget {
                         subtitle: fr
                             ? 'Réduisez votre impôt avec vos cotisations REER.'
                             : 'Reduce your tax with optimal RRSP contributions.',
-                        isPremium: !freemiumService.hasFullAccess,
                         onTap: () async {
-                          if (!freemiumService.hasFullAccess) {
-                            analyticsService
-                                .logPaywallViewed('feature_hard');
-                            analyticsService
-                                .logFeatureGated('rrsp_optimizer');
-                            await PaywallHard.show(context,
-                                isFrench: fr,
-                                priceLabel:
-                                    IAPService.instance.localizedPrice.value,
-                                onPurchase: IAPService.instance.buy);
-                            return;
-                          }
-                          if (!context.mounted) return;
+                          analyticsService.logCalculationCompleted(
+                              params: {'action': 'rrsp_optimizer_tapped'});
                           await push(const RrspOptimizerScreen());
+                        },
+                      ),
+                    ],
+
+                    // ── CA + UK: Salary Comparison ───────────────────────────
+                    if (!FlavorConfig.isUS) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      ToolHubCard(
+                        icon: Icons.compare_arrows_rounded,
+                        title: fr
+                            ? 'Comparer deux salaires'
+                            : 'Salary Comparison',
+                        subtitle: fr
+                            ? 'Comparez deux offres : salaire net, impôts, mensuel.'
+                            : 'Compare two offers side by side: net pay, taxes, monthly.',
+                        onTap: () async {
+                          analyticsService.logCalculationCompleted(
+                              params: {'action': 'salary_comparison_tapped'});
+                          await push(const SalaryComparisonScreen());
                         },
                       ),
                     ],
@@ -153,6 +169,8 @@ class ToolsScreen extends StatelessWidget {
                             : 'Get your federal withholding exactly right.',
                         isPremium: true,
                         onTap: () async {
+                          await paywallSession.recordAction();
+                          if (!context.mounted) return;
                           if (!freemiumService.hasFullAccess) {
                             analyticsService.logPaywallViewed('feature_hard');
                             analyticsService.logFeatureGated('w4_wizard');
