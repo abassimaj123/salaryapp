@@ -8,9 +8,10 @@ import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/paywall_hard.dart';
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
 
@@ -251,12 +252,88 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'w4_wizard');
     _pageCtrl.dispose();
     _salaryCtrl.dispose();
     _spouseCtrl.dispose();
     _deductionsCtrl.dispose();
     _extraCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final salary = _parse(_salaryCtrl);
+    return ResultHasher.hashMixed({
+      'flavor': 'us',
+      'salary': _roundTo(salary, 1000),
+      'filing': _filingStatus.name,
+      'children': _qualifyingChildren,
+      'other_deps': _otherDependents,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'salary': _parse(_salaryCtrl),
+      'filing': _filingStatus.name,
+      'step3_credit': r.step3DependentCredit,
+      'est_annual_tax': r.estimatedAnnualTax,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'salary': _parse(_salaryCtrl),
+        'spouse': _parse(_spouseCtrl),
+        'filing': _filingStatus.name,
+        'multiple_jobs': _multipleJobs,
+        'children': _qualifyingChildren,
+        'other_deps': _otherDependents,
+        'deductions': _parse(_deductionsCtrl),
+        'extra_per_paycheck': _parse(_extraCtrl),
+        'pay_frequency': _payFrequency,
+      },
+      'results': {
+        'step3_credit': r.step3DependentCredit,
+        'step4b_deductions': r.step4bDeductions,
+        'step4c_extra': r.step4cExtra,
+        'est_annual_tax': r.estimatedAnnualTax,
+        'est_withholding': r.estimatedWithholding,
+        'refund_or_owed': r.refundOrOwed,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null || _step != 2) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'w4_wizard',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'w4_wizard',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   double _parse(TextEditingController c) {
@@ -301,7 +378,8 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       payFrequency: _payFrequency,
     );
     setState(() => _result = result);
-    _nextStep();
+    _nextStep(); // advances _step to 2 — _scheduleAutoSave checks _step == 2
+    _scheduleAutoSave();
   }
 
   @override
@@ -375,6 +453,11 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
                       result: _result,
                       payFrequency: _payFrequency,
                       es: es,
+                      onSave: _result != null &&
+                              (freemiumService.hasFullAccess ||
+                                  freemiumService.isRewarded)
+                          ? _saveScenario
+                          : null,
                       onRestart: () {
                         setState(() {
                           _step = 0;
@@ -960,12 +1043,14 @@ class _Step3Results extends StatelessWidget {
   final _W4Result? result;
   final String payFrequency;
   final bool es;
+  final Future<void> Function(String?)? onSave;
   final VoidCallback onRestart;
 
   const _Step3Results({
     required this.result,
     required this.payFrequency,
     required this.es,
+    this.onSave,
     required this.onRestart,
   });
 
@@ -1187,6 +1272,12 @@ class _Step3Results extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // Save Scenario button (premium/rewarded only, step 3)
+          if (onSave != null) ...[
+            const SizedBox(height: 12),
+            SaveScenarioButton(onSave: onSave!),
+          ],
 
           // Start over
           SizedBox(

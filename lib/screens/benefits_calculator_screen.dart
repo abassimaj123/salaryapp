@@ -8,17 +8,19 @@ import '../core/flavor_config.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier;
-import '../widgets/paywall_hard.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwisePremiumGate,
         AppDuration,
         AppSpacing,
         AppRadius,
-        AppTextSize;
+        AppTextSize,
+        ResultHasher;
 
 // ─── Benefits Value Calculator ────────────────────────────────────────────────
 //
@@ -58,27 +60,16 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     _salaryCtrl =
         TextEditingController(text: salary > 0 ? salary.toStringAsFixed(0) : (FlavorConfig.isUK ? '55000' : '75000'));
 
-    // Gate check: show hard paywall immediately if not premium
+    // Auto-calculate on load for all users (free users see gated results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (!freemiumService.hasFullAccess) {
-        final es = FlavorConfig.isUS && isSpanishNotifier.value;
-        final fr = FlavorConfig.isCA && isSpanishNotifier.value;
-        PaywallHard.show(
-          context,
-          isSpanish: es,
-          isFrench: fr,
-          priceLabel: IAPService.instance.localizedPrice.value,
-          onPurchase: IAPService.instance.buy,
-        );
-      } else {
-        _calculate();
-      }
+      _calculate();
     });
   }
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'benefits');
     _salaryCtrl.dispose();
     _healthCtrl.dispose();
     _retirementPctCtrl.dispose();
@@ -86,6 +77,82 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     _remoteCtrl.dispose();
     _otherCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final salary = _parse(_salaryCtrl);
+    final health = _parse(_healthCtrl);
+    final retPct = _parse(_retirementPctCtrl);
+    final pto = _parse(_ptoDaysCtrl);
+    return ResultHasher.hashMixed({
+      'flavor': FlavorConfig.flavor,
+      'salary': _roundTo(salary, 1000),
+      'health': _roundTo(health, 50),
+      'ret_pct': _roundTo(retPct, 0.25),
+      'pto': pto.round(),
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'base_salary': r.baseSalary,
+      'total_benefits': r.totalBenefits,
+      'total_compensation': r.totalCompensation,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'base_salary': r.baseSalary,
+        'health_monthly': _parse(_healthCtrl),
+        'retirement_pct': _parse(_retirementPctCtrl),
+        'pto_days': _parse(_ptoDaysCtrl),
+        'remote_monthly': _parse(_remoteCtrl),
+        'other_annual': _parse(_otherCtrl),
+        'flavor': FlavorConfig.flavor,
+      },
+      'results': {
+        'health_annual': r.healthAnnual,
+        'retirement_annual': r.retirementAnnual,
+        'pto_annual': r.ptoAnnual,
+        'remote_annual': r.remoteAnnual,
+        'other_annual': r.otherAnnual,
+        'total_benefits': r.totalBenefits,
+        'total_compensation': r.totalCompensation,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'benefits',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'benefits',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   double _parse(TextEditingController c) {
@@ -129,6 +196,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
       );
       _hasCalculated = true;
     });
+    _scheduleAutoSave();
   }
 
   Future<void> _sharePdf(BuildContext context, _BenefitsResult r, bool fr,
@@ -287,13 +355,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
           body: Column(
             children: [
               Expanded(
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: freemiumService.hasFullAccessNotifier,
-                  builder: (context, isPremium, _) {
-                    if (!isPremium) {
-                      return _LockedView(fr: fr, es: es);
-                    }
-                    return SingleChildScrollView(
+                child: SingleChildScrollView(
                       padding: EdgeInsets.fromLTRB(
                         AppSpacing.lg,
                         AppSpacing.lg,
@@ -526,15 +588,56 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                           // ── Results ────────────────────────────────────────
                           if (_hasCalculated && _result != null) ...[
                             const SizedBox(height: AppSpacing.xl),
-                            _buildResults(context, _result!, fr, es, symbol,
-                                retLabel, t),
+                            if (freemiumService.hasFullAccess)
+                              _buildResults(context, _result!, fr, es, symbol,
+                                  retLabel, t)
+                            else ...[
+                              // Show hero card as preview
+                              CalcwiseHeroCard(
+                                label: t(
+                                  'Total Compensation',
+                                  'Compensación total',
+                                  'Rémunération globale',
+                                ),
+                                value: NumberFormat.currency(
+                                        symbol: symbol, decimalDigits: 0)
+                                    .format(_result!.totalCompensation),
+                                secondary: t(
+                                  'Salary + Benefits / year',
+                                  'Salario + Beneficios / año',
+                                  'Salaire + Avantages / an',
+                                ),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.primary,
+                                    AppTheme.primary
+                                        .withValues(alpha: 0.75),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              CalcwisePremiumGate(
+                                title: t(
+                                  'Full Benefits Report',
+                                  'Informe completo',
+                                  'Rapport complet des avantages',
+                                ),
+                                description: t(
+                                  'Detailed breakdown, PDF export, and benefits as % of salary.',
+                                  'Desglose detallado, exportación PDF y beneficios como % del salario.',
+                                  'Détail complet, export PDF et avantages en % du salaire.',
+                                ),
+                                onUnlock: () => IAPService.instance.buy(),
+                                price: IAPService.instance.localizedPrice,
+                              ),
+                            ],
                           ],
 
                           const SizedBox(height: AppSpacing.lg),
                         ],
                       ),
-                    );
-                  },
                 ),
               ),
               const CalcwiseAdFooter(),
@@ -702,6 +805,10 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
             ),
           ),
         ),
+        if (freemiumService.hasFullAccess || freemiumService.isRewarded) ...[
+          const SizedBox(height: AppSpacing.sm),
+          SaveScenarioButton(onSave: _saveScenario),
+        ],
       ],
     );
   }
@@ -773,53 +880,6 @@ class _BenefitsPercentCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Locked view (shown before paywall resolves) ──────────────────────────────
-
-class _LockedView extends StatelessWidget {
-  final bool fr, es;
-
-  const _LockedView({required this.fr, required this.es});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = fr
-        ? 'Calculateur d\'avantages'
-        : (es ? 'Calculadora de beneficios' : 'Benefits Value Calculator');
-    final subtitle = fr
-        ? 'Calculez la valeur réelle de vos avantages sociaux.'
-        : (es
-            ? 'Calcula el valor real de tus beneficios.'
-            : 'Calculate the real value of your employer benefits.');
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.card_giftcard_rounded,
-                size: 56, color: AppTheme.primary),
-            const SizedBox(height: AppSpacing.lg),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: AppTextSize.bodyXl,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primary)),
-            const SizedBox(height: AppSpacing.sm),
-            Text(subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: AppTextSize.body, color: AppTheme.labelGray)),
-            const SizedBox(height: AppSpacing.xl),
-            Icon(Icons.lock_rounded, size: 32, color: AppTheme.labelGray),
-          ],
-        ),
       ),
     );
   }

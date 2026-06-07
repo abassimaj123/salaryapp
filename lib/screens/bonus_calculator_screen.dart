@@ -6,8 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../core/freemium/freemium_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 
 // ─── Bonus / Supplemental Pay Calculator (all flavors) ───────────────────────
@@ -222,10 +224,97 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'bonus');
     _salaryCtrl.dispose();
     _bonusCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final salary = _parse(_salaryCtrl);
+    final bonus = _parse(_bonusCtrl);
+    return ResultHasher.hashMixed({
+      'flavor': FlavorConfig.flavor,
+      'salary': _roundTo(salary, 1000),
+      'bonus': _roundTo(bonus, 500),
+      if (FlavorConfig.isUS) 'state': _usState,
+      if (FlavorConfig.isCA) 'province': _caProvince,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    double? netBonus;
+    if (FlavorConfig.isUS) netBonus = r.betterMethod == 'flat' ? r.usFlatNetBonus : r.usAggregateNetBonus;
+    if (FlavorConfig.isCA) netBonus = r.caNetBonus;
+    if (FlavorConfig.isUK) netBonus = r.ukNetBonus;
+    return {
+      'bonus': r.bonusAmount,
+      'salary': r.grossAnnual,
+      'net_bonus': netBonus ?? 0,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'bonus': r.bonusAmount,
+        'salary': r.grossAnnual,
+        'flavor': FlavorConfig.flavor,
+        if (FlavorConfig.isUS) 'state': _usState,
+        if (FlavorConfig.isCA) 'province': _caProvince,
+        if (FlavorConfig.isUS) 'pay_periods': _payPeriods,
+      },
+      'results': {
+        if (FlavorConfig.isUS) ...{
+          'flat_net': r.usFlatNetBonus,
+          'flat_tax': r.usFlatTotalTax,
+          'agg_net': r.usAggregateNetBonus,
+          'agg_tax': r.usAggregateTotalTax,
+          'better_method': r.betterMethod,
+        },
+        if (FlavorConfig.isCA) ...{
+          'federal_tax': r.caFederalTax,
+          'prov_tax': r.caProvincialTax,
+          'net_bonus': r.caNetBonus,
+        },
+        if (FlavorConfig.isUK) ...{
+          'extra_tax': r.ukExtraTax,
+          'net_bonus': r.ukNetBonus,
+        },
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'bonus',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'bonus',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   double _parse(TextEditingController c) {
@@ -253,6 +342,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     }
 
     setState(() => _result = res);
+    _scheduleAutoSave();
   }
 
   @override
@@ -306,6 +396,10 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                         if (_result != null) ...[
                           const SizedBox(height: AppSpacing.xxlPlus),
                           _ResultsSection(result: _result!, es: es, fr: fr),
+                          const SizedBox(height: AppSpacing.lg),
+                          if (freemiumService.hasFullAccess ||
+                              freemiumService.isRewarded)
+                            SaveScenarioButton(onSave: _saveScenario),
                         ],
                         const SizedBox(height: AppSpacing.lg),
                       ],

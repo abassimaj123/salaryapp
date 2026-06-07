@@ -10,16 +10,18 @@ import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier;
-import '../widgets/paywall_hard.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwisePremiumGate,
         AppSpacing,
         AppRadius,
-        AppTextSize;
+        AppTextSize,
+        ResultHasher;
 
 // ─── RRSP Optimizer (CA flavor only) ────────────────────────────────────────
 //
@@ -223,28 +225,91 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     final salary = salaryNotifier.value;
     _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
 
-    // Hard premium gate: show PaywallHard immediately if not premium.
+    // Auto-calculate on load for all users (free users see gated results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (!freemiumService.hasFullAccess) {
-        final fr = FlavorConfig.isCA && isSpanishNotifier.value;
-        PaywallHard.show(
-          context,
-          isFrench: fr,
-          priceLabel: IAPService.instance.localizedPrice.value,
-          onPurchase: IAPService.instance.buy,
-        );
-      } else {
-        _calculate();
-      }
+      _calculate();
     });
   }
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'rrsp_optimizer');
     _grossCtrl.dispose();
     _rrspRoomCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final gross = _parse(_grossCtrl);
+    final room = _parse(_rrspRoomCtrl);
+    return ResultHasher.hashMixed({
+      'flavor': 'ca',
+      'gross': _roundTo(gross, 1000),
+      'room': _roundTo(room, 1000),
+      'bracket': _targetBracketIndex,
+      'province': _province,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'gross': r.grossIncome,
+      'contribution': r.contribution,
+      'tax_saving': r.taxSaving,
+      'bracket': r.bracketLabel,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'gross': r.grossIncome,
+        'rrsp_room': r.rrspRoom,
+        'target_bracket_index': _targetBracketIndex,
+        'province': _province,
+      },
+      'results': {
+        'contribution': r.contribution,
+        'tax_saving': r.taxSaving,
+        'net_cost': r.netCost,
+        'remaining_room': r.remainingRoom,
+        'taxable_after_rrsp': r.taxableAfterRrsp,
+        'bracket_label': r.bracketLabel,
+        'marginal_rate': r.marginalRate,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'rrsp_optimizer',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'rrsp_optimizer',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   double _parse(TextEditingController c) {
@@ -271,6 +336,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       _result = result;
       _hasCalculated = true;
     });
+    _scheduleAutoSave();
 
     analyticsService.logRrspImpactCalculated();
   }
@@ -509,10 +575,44 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       ),
 
                       // ── Results ──────────────────────────────────────────────
-                      if (_hasCalculated && _result != null &&
-                          freemiumService.hasFullAccess) ...[
+                      if (_hasCalculated && _result != null) ...[
                         const SizedBox(height: 24),
-                        _buildResults(context, _result!, fr),
+                        if (freemiumService.hasFullAccess)
+                          _buildResults(context, _result!, fr)
+                        else ...[
+                          // Show hero card as preview
+                          CalcwiseHeroCard(
+                            label: fr
+                                ? 'Cotisation REER recommandée'
+                                : 'Recommended RRSP Contribution',
+                            value: _fmt(_result!.contribution),
+                            secondary: _result!.contribution == 0
+                                ? (fr
+                                    ? 'Vous êtes déjà dans la tranche cible'
+                                    : 'You\'re already in the target bracket')
+                                : null,
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.primary,
+                                AppTheme.primary
+                                    .withValues(alpha: 0.75),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          CalcwisePremiumGate(
+                            title: fr
+                                ? 'Analyse REER complète'
+                                : 'Full RRSP Analysis',
+                            description: fr
+                                ? 'Remboursement fiscal, coût net, taux marginal et droits restants.'
+                                : 'Tax refund, net cost, marginal rate and remaining room.',
+                            onUnlock: () => IAPService.instance.buy(),
+                            price: IAPService.instance.localizedPrice,
+                          ),
+                        ],
                       ],
 
                       const SizedBox(height: 16),
@@ -609,6 +709,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
             ),
           ),
         ),
+        if (freemiumService.hasFullAccess || freemiumService.isRewarded) ...[
+          const SizedBox(height: AppSpacing.md),
+          SaveScenarioButton(onSave: _saveScenario),
+        ],
       ],
     );
   }

@@ -10,8 +10,9 @@ import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, paywallSession;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, paywallSession, historyService;
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
@@ -21,7 +22,8 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppRadius,
         AppTextSize,
         PaywallSoft,
-        PaywallSessionService;
+        PaywallSessionService,
+        ResultHasher;
 
 // ─── 401(k) Optimizer (US flavor only) ───────────────────────────────────────
 //
@@ -159,8 +161,83 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'retirement_optimizer');
     _grossCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final gross = _parseGross();
+    return ResultHasher.hashMixed({
+      'flavor': 'us',
+      'gross': _roundTo(gross, 1000),
+      'contrib_pct': _roundTo(_contributionPct, 0.25),
+      'age50': _age50Plus,
+      'filing': _filingStatus.name,
+      'state': _state,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'gross': r.grossIncome,
+      'contribution': r.contribution,
+      'tax_saving': r.taxSaving,
+      'net_cost': r.netCost,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'gross': r.grossIncome,
+        'contribution_pct': _contributionPct,
+        'age50': _age50Plus,
+        'filing': _filingStatus.name,
+        'state': _state,
+      },
+      'results': {
+        'contribution': r.contribution,
+        'contribution_limit': r.contributionLimit,
+        'tax_saving': r.taxSaving,
+        'net_cost': r.netCost,
+        'take_home_change_monthly': r.takeHomeChangeMonthly,
+        'projected_30yr': r.projectedValue30yr,
+        'utilization_pct': r.utilizationPct,
+        'is_maxed': r.isMaxed,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'retirement_optimizer',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'retirement_optimizer',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   double _parseGross() {
@@ -188,6 +265,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
       _result = result;
       _hasCalculated = true;
     });
+    _scheduleAutoSave();
 
     analyticsService.logCalculationCompleted(
         params: {'screen': '401k_optimizer', 'pct': _contributionPct.round()});
@@ -695,6 +773,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
             ),
           ),
         ),
+        if (freemiumService.hasFullAccess || freemiumService.isRewarded) ...[
+          const SizedBox(height: AppSpacing.md),
+          SaveScenarioButton(onSave: _saveScenario),
+        ],
       ],
     );
   }

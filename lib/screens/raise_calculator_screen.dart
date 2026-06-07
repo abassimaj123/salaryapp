@@ -7,8 +7,10 @@ import 'package:calcwise_core/calcwise_core.dart';
 import '../core/flavor_config.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier;
+import '../core/freemium/freemium_service.dart';
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/result_card.dart';
+import '../widgets/save_scenario_button.dart';
 
 // ─── Raise Calculator Screen ──────────────────────────────────────────────────
 //
@@ -16,13 +18,13 @@ import '../widgets/result_card.dart';
 // of it). This "aha moment" makes the screen highly shareable.
 //
 // Progressive tax buckets (US federal approximation):
-//   0 –  11,600  →  10%
-//  11,600 –  47,150  →  12%
-//  47,150 – 100,525  →  22%
-// 100,525 – 191,950  →  24%
-// 191,950 – 243,725  →  32%
-// 243,725 – 609,350  →  35%
-//        > 609,350  →  37%
+//   0 –  11,925  →  10%
+//  11,925 –  48,475  →  12%
+//  48,475 – 103,350  →  22%
+// 103,350 – 197,300  →  24%
+// 197,300 – 250,525  →  32%
+// 250,525 – 626,350  →  35%
+//        > 626,350  →  37%
 
 class RaiseCalculatorScreen extends StatefulWidget {
   /// Optional pre-fill from the main calculator.
@@ -63,9 +65,81 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'raise');
     _salaryCtrl.dispose();
     _flatCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final current = _parse(_salaryCtrl.text);
+    return ResultHasher.hashMixed({
+      'flavor': FlavorConfig.flavor,
+      'salary': _roundTo(current, 1000),
+      'raise_pct': _isPercent ? _roundTo(_raisePct, 0.25) : null,
+      'flat': !_isPercent ? _roundTo(_parse(_flatCtrl.text), 500) : null,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'current_salary': r.currentSalary,
+      'new_salary': r.newAnnual,
+      'raise_pct': r.raisePct,
+      'new_monthly_net': r.newMonthlyNet,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final r = _result;
+    if (r == null) return {};
+    return {
+      'inputs': {
+        'current_salary': r.currentSalary,
+        'raise_pct': r.raisePct,
+        'is_percent': _isPercent,
+        'flavor': FlavorConfig.flavor,
+      },
+      'results': {
+        'new_annual': r.newAnnual,
+        'raise_gross': r.raiseGross,
+        'raise_net': r.raiseNet,
+        'tax_increase': r.taxIncrease,
+        'old_monthly_net': r.oldMonthlyNet,
+        'new_monthly_net': r.newMonthlyNet,
+        'effective_pct': r.effectivePct,
+        'marginal_rate': r.marginalRate,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_result == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'raise',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_result == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'raise',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   // ── Tax engine ──────────────────────────────────────────────────────────────
@@ -74,14 +148,14 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
   /// CA/UK flavors use a simplified flat-ish approach since brackets differ.
   double _calcTax(double annual) {
     if (FlavorConfig.isUS) {
-      // 2024 single filer brackets (approximate)
+      // 2025 single filer brackets (approximate)
       const brackets = [
-        (11600.0, 0.10),
-        (47150.0, 0.12),
-        (100525.0, 0.22),
-        (191950.0, 0.24),
-        (243725.0, 0.32),
-        (609350.0, 0.35),
+        (11925.0, 0.10),
+        (48475.0, 0.12),
+        (103350.0, 0.22),
+        (197300.0, 0.24),
+        (250525.0, 0.32),
+        (626350.0, 0.35),
         (double.infinity, 0.37),
       ];
       double tax = 0;
@@ -115,12 +189,12 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
   /// Marginal rate at the top bracket reached.
   double _marginalRate(double annual) {
     if (FlavorConfig.isUS) {
-      if (annual <= 11600) return 0.10;
-      if (annual <= 47150) return 0.12;
-      if (annual <= 100525) return 0.22;
-      if (annual <= 191950) return 0.24;
-      if (annual <= 243725) return 0.32;
-      if (annual <= 609350) return 0.35;
+      if (annual <= 11925) return 0.10;
+      if (annual <= 48475) return 0.12;
+      if (annual <= 103350) return 0.22;
+      if (annual <= 197300) return 0.24;
+      if (annual <= 250525) return 0.32;
+      if (annual <= 626350) return 0.35;
       return 0.37;
     }
     if (FlavorConfig.isCA) {
@@ -184,6 +258,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
         marginalRate: marginalRate,
       );
     });
+    _scheduleAutoSave();
 
     AnalyticsService.instance.logCalculation(
       grossSalary: newAnnual,
@@ -275,6 +350,10 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                           fr: fr,
                           onShare: () => _share(_result!, es),
                         ),
+                        const SizedBox(height: AppSpacing.lg),
+                        if (freemiumService.hasFullAccess ||
+                            freemiumService.isRewarded)
+                          SaveScenarioButton(onSave: _saveScenario),
                       ],
                       const SizedBox(height: AppSpacing.lg),
                     ],

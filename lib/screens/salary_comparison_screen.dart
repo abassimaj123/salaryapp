@@ -8,7 +8,8 @@ import '../main.dart'
         paywallSession,
         salaryNotifier,
         ukStudentLoanNotifier,
-        ukScotlandNotifier;
+        ukScotlandNotifier,
+        historyService;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
 import '../core/data/city_col_data.dart';
@@ -18,6 +19,7 @@ import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../widgets/app_bar_actions.dart';
 import '../widgets/paywall_hard.dart';
+import '../widgets/save_scenario_button.dart';
 
 // ─── Salary comparison screen ─────────────────────────────────────────────────
 // Compares two salary offers side-by-side (US only):
@@ -81,9 +83,89 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
   @override
   void dispose() {
+    historyService.cancelPendingSave('salaryapp', 'salary_comparison');
     _grossACtrl.dispose();
     _grossBCtrl.dispose();
     super.dispose();
+  }
+
+  // ── SmartHistory helpers ──────────────────────────────────────────────────
+
+  double _roundTo(double v, double step) => (v / step).round() * step;
+
+  String _buildHash() {
+    final grossA = double.tryParse(
+        _grossACtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', '')) ?? 0;
+    final grossB = double.tryParse(
+        _grossBCtrl.text.replaceAll(RegExp('[,   ]'), '').replaceAll(r'$', '')) ?? 0;
+    return ResultHasher.hashMixed({
+      'flavor': FlavorConfig.flavor,
+      'gross_a': _roundTo(grossA, 1000),
+      'gross_b': _roundTo(grossB, 1000),
+      'region_a': _regionA,
+      'region_b': _regionB,
+    });
+  }
+
+  Map<String, dynamic> _buildL1() {
+    final a = _resultA;
+    final b = _resultB;
+    if (a == null || b == null) return {};
+    return {
+      'gross_a': a.grossAnnual,
+      'gross_b': b.grossAnnual,
+      'net_a': a.netAnnual,
+      'net_b': b.netAnnual,
+      'region_a': _regionA,
+      'region_b': _regionB,
+    };
+  }
+
+  Map<String, dynamic> _buildL2() {
+    final a = _resultA;
+    final b = _resultB;
+    if (a == null || b == null) return {};
+    return {
+      'inputs': {
+        'gross_a': a.grossAnnual,
+        'gross_b': b.grossAnnual,
+        'region_a': _regionA,
+        'region_b': _regionB,
+        'flavor': FlavorConfig.flavor,
+      },
+      'results': {
+        'net_a': a.netAnnual,
+        'net_b': b.netAnnual,
+        'net_monthly_a': a.netMonthly,
+        'net_monthly_b': b.netMonthly,
+        'effective_rate_a': a.effectiveRate,
+        'effective_rate_b': b.effectiveRate,
+        'delta_net': b.netAnnual - a.netAnnual,
+      },
+    };
+  }
+
+  void _scheduleAutoSave() {
+    if (_resultA == null || _resultB == null) return;
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'salary_comparison',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+    );
+  }
+
+  Future<void> _saveScenario(String? label) async {
+    if (_resultA == null || _resultB == null) return;
+    await historyService.saveScenario(
+      appKey: 'salaryapp',
+      screenId: 'salary_comparison',
+      inputHash: _buildHash(),
+      l1: _buildL1(),
+      l2: _buildL2(),
+      label: label,
+    );
   }
 
   void _calculate() {
@@ -102,6 +184,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       _resultB = _calcOne(grossB, _regionB);
       _hasCalculated = true;
     });
+    _scheduleAutoSave();
     analyticsService.logCalculationCompleted(params: {
       'gross_a': grossA.round(),
       'gross_b': grossB.round(),
@@ -227,6 +310,13 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           resultB: _resultB!,
                           useAlt: useAlt,
                         ),
+
+                        // ── Save Scenario button ─────────────────────────────
+                        if (freemiumService.hasFullAccess ||
+                            freemiumService.isRewarded) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          SaveScenarioButton(onSave: _saveScenario),
+                        ],
 
                         // ── Cost-of-living adjustment (US flavor only) ───────
                         if (FlavorConfig.isUS) ...[
