@@ -192,30 +192,31 @@ void main() {
     });
 
     test('\$80,000 — second bracket', () {
-      // taxable=63871; 8380.05 + (63871-55867)*0.205 (BPA 2025: $16,129)
+      // taxable=63871; 8606.25 + (63871-57375)*0.205 (2025 brackets, BPA $16,129)
       approx(
-          CaSalaryEngine.federalTax(80000), 8380.05 + (63871 - 55867) * 0.205,
+          CaSalaryEngine.federalTax(80000), 8606.25 + (63871 - 57375) * 0.205,
           tolerance: 1.0);
     });
 
     test('\$130,000 — third bracket', () {
-      // taxable=113871; 19832.48 + (113871-111733)*0.26 (BPA 2025: $16,129)
+      // taxable=113871 (< 114750) → still in 2nd bracket
+      // 8606.25 + (113871-57375)*0.205 (2025 brackets, BPA $16,129)
       approx(CaSalaryEngine.federalTax(130000),
-          19832.48 + (113871 - 111733) * 0.26,
+          8606.25 + (113871 - 57375) * 0.205,
           tolerance: 1.0);
     });
 
     test('\$180,000 — fourth bracket', () {
-      // taxable=163871; 31064.73 + (163871-154906)*0.29 (BPA 2025: $16,129)
+      // taxable=163871; 31736.48 + (163871-158519)*0.29 (2025 brackets, BPA $16,129)
       approx(CaSalaryEngine.federalTax(180000),
-          31064.73 + (163871 - 154906) * 0.29,
+          31736.48 + (163871 - 158519) * 0.29,
           tolerance: 1.0);
     });
 
     test('\$250,000 — top bracket 33%', () {
-      // taxable=233871; 49942.35 + (233871-220000)*0.33 (BPA 2025: $16,129)
+      // taxable=233871; 49566.77 + (233871-220000)*0.33 (2025 brackets, BPA $16,129)
       approx(CaSalaryEngine.federalTax(250000),
-          49942.35 + (233871 - 220000) * 0.33,
+          49566.77 + (233871 - 220000) * 0.33,
           tolerance: 1.0);
     });
   });
