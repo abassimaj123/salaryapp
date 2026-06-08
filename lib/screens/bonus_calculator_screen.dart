@@ -7,6 +7,7 @@ import '../core/flavor_config.dart';
 import '../core/salary_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
+import '../core/freemium/iap_service.dart';
 import '../core/analytics/analytics_service.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
@@ -314,6 +315,26 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   }
 
   Future<void> _saveScenario(String? label) async {
+    if (!freemiumService.hasFullAccess && !freemiumService.isRewarded) {
+      final es = FlavorConfig.isUS && isSpanishNotifier.value;
+      final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+      await PaywallSoft.show(
+        context,
+        isSpanish: es,
+        isFrench: fr,
+        featureTitle: fr
+            ? 'Sauvegarder le scénario'
+            : (es ? 'Guardar escenario' : 'Save Scenario'),
+        featureSubtitle: fr
+            ? 'Épinglez vos calculs pour les retrouver plus tard'
+            : (es
+                ? 'Fija tus cálculos para consultarlos más tarde'
+                : 'Pin your calculations to revisit them later'),
+        priceLabel: IAPService.instance.localizedPrice.value,
+        onUnlock: () => IAPService.instance.buy(),
+      );
+      return;
+    }
     if (_result == null) return;
     await historyService.saveScenario(
       appKey: 'salaryapp',
@@ -406,9 +427,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           const SizedBox(height: AppSpacing.xxlPlus),
                           _ResultsSection(result: _result!, es: es, fr: fr),
                           const SizedBox(height: AppSpacing.lg),
-                          if (freemiumService.hasFullAccess ||
-                              freemiumService.isRewarded)
-                            SaveScenarioButton(onSave: _saveScenario),
+                          SaveScenarioButton(onSave: _saveScenario),
                         ],
                         const SizedBox(height: AppSpacing.lg),
                       ],

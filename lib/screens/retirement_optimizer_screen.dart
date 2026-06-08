@@ -230,6 +230,20 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
   }
 
   Future<void> _saveScenario(String? label) async {
+    if (!freemiumService.hasFullAccess && !freemiumService.isRewarded) {
+      final es = FlavorConfig.isUS && isSpanishNotifier.value;
+      await PaywallSoft.show(
+        context,
+        isSpanish: es,
+        featureTitle: es ? 'Guardar escenario' : 'Save Scenario',
+        featureSubtitle: es
+            ? 'Fija tus cálculos para consultarlos más tarde'
+            : 'Pin your calculations to revisit them later',
+        priceLabel: IAPService.instance.localizedPrice.value,
+        onUnlock: () => IAPService.instance.buy(),
+      );
+      return;
+    }
     if (_result == null) return;
     await historyService.saveScenario(
       appKey: 'salaryapp',
@@ -774,10 +788,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
             ),
           ),
         ),
-        if (freemiumService.hasFullAccess || freemiumService.isRewarded) ...[
-          const SizedBox(height: AppSpacing.md),
-          SaveScenarioButton(onSave: _saveScenario),
-        ],
+        const SizedBox(height: AppSpacing.md),
+        SaveScenarioButton(onSave: _saveScenario),
       ],
     );
   }

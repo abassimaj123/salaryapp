@@ -17,6 +17,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseAdFooter,
         CalcwiseHeroCard,
         CalcwisePremiumGate,
+        PaywallSoft,
         AppDuration,
         AppSpacing,
         AppRadius,
@@ -147,6 +148,26 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
   }
 
   Future<void> _saveScenario(String? label) async {
+    if (!freemiumService.hasFullAccess && !freemiumService.isRewarded) {
+      final es = FlavorConfig.isUS && isSpanishNotifier.value;
+      final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+      await PaywallSoft.show(
+        context,
+        isSpanish: es,
+        isFrench: fr,
+        featureTitle: fr
+            ? 'Sauvegarder le scénario'
+            : (es ? 'Guardar escenario' : 'Save Scenario'),
+        featureSubtitle: fr
+            ? 'Épinglez vos calculs pour les retrouver plus tard'
+            : (es
+                ? 'Fija tus cálculos para consultarlos más tarde'
+                : 'Pin your calculations to revisit them later'),
+        priceLabel: IAPService.instance.localizedPrice.value,
+        onUnlock: () => IAPService.instance.buy(),
+      );
+      return;
+    }
     if (_result == null) return;
     await historyService.saveScenario(
       appKey: 'salaryapp',
@@ -809,10 +830,8 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
             ),
           ),
         ),
-        if (freemiumService.hasFullAccess || freemiumService.isRewarded) ...[
-          const SizedBox(height: AppSpacing.sm),
-          SaveScenarioButton(onSave: _saveScenario),
-        ],
+        const SizedBox(height: AppSpacing.sm),
+        SaveScenarioButton(onSave: _saveScenario),
       ],
     );
   }

@@ -269,6 +269,26 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
   /// Pin the current scenario (Save Scenario button).
   Future<void> _saveScenario(String? label) async {
+    if (!freemiumService.hasFullAccess && !freemiumService.isRewarded) {
+      final es = FlavorConfig.isUS && isSpanishNotifier.value;
+      final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+      await PaywallSoft.show(
+        context,
+        isSpanish: es,
+        isFrench: fr,
+        featureTitle: fr
+            ? 'Sauvegarder le scénario'
+            : (es ? 'Guardar escenario' : 'Save Scenario'),
+        featureSubtitle: fr
+            ? 'Épinglez vos calculs pour les retrouver plus tard'
+            : (es
+                ? 'Fija tus cálculos para consultarlos más tarde'
+                : 'Pin your calculations to revisit them later'),
+        priceLabel: IAPService.instance.localizedPrice.value,
+        onUnlock: () => IAPService.instance.buy(),
+      );
+      return;
+    }
     final res = _result;
     if (res == null) return;
     await historyService.saveScenario(
@@ -1357,9 +1377,8 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         const SizedBox(height: AppSpacing.md),
 
-        // Save Scenario (pin) — language-aware per flavor.
-        if (freemiumService.hasFullAccess)
-          SaveScenarioButton(onSave: widget.onSaveScenario),
+        // Save Scenario (pin) — always visible; paywall is gated inside _saveScenario.
+        SaveScenarioButton(onSave: widget.onSaveScenario),
 
         const SizedBox(height: AppSpacing.sm),
 
