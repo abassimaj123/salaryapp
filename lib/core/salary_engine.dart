@@ -613,11 +613,11 @@ class CaSalaryEngine {
   /// Federal tax 2025. Basic Personal Amount (BPA): $16,129 (ARC officiel 2025).
   static double federalTax(double grossAnnual) {
     final taxable = (grossAnnual - 16129).clamp(0.0, double.infinity);
-    if (taxable <= 55867) return taxable * 0.15;
-    if (taxable <= 111733) return 8380.05 + (taxable - 55867) * 0.205;
-    if (taxable <= 154906) return 19832.48 + (taxable - 111733) * 0.26;
-    if (taxable <= 220000) return 31064.73 + (taxable - 154906) * 0.29;
-    return 49942.35 + (taxable - 220000) * 0.33;
+    if (taxable <= 57375) return taxable * 0.15;
+    if (taxable <= 114750) return 8606.25 + (taxable - 57375) * 0.205;
+    if (taxable <= 158519) return 20358.94 + (taxable - 114750) * 0.26;
+    if (taxable <= 220000) return 31736.48 + (taxable - 158519) * 0.29;
+    return 49566.77 + (taxable - 220000) * 0.33;
   }
 
   // ── 2025 CPP / EI constants ─────────────────────────────────────────────────
@@ -626,7 +626,7 @@ class CaSalaryEngine {
   static const double _yampe2025 = 81900; // CPP2 ceiling
   static const double _cpp1Rate = 0.0595;
   static const double _cpp2Rate = 0.04;
-  static const double _eiInsurableMax2025 = 65700;
+  static const double _eiInsurableMax2025 = 63200;
   static const double _eiRate2025 = 0.0166; // employee rate
 
   /// CPP1 2025: 5.95% on earnings $3,500–$71,300 (YMPE).
