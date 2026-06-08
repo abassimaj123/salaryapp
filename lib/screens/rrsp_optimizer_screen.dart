@@ -10,6 +10,7 @@ import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
+import '../core/services/pdf_export_service.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
@@ -325,6 +326,24 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       l1: _buildL1(),
       l2: _buildL2(),
       label: label,
+    );
+  }
+
+  Future<void> _exportPdf(bool fr) async {
+    final r = _result;
+    if (r == null) return;
+    await PdfExportService.exportRrsp(
+      context: context,
+      grossIncome: r.grossIncome,
+      rrspRoom: r.rrspRoom,
+      contribution: r.contribution,
+      taxSaving: r.taxSaving,
+      netCost: r.netCost,
+      remainingRoom: r.remainingRoom,
+      marginalRate: r.marginalRate,
+      bracketLabel: r.bracketLabel,
+      province: _province,
+      fr: fr,
     );
   }
 
@@ -727,6 +746,26 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         SaveScenarioButton(onSave: _saveScenario),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () =>
+                PdfExportService.showUnlockOrPay(context, () => _exportPdf(fr)),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+            label: Text(fr ? 'Exporter PDF' : 'Export PDF'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 48),
+              side:
+                  BorderSide(color: AppTheme.primary.withValues(alpha: 0.4)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg)),
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            ),
+          ),
+        ),
       ],
     );
   }

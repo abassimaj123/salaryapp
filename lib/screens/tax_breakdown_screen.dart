@@ -7,6 +7,7 @@ import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/analytics/analytics_service.dart';
+import '../core/services/pdf_export_service.dart';
 import '../main.dart' show isSpanishNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
@@ -276,6 +277,27 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     );
   }
 
+  Future<void> _exportPdf(BuildContext context) async {
+    if (_grossAnnual == null || _brackets.isEmpty) return;
+    final es = FlavorConfig.isUS && isSpanishNotifier.value;
+    final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+    await PdfExportService.exportTaxBreakdown(
+      context: context,
+      grossAnnual: _grossAnnual!,
+      brackets: _brackets
+          .map((b) => (
+                min: b.min,
+                max: b.max,
+                rate: b.rate,
+                amountInBracket: b.amountInBracket,
+                taxOwed: b.taxOwed,
+              ))
+          .toList(),
+      fr: fr,
+      es: es,
+    );
+  }
+
   void _calculate() {
     if (!_formKey.currentState!.validate()) return;
     HapticFeedback.mediumImpact();
@@ -350,6 +372,46 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SaveScenarioButton(onSave: _saveScenario),
+                          const SizedBox(height: AppSpacing.sm),
+                          ValueListenableBuilder<bool>(
+                            valueListenable:
+                                freemiumService.hasFullAccessNotifier,
+                            builder: (context, isPremium, _) {
+                              final pdfLabel = fr
+                                  ? 'Exporter PDF'
+                                  : (es ? 'Exportar PDF' : 'Export PDF');
+                              return SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: Icon(isPremium
+                                      ? Icons.picture_as_pdf_rounded
+                                      : Icons.lock_outline_rounded),
+                                  label: Text(pdfLabel),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.primary,
+                                    side: BorderSide(
+                                        color: AppTheme.primary),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                            AppRadius.xl)),
+                                  ),
+                                  onPressed: () async {
+                                    HapticFeedback.mediumImpact();
+                                    if (!isPremium) {
+                                      await PdfExportService.showUnlockOrPay(
+                                        context,
+                                        () => _exportPdf(context),
+                                      );
+                                    } else {
+                                      await _exportPdf(context);
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          ),
                         ],
                         const SizedBox(height: AppSpacing.lg),
                       ],

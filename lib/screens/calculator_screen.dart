@@ -1728,9 +1728,12 @@ class _BenefitsCardState extends State<_BenefitsCard> {
                 onChanged: () => _update(_uniCtrl, (v) => _unionPct = v)),
             Divider(height: 20),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(netLabel,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: AppTextSize.md)),
+              Flexible(
+                child: Text(netLabel,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: AppTextSize.md)),
+              ),
+              const SizedBox(width: 8),
               Text(
                 _fmt(_netAfter),
                 style: TextStyle(
@@ -1744,9 +1747,11 @@ class _BenefitsCardState extends State<_BenefitsCard> {
             ]),
             const SizedBox(height: AppSpacing.xs),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
+              Flexible(child: Text(fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
                   style: TextStyle(
-                      fontSize: AppTextSize.sm, color: AppTheme.labelGray)),
+                      fontSize: AppTextSize.sm, color: AppTheme.labelGray),
+                  overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text(_fmt(_netAfter / 12),
                   style: TextStyle(
                       fontSize: AppTextSize.sm,
@@ -2857,8 +2862,10 @@ class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Income tax saved',
-                  style: TextStyle(fontSize: AppTextSize.sm)),
+              Flexible(child: Text('Income tax saved',
+                  style: TextStyle(fontSize: AppTextSize.sm),
+                  overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text(taxFmt,
                   style: TextStyle(
                       fontSize: AppTextSize.sm,
@@ -2870,7 +2877,10 @@ class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('NI saved', style: TextStyle(fontSize: AppTextSize.sm)),
+              Flexible(child: Text('NI saved',
+                  style: TextStyle(fontSize: AppTextSize.sm),
+                  overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text(niFmt,
                   style: TextStyle(
                       fontSize: AppTextSize.sm,
@@ -2882,10 +2892,12 @@ class _UkSalarySacrificeSavingsBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total savings',
+              Flexible(child: Text('Total savings',
                   style: TextStyle(
                       fontSize: AppTextSize.bodyMd,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text(totalFmt,
                   style: TextStyle(
                       fontSize: AppTextSize.bodyMd,

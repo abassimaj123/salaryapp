@@ -959,14 +959,18 @@ class _Step2Deductions extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          es
-                              ? 'Total créditos (W-4 Paso 3)'
-                              : 'Total credits (W-4 Step 3)',
-                          style: const TextStyle(
-                              fontSize: AppTextSize.md,
-                              fontWeight: FontWeight.w600),
+                        Flexible(
+                          child: Text(
+                            es
+                                ? 'Total créditos (W-4 Paso 3)'
+                                : 'Total credits (W-4 Step 3)',
+                            style: const TextStyle(
+                                fontSize: AppTextSize.md,
+                                fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           '\$${NumberFormat.currency(symbol: '', decimalDigits: 0).format(totalCredit)}',
                           style: TextStyle(
@@ -1303,38 +1307,63 @@ class _Step3Results extends StatelessWidget {
       build: (ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text('W-4 Withholding Wizard — 2025',
+          pw.Text(
+              es
+                  ? 'Asistente W-4 2025'
+                  : 'W-4 Withholding Wizard — 2025',
               style: pw.TextStyle(
                   fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
               style: const pw.TextStyle(fontSize: AppTextSize.xs)),
           pw.Divider(height: 24),
-          pw.Text('W-4 Recommended Values',
+          pw.Text(
+              es ? 'Valores recomendados W-4' : 'W-4 Recommended Values',
               style: pw.TextStyle(
                   fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
-          _pdfRow('Step 3 — Dependent Credits',
+          _pdfRow(
+              es
+                  ? 'Paso 3 — Créditos por dependientes'
+                  : 'Step 3 — Dependent Credits',
               '\$${r.step3DependentCredit.toStringAsFixed(0)}'),
-          _pdfRow('Step 4(b) — Other Deductions',
+          _pdfRow(
+              es
+                  ? 'Paso 4(b) — Deducciones adicionales'
+                  : 'Step 4(b) — Other Deductions',
               '\$${r.step4bDeductions.toStringAsFixed(0)}'),
-          _pdfRow('Step 4(c) — Extra per Paycheck',
+          _pdfRow(
+              es
+                  ? 'Paso 4(c) — Retención adicional por cheque'
+                  : 'Step 4(c) — Extra per Paycheck',
               '\$${r.step4cExtra.toStringAsFixed(2)}'),
           pw.Divider(height: 24),
-          pw.Text('Estimates',
+          pw.Text(
+              es ? 'Estimaciones' : 'Estimates',
               style: pw.TextStyle(
                   fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 8),
-          _pdfRow('Estimated Annual Tax',
+          _pdfRow(
+              es
+                  ? 'Impuesto federal anual estimado'
+                  : 'Estimated Annual Tax',
               '\$${r.estimatedAnnualTax.toStringAsFixed(2)}'),
-          _pdfRow('Estimated Annual Withholding',
+          _pdfRow(
+              es
+                  ? 'Retención estimada con estos ajustes'
+                  : 'Estimated Annual Withholding',
               '\$${r.estimatedWithholding.toStringAsFixed(2)}'),
-          _pdfRow(r.refundOrOwed >= 0 ? 'Expected Refund' : 'Amount Owed',
+          _pdfRow(
+              r.refundOrOwed >= 0
+                  ? (es ? 'Reembolso esperado' : 'Expected Refund')
+                  : (es ? 'Monto a pagar estimado' : 'Amount Owed'),
               '\$${r.refundOrOwed.abs().toStringAsFixed(2)}'),
           pw.SizedBox(height: 20),
           pw.Text(
-              '* Estimates based on IRS 2025 W-4 worksheet. '
-              'Submit updated W-4 to your employer.',
+              es
+                  ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador.'
+                  : '* Estimates based on IRS 2025 W-4 worksheet. '
+                      'Submit updated W-4 to your employer.',
               style: const pw.TextStyle(fontSize: 9)),
         ],
       ),

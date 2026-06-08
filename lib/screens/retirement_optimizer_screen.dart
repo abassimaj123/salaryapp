@@ -10,6 +10,7 @@ import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
+import '../core/services/pdf_export_service.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier, paywallSession, historyService;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
@@ -284,6 +285,25 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
 
     analyticsService.logCalculationCompleted(
         params: {'screen': '401k_optimizer', 'pct': _contributionPct.round()});
+  }
+
+  Future<void> _exportPdf(bool es) async {
+    final r = _result;
+    if (r == null) return;
+    await PdfExportService.exportRetirement(
+      context: context,
+      grossIncome: r.grossIncome,
+      contribution: r.contribution,
+      contributionLimit: r.contributionLimit,
+      taxSaving: r.taxSaving,
+      netCost: r.netCost,
+      takeHomeChangeMonthly: r.takeHomeChangeMonthly,
+      projectedValue30yr: r.projectedValue30yr,
+      utilizationPct: r.utilizationPct,
+      isMaxed: r.isMaxed,
+      age50Plus: r.age50Plus,
+      es: es,
+    );
   }
 
   Future<void> _showPaywall(bool es) async {
@@ -790,6 +810,26 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         SaveScenarioButton(onSave: _saveScenario),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () =>
+                PdfExportService.showUnlockOrPay(context, () => _exportPdf(es)),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+            label: Text(es ? 'Exportar PDF' : 'Export PDF'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 48),
+              side:
+                  BorderSide(color: AppTheme.primary.withValues(alpha: 0.4)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg)),
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -20,6 +20,7 @@ import '../core/freemium/iap_service.dart';
 import '../widgets/app_bar_actions.dart';
 import '../widgets/paywall_hard.dart';
 import '../widgets/save_scenario_button.dart';
+import '../core/services/pdf_export_service.dart';
 
 // ─── Salary comparison screen ─────────────────────────────────────────────────
 // Compares two salary offers side-by-side (US only):
@@ -214,6 +215,35 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     });
   }
 
+  Future<void> _exportPdf(bool es, bool fr) async {
+    final a = _resultA;
+    final b = _resultB;
+    if (a == null || b == null) return;
+    await PdfExportService.exportSalaryComparison(
+      context: context,
+      grossA: a.grossAnnual,
+      grossB: b.grossAnnual,
+      netAnnualA: a.netAnnual,
+      netAnnualB: b.netAnnual,
+      netMonthlyA: a.netMonthly,
+      netMonthlyB: b.netMonthly,
+      federalTaxA: a.federalTax,
+      federalTaxB: b.federalTax,
+      ficaTaxA: a.ficaTax,
+      ficaTaxB: b.ficaTax,
+      stateTaxA: a.stateTax,
+      stateTaxB: b.stateTax,
+      totalTaxA: a.totalTax,
+      totalTaxB: b.totalTax,
+      effectiveRateA: a.effectiveRate,
+      effectiveRateB: b.effectiveRate,
+      regionA: _regionA,
+      regionB: _regionB,
+      fr: fr,
+      es: es,
+    );
+  }
+
   /// Hard paywall for the cost-of-living comparison (US value feature).
   Future<void> _showColPaywall(bool es) async {
     await PaywallHard.show(
@@ -335,6 +365,47 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                         // ── Save Scenario button ─────────────────────────────
                         const SizedBox(height: AppSpacing.lg),
                         SaveScenarioButton(onSave: _saveScenario),
+                        const SizedBox(height: AppSpacing.sm),
+                        ValueListenableBuilder<bool>(
+                          valueListenable:
+                              freemiumService.hasFullAccessNotifier,
+                          builder: (context, isPremium, _) {
+                            final pdfLabel = fr
+                                ? 'Exporter PDF'
+                                : (es ? 'Exportar PDF' : 'Export PDF');
+                            return SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                            onPressed: () async {
+                              HapticFeedback.mediumImpact();
+                              if (!isPremium) {
+                                await PdfExportService.showUnlockOrPay(
+                                    context, () => _exportPdf(es, fr));
+                              } else {
+                                await _exportPdf(es, fr);
+                              }
+                            },
+                            icon: Icon(isPremium
+                                ? Icons.picture_as_pdf_rounded
+                                : Icons.lock_outline_rounded,
+                                size: 18),
+                            label: Text(pdfLabel),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              minimumSize: const Size(double.infinity, 48),
+                              side: BorderSide(
+                                  color: AppTheme.primary
+                                      .withValues(alpha: 0.4)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.lg)),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md),
+                            ),
+                          ),
+                            );
+                          },
+                        ),
 
                         // ── Cost-of-living adjustment (US flavor only) ───────
                         if (FlavorConfig.isUS) ...[

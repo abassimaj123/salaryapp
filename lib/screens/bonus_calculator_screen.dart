@@ -9,6 +9,7 @@ import '../core/theme/app_theme.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/analytics/analytics_service.dart';
+import '../core/services/pdf_export_service.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
@@ -346,6 +347,35 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     );
   }
 
+  Future<void> _exportPdf(BuildContext context) async {
+    final r = _result;
+    if (r == null) return;
+    final es = FlavorConfig.isUS && isSpanishNotifier.value;
+    final fr = FlavorConfig.isCA && isSpanishNotifier.value;
+    await PdfExportService.exportBonus(
+      context: context,
+      grossAnnual: r.grossAnnual,
+      bonusAmount: r.bonusAmount,
+      usFlatFederalTax: r.usFlatFederalTax ?? 0,
+      usFlatStateTax: r.usFlatStateTax ?? 0,
+      usFlatTotalTax: r.usFlatTotalTax ?? 0,
+      usFlatNetBonus: r.usFlatNetBonus ?? 0,
+      usAggregateTotalTax: r.usAggregateTotalTax ?? 0,
+      usAggregateNetBonus: r.usAggregateNetBonus ?? 0,
+      betterMethod: r.betterMethod ?? 'flat',
+      usState: _usState,
+      caFederalTax: r.caFederalTax ?? 0,
+      caProvincialTax: r.caProvincialTax ?? 0,
+      caTotalTax: r.caTotalTax ?? 0,
+      caNetBonus: r.caNetBonus ?? 0,
+      caProvince: _caProvince,
+      ukExtraTax: r.ukExtraTax ?? 0,
+      ukNetBonus: r.ukNetBonus ?? 0,
+      fr: fr,
+      es: es,
+    );
+  }
+
   double _parse(TextEditingController c) {
     // Strip all thousand-separator variants (comma, non-breaking space, etc.)
     final raw = c.text.replaceAll(RegExp('[,   ]'), '').replaceAll(RegExp(r'[^\d.]'), '');
@@ -428,6 +458,46 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           _ResultsSection(result: _result!, es: es, fr: fr),
                           const SizedBox(height: AppSpacing.lg),
                           SaveScenarioButton(onSave: _saveScenario),
+                          const SizedBox(height: AppSpacing.sm),
+                          ValueListenableBuilder<bool>(
+                            valueListenable:
+                                freemiumService.hasFullAccessNotifier,
+                            builder: (context, isPremium, _) {
+                              final pdfLabel = fr
+                                  ? 'Exporter PDF'
+                                  : (es ? 'Exportar PDF' : 'Export PDF');
+                              return SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: Icon(isPremium
+                                      ? Icons.picture_as_pdf_rounded
+                                      : Icons.lock_outline_rounded),
+                                  label: Text(pdfLabel),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.primary,
+                                    side: BorderSide(
+                                        color: AppTheme.primary),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                            AppRadius.xl)),
+                                  ),
+                                  onPressed: () async {
+                                    HapticFeedback.mediumImpact();
+                                    if (!isPremium) {
+                                      await PdfExportService.showUnlockOrPay(
+                                        context,
+                                        () => _exportPdf(context),
+                                      );
+                                    } else {
+                                      await _exportPdf(context);
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          ),
                         ],
                         const SizedBox(height: AppSpacing.lg),
                       ],
@@ -699,6 +769,7 @@ class _ResultsSection extends StatelessWidget {
                 title: flatTitle,
                 subtitle: flatDesc,
                 isBetter: flatBetter,
+                es: es,
                 rows: [
                   _MRow(federalLabel, _fmt(r.usFlatFederalTax!),
                       CalcwiseSemanticColors.error(
@@ -718,6 +789,7 @@ class _ResultsSection extends StatelessWidget {
                 title: aggTitle,
                 subtitle: aggDesc,
                 isBetter: !flatBetter,
+                es: es,
                 rows: [
                   _MRow(totalTaxLabel, _fmt(r.usAggregateTotalTax!),
                       CalcwiseSemanticColors.error(
@@ -929,12 +1001,14 @@ class _MethodCard extends StatelessWidget {
   final String subtitle;
   final bool isBetter;
   final List<_MRow> rows;
+  final bool es;
 
   const _MethodCard({
     required this.title,
     required this.subtitle,
     required this.isBetter,
     required this.rows,
+    this.es = false,
   });
 
   @override
@@ -971,8 +1045,8 @@ class _MethodCard extends StatelessWidget {
                       color: AppTheme.success,
                       borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
-                    child: const Text('BEST',
-                        style: TextStyle(
+                    child: Text(es ? 'MEJOR' : 'BEST',
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: AppTextSize.xxs,
                             fontWeight: FontWeight.w800,
