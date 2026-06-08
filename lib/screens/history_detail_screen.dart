@@ -226,6 +226,8 @@ class HistoryDetailScreen extends StatelessWidget {
           netHourly: r.netAnnual / 2080,
           country: entry.flavor.toUpperCase(),
           state: entry.region,
+          fr: fr,
+          es: es,
         ),
       );
       return;
@@ -244,6 +246,8 @@ class HistoryDetailScreen extends StatelessWidget {
       netHourly: r.netAnnual / 2080,
       country: entry.flavor.toUpperCase(),
       state: entry.region,
+      fr: fr,
+      es: es,
     );
     analyticsService.logPdfExported();
   }
