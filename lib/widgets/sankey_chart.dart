@@ -27,11 +27,15 @@ class SankeyChart extends StatelessWidget {
   final List<SankeyFlow> outflows;
   final String currencySymbol;
 
+  /// Label shown above the left bar (default: "Gross").
+  final String grossLabel;
+
   const SankeyChart({
     super.key,
     required this.gross,
     required this.outflows,
     this.currencySymbol = '\$',
+    this.grossLabel = 'Gross',
   });
 
   @override
@@ -47,6 +51,7 @@ class SankeyChart extends StatelessWidget {
           mutedColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           primary: theme.colorScheme.primary,
           currencySymbol: currencySymbol,
+          grossLabel: grossLabel,
         ),
       ),
     );
@@ -60,6 +65,7 @@ class _SankeyPainter extends CustomPainter {
   final Color mutedColor;
   final Color primary;
   final String currencySymbol;
+  final String grossLabel;
 
   _SankeyPainter({
     required this.gross,
@@ -68,6 +74,7 @@ class _SankeyPainter extends CustomPainter {
     required this.mutedColor,
     required this.primary,
     required this.currencySymbol,
+    required this.grossLabel,
   });
 
   @override
@@ -166,7 +173,9 @@ class _SankeyPainter extends CustomPainter {
       );
     }
 
-    // 5) Labels on the right of each right bar
+    // 5) Labels on the right of each right bar — with collision avoidance
+    final labels = <TextPainter>[];
+    final idealYs = <double>[];
     for (var i = 0; i < flows.length; i++) {
       final f = flows[i];
       final r = rightRects[i];
@@ -197,19 +206,49 @@ class _SankeyPainter extends CustomPainter {
         maxLines: 2,
         ellipsis: '…',
       )..layout(maxWidth: rightLabelW - 6);
+      labels.add(label);
+      idealYs.add(r.center.dy - label.height / 2);
+    }
 
-      // Vertically center label against the right bar, but never overflow
-      double labelY = r.center.dy - label.height / 2;
-      labelY = labelY.clamp(0.0, size.height - label.height);
-      label.paint(canvas, Offset(rightX + barW + 6, labelY));
+    // Resolve overlaps: push labels down when they collide
+    final resolvedYs = List<double>.from(idealYs);
+    const labelGap = 2.0;
+    for (var i = 1; i < resolvedYs.length; i++) {
+      final prevBottom = resolvedYs[i - 1] + labels[i - 1].height + labelGap;
+      if (resolvedYs[i] < prevBottom) {
+        resolvedYs[i] = prevBottom;
+      }
+    }
+    // If last label overflows bottom, shift all up proportionally
+    if (resolvedYs.isNotEmpty) {
+      final lastBottom =
+          resolvedYs.last + labels.last.height;
+      if (lastBottom > size.height) {
+        final shift = lastBottom - size.height;
+        for (var i = 0; i < resolvedYs.length; i++) {
+          resolvedYs[i] = (resolvedYs[i] - shift).clamp(0.0, size.height);
+        }
+        // Re-resolve after shifting up
+        for (var i = 1; i < resolvedYs.length; i++) {
+          final prevBottom =
+              resolvedYs[i - 1] + labels[i - 1].height + labelGap;
+          if (resolvedYs[i] < prevBottom) {
+            resolvedYs[i] = prevBottom;
+          }
+        }
+      }
+    }
+
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].paint(canvas, Offset(rightX + barW + 6, resolvedYs[i]));
     }
 
     // 6) "Gross" label above the left bar
-    final grossLabel = TextPainter(
+    final grossLabelPainter = TextPainter(
       text: TextSpan(
         children: [
           TextSpan(
-            text: 'Gross\n',
+            text: '$grossLabel\n',
             style: TextStyle(
               fontSize: AppTextSize.xs,
               fontWeight: FontWeight.w700,
@@ -225,9 +264,9 @@ class _SankeyPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     )..layout(maxWidth: 80);
-    grossLabel.paint(
+    grossLabelPainter.paint(
       canvas,
-      Offset(leftX + barW / 2 - grossLabel.width / 2, 0),
+      Offset(leftX + barW / 2 - grossLabelPainter.width / 2, 0),
     );
   }
 
