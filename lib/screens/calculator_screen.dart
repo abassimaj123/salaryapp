@@ -1377,23 +1377,20 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         const SizedBox(height: AppSpacing.md),
 
+        // Secondary export actions — compact icon row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _PdfExportButton(result: result, fr: fr, es: es, iconOnly: true),
+            _TotalCompReportButton(result: result, fr: fr, es: es, iconOnly: true),
+            _CsvExportButton(result: result, fr: fr, es: es, iconOnly: true),
+          ],
+        ),
+
+        const SizedBox(height: AppSpacing.sm),
+
         // Save Scenario (pin) — always visible; paywall is gated inside _saveScenario.
         SaveScenarioButton(onSave: widget.onSaveScenario),
-
-        const SizedBox(height: AppSpacing.sm),
-
-        // PDF export button
-        _PdfExportButton(result: result, fr: fr, es: es),
-
-        const SizedBox(height: AppSpacing.sm),
-
-        // Total Compensation Report PDF (premium-gated)
-        _TotalCompReportButton(result: result, fr: fr, es: es),
-
-        const SizedBox(height: AppSpacing.sm),
-
-        // CSV export button
-        _CsvExportButton(result: result, fr: fr, es: es),
 
         const SizedBox(height: AppSpacing.md),
         Text(
@@ -1954,11 +1951,13 @@ class _Slice {
 class _PdfExportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
+  final bool iconOnly;
 
   const _PdfExportButton({
     required this.result,
     required this.fr,
     required this.es,
+    this.iconOnly = false,
   });
 
   String get _label =>
@@ -1969,6 +1968,29 @@ class _PdfExportButton extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
+        Future<void> onPressed() async {
+          HapticFeedback.mediumImpact();
+          if (!isPremium) {
+            await PdfExportService.showUnlockOrPay(
+              context,
+              () => _exportPdf(context),
+            );
+            return;
+          }
+          await _exportPdf(context);
+        }
+        if (iconOnly) {
+          return Tooltip(
+            message: _label,
+            child: IconButton(
+              icon: Icon(isPremium
+                  ? Icons.picture_as_pdf_rounded
+                  : Icons.lock_outline_rounded),
+              color: AppTheme.primary,
+              onPressed: onPressed,
+            ),
+          );
+        }
         return SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -1983,17 +2005,7 @@ class _PdfExportButton extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.xl)),
             ),
-            onPressed: () async {
-              HapticFeedback.mediumImpact();
-              if (!isPremium) {
-                await PdfExportService.showUnlockOrPay(
-                  context,
-                  () => _exportPdf(context),
-                );
-                return;
-              }
-              await _exportPdf(context);
-            },
+            onPressed: onPressed,
           ),
         );
       },
@@ -2114,11 +2126,13 @@ class _PdfExportButton extends StatelessWidget {
 class _TotalCompReportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
+  final bool iconOnly;
 
   const _TotalCompReportButton({
     required this.result,
     required this.fr,
     required this.es,
+    this.iconOnly = false,
   });
 
   String get _label => fr
@@ -2130,6 +2144,32 @@ class _TotalCompReportButton extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
+        Future<void> onPressed() async {
+          HapticFeedback.mediumImpact();
+          if (!isPremium) {
+            PaywallHard.show(
+              context,
+              isSpanish: es,
+              isFrench: fr,
+              priceLabel: IAPService.instance.localizedPrice.value,
+              onPurchase: IAPService.instance.buy,
+            );
+            return;
+          }
+          await _exportTotalCompPdf(context);
+        }
+        if (iconOnly) {
+          return Tooltip(
+            message: _label,
+            child: IconButton(
+              icon: Icon(isPremium
+                  ? Icons.volunteer_activism_rounded
+                  : Icons.lock_outline_rounded),
+              color: AppTheme.primary,
+              onPressed: onPressed,
+            ),
+          );
+        }
         return SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -2144,20 +2184,7 @@ class _TotalCompReportButton extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.xl)),
             ),
-            onPressed: () async {
-              HapticFeedback.mediumImpact();
-              if (!isPremium) {
-                PaywallHard.show(
-                  context,
-                  isSpanish: es,
-                  isFrench: fr,
-                  priceLabel: IAPService.instance.localizedPrice.value,
-                  onPurchase: IAPService.instance.buy,
-                );
-                return;
-              }
-              await _exportTotalCompPdf(context);
-            },
+            onPressed: onPressed,
           ),
         );
       },
@@ -2359,11 +2386,13 @@ class _TotalCompReportButton extends StatelessWidget {
 class _CsvExportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
+  final bool iconOnly;
 
   const _CsvExportButton({
     required this.result,
     required this.fr,
     required this.es,
+    this.iconOnly = false,
   });
 
   String get _label =>
@@ -2374,6 +2403,29 @@ class _CsvExportButton extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: freemiumService.hasFullAccessNotifier,
       builder: (context, isPremium, _) {
+        Future<void> onPressed() async {
+          HapticFeedback.mediumImpact();
+          if (!isPremium) {
+            await PdfExportService.showUnlockOrPay(
+              context,
+              () => _exportCsv(context),
+            );
+            return;
+          }
+          await _exportCsv(context);
+        }
+        if (iconOnly) {
+          return Tooltip(
+            message: _label,
+            child: IconButton(
+              icon: Icon(isPremium
+                  ? Icons.table_chart_outlined
+                  : Icons.lock_outline_rounded),
+              color: AppTheme.primary,
+              onPressed: onPressed,
+            ),
+          );
+        }
         return SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -2388,17 +2440,7 @@ class _CsvExportButton extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.xl)),
             ),
-            onPressed: () async {
-              HapticFeedback.mediumImpact();
-              if (!isPremium) {
-                await PdfExportService.showUnlockOrPay(
-                  context,
-                  () => _exportCsv(context),
-                );
-                return;
-              }
-              await _exportCsv(context);
-            },
+            onPressed: onPressed,
           ),
         );
       },
