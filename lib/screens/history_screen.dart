@@ -16,7 +16,8 @@ import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  const HistoryScreen({super.key, this.showAppBar = false});
+  final bool showAppBar;
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
@@ -143,30 +144,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
         final hasEntries = _pinned.isNotEmpty || _recent.isNotEmpty;
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(title),
-            actions: [
-              if (hasEntries)
-                IconButton(
-                  icon: Icon(Icons.delete_sweep_rounded),
-                  tooltip:
-                      fr ? 'Tout effacer' : (es ? 'Borrar todo' : 'Clear All'),
-                  onPressed: () => _confirmClearAll(fr, es),
-                ),
-              IconButton(
-                icon: Icon(Icons.refresh_rounded),
-                onPressed: _load,
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              Expanded(child: _buildBody(empty, limitMsg, fr, es)),
-              const CalcwiseAdFooter(),
-            ],
-          ),
+        final bodyContent = Column(
+          children: [
+            Expanded(child: _buildBody(empty, limitMsg, fr, es)),
+            const CalcwiseAdFooter(),
+          ],
         );
+        return widget.showAppBar
+            ? Scaffold(
+                appBar: AppBar(
+                  title: Text(title),
+                  actions: [
+                    if (hasEntries)
+                      IconButton(
+                        icon: Icon(Icons.delete_sweep_rounded),
+                        tooltip: fr
+                            ? 'Tout effacer'
+                            : (es ? 'Borrar todo' : 'Clear All'),
+                        onPressed: () => _confirmClearAll(fr, es),
+                      ),
+                    IconButton(
+                      icon: Icon(Icons.refresh_rounded),
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
+                body: bodyContent,
+              )
+            : bodyContent;
       },
     );
   }
