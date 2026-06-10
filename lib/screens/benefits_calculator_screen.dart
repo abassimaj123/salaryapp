@@ -16,6 +16,7 @@ import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwisePageEntrance,
         CalcwisePremiumGate,
         PaywallSoft,
         AppDuration,
@@ -378,7 +379,8 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
               'Calculateur d\'avantages',
             )),
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -668,7 +670,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

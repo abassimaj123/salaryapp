@@ -358,7 +358,8 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
         return Scaffold(
           appBar: AppBar(title: Text(titleText)),
-          body: Column(children: [
+          body: CalcwisePageEntrance(
+              child: Column(children: [
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -450,7 +451,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
               ),
             ),
             const CalcwiseAdFooter(),
-          ]),
+          ])),
         );
       },
     );

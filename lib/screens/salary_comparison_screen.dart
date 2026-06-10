@@ -272,7 +272,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
             leading: const BackButton(),
             actions: const [AppBarActions()],
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -444,7 +445,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

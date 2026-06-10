@@ -421,7 +421,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -508,7 +509,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

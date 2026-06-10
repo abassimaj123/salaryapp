@@ -14,6 +14,7 @@ import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
+        CalcwisePageEntrance,
         CalcwisePremiumGate,
         PaywallSoft,
         AppSpacing,
@@ -339,7 +340,8 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -422,7 +424,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

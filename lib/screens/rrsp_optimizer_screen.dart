@@ -18,6 +18,7 @@ import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwisePageEntrance,
         CalcwisePremiumGate,
         PaywallSoft,
         AppSpacing,
@@ -405,7 +406,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
           appBar: AppBar(
             title: Text(titleStr),
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -658,7 +660,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

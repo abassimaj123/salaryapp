@@ -74,7 +74,8 @@ class HistoryDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: ListView(
@@ -201,7 +202,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     : const CalcwiseAdFooter(),
               ),
             ],
-          ),
+          )),
         );
       },
     );

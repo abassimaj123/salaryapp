@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart'
-    show CalcwiseAdFooter, AppDuration, AppSpacing, AppTextSize;
+    show CalcwiseAdFooter, CalcwisePageEntrance, AppDuration, AppSpacing, AppTextSize;
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../main.dart' show isSpanishNotifier, salaryNotifier;
@@ -50,7 +50,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
             title: Text(t('Reports', 'Reportes')),
             elevation: 0,
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               Expanded(
                 child: ListView(
@@ -148,7 +149,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );

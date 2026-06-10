@@ -415,7 +415,8 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
                   )
                 : null,
           ),
-          body: Column(
+          body: CalcwisePageEntrance(
+              child: Column(
             children: [
               _StepIndicator(
                 currentStep: _step,
@@ -475,7 +476,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
               ),
               const CalcwiseAdFooter(),
             ],
-          ),
+          )),
         );
       },
     );
