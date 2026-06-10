@@ -626,8 +626,8 @@ class CaSalaryEngine {
   static const double _yampe2025 = 81900; // CPP2 ceiling
   static const double _cpp1Rate = 0.0595;
   static const double _cpp2Rate = 0.04;
-  static const double _eiInsurableMax2025 = 63200;
-  static const double _eiRate2025 = 0.0166; // employee rate
+  static const double _eiInsurableMax2025 = 65700;
+  static const double _eiRate2025 = 0.0164; // employee rate
 
   /// CPP1 2025: 5.95% on earnings $3,500–$71,300 (YMPE).
   static double cpp1(double grossAnnual) {
@@ -647,7 +647,7 @@ class CaSalaryEngine {
   static double cpp(double grossAnnual) =>
       cpp1(grossAnnual) + cpp2(grossAnnual);
 
-  /// EI 2025: 1.66% up to insurable max $65,700.
+  /// EI 2025: 1.64% up to insurable max $65,700.
   static double ei(double grossAnnual) {
     return grossAnnual.clamp(0, _eiInsurableMax2025) * _eiRate2025;
   }

@@ -28,7 +28,7 @@ import 'package:calcwise_core/calcwise_core.dart'
 // ─── RRSP Optimizer (CA flavor only) ────────────────────────────────────────
 //
 // How much RRSP contribution minimizes tax to reach a target federal bracket.
-// 2025 RRSP hard cap: $31,560 (18% of prior year earned income, max $31,560).
+// 2025 RRSP hard cap: $32,490 (18% of prior year earned income, max $32,490).
 // Basic Personal Amount 2025: $16,129.
 
 
@@ -213,7 +213,7 @@ class RrspOptimizerScreen extends StatefulWidget {
 
 class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   final _grossCtrl = TextEditingController();
-  final _rrspRoomCtrl = TextEditingController(text: '31560');
+  final _rrspRoomCtrl = TextEditingController(text: '32490');
 
   String _province = 'ON';
   int _targetBracketIndex = 1; // 20.5% default
@@ -300,6 +300,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
+      onSaved: () { if (mounted) setState(() {}); },
     );
   }
 
@@ -362,7 +363,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
 
     final result = _RrspEngine.calculate(
       grossIncome: gross,
-      rrspRoom: room.clamp(0, 31560),
+      rrspRoom: room.clamp(0, 32490),
       targetBracketIndex: _targetBracketIndex,
       province: _province,
     );
@@ -463,10 +464,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 decoration: InputDecoration(
                                   labelText: rrspRoomLabel,
                                   prefixText: 'CA\$ ',
-                                  hintText: '31560',
+                                  hintText: '32490',
                                   helperText: fr
-                                      ? 'Max 2025 : 31 560 \$ (18% du revenu gagné)'
-                                      : '2025 max: \$31,560 (18% of prior year earned income)',
+                                      ? 'Max 2025 : 32 490 \$ (18% du revenu gagné)'
+                                      : '2025 max: \$32,490 (18% of prior year earned income)',
                                 ),
                                 style: const TextStyle(
                                     fontSize: AppTextSize.bodyLg,
