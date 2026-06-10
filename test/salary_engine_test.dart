@@ -11,6 +11,10 @@ void main() {
 
   // ─── US Engine ───────────────────────────────────────────────────────────
 
+  // Source: IRS Rev. Proc. 2024-61 — 2025 tax year brackets
+  // Standard deduction: $15,000 (single). Brackets: 10%/$11,925, 12%/$48,475, 22%/$103,350,
+  // 24%/$197,300, 32%/$250,525, 35%/$626,350, 37%/above.
+  // irs.gov/pub/irs-drop/rp-24-61.pdf
   group('UsSalaryEngine — federal tax', () {
     test('zero income', () => approx(UsSalaryEngine.federalTax(0), 0));
 
@@ -50,6 +54,8 @@ void main() {
     });
   });
 
+  // Source: SSA 2025 — SS wage base $176,100 (Notice 2024-80), employee rate 6.2%, Medicare 1.45%
+  // ssa.gov/news/press/releases/2024/#10-2024-na
   group('UsSalaryEngine — FICA', () {
     test('\$50,000 income', () {
       // SS: 50000*0.062=3100, Med: 50000*0.0145=725 → 3825
@@ -108,6 +114,9 @@ void main() {
 
   // ─── UK Engine ───────────────────────────────────────────────────────────
 
+  // Source: HMRC 2025/26 — Personal allowance £12,570, basic rate band £37,700 (20%),
+  // higher rate above £50,270 (40%), additional rate above £125,140 (45%).
+  // PA tapers £1 per £2 above £100,000. gov.uk/income-tax-rates
   group('UkSalaryEngine — income tax', () {
     test('below personal allowance £10,000 → 0', () {
       expect(UkSalaryEngine.incomeTax(10000), 0.0);
@@ -135,6 +144,8 @@ void main() {
     });
   });
 
+  // Source: HMRC 2025/26 — NI thresholds: lower £12,570, upper £50,270.
+  // Employee rates: 8% (lower→upper), 2% (above upper). gov.uk/national-insurance
   group('UkSalaryEngine — NI', () {
     test('below £12,570 → 0', () {
       expect(UkSalaryEngine.nationalInsurance(12000), 0.0);
@@ -241,6 +252,8 @@ void main() {
     });
   });
 
+  // Source: CRA T4032 2025 — CPP base ceiling $71,300 @ 5.95%, CPP2 ceiling $81,900 @ 4.00%
+  // canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/payroll-deductions-contributions/canada-pension-plan-cpp/cpp-contribution-rates-maximums-exemptions.html
   group('CaSalaryEngine — CPP', () {
     test('below \$3,500 floor → 0', () {
       expect(CaSalaryEngine.cpp(3000), 0.0);
@@ -284,6 +297,7 @@ void main() {
       approx(CaSalaryEngine.provincialTax(60000, 'ON'), taxable * 0.0505);
     });
 
+    // Source: Revenu Québec — 2026 tax brackets: 14% ≤$51,780, 19% ≤$103,545, 24% ≤$126,000, 25.75% above
     test('Quebec — 4-bracket progressive (2026)', () {
       // $80k gross: taxable = 80000 - 17183 = 62817
       // bracket1: 51780 × 14% = 7249.20
