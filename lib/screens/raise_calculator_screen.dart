@@ -131,6 +131,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
+      onSaved: () { if (mounted) setState(() {}); },
     );
   }
 

@@ -182,41 +182,61 @@ void main() {
   // ─── CA Engine ───────────────────────────────────────────────────────────
 
   group('CaSalaryEngine — federal tax', () {
+    // Anti-drift: bracket boundaries and cumulative-tax constants below mirror
+    // CaSalaryEngine.federalTax() in salary_engine.dart exactly.
+    // When that function changes, update these constants to match.
+    // source: salary_engine.dart — CaSalaryEngine.federalTax()
+    const kBpa = 16129.0;           // Basic Personal Amount 2025
+    const kBracket1Upper = 57375.0; // bracket 1 ceiling
+    const kBracket1Rate = 0.15;
+    const kBracket1Tax = 8606.25;   // 57375 × 0.15
+    const kBracket2Rate = 0.205;
+    const kBracket3Upper = 158519.0; // bracket 3 ceiling
+    const kBracket3Tax = 31736.48;  // accumulated tax at bracket 3 ceiling
+    const kBracket4Upper = 220000.0; // bracket 4 ceiling
+    const kBracket4Rate = 0.29;
+    const kBracket4Tax = 49566.77;  // accumulated tax at bracket 4 ceiling
+    const kBracket5Rate = 0.33;
+
     test('below BPA \$16,129 → 0', () {
-      expect(CaSalaryEngine.federalTax(16129), 0.0);
+      expect(CaSalaryEngine.federalTax(kBpa), 0.0);
     });
 
     test('\$40,000 → 15% on taxable', () {
-      // taxable = 40000-16129 = 23871 (BPA 2025: $16,129)
-      approx(CaSalaryEngine.federalTax(40000), 23871 * 0.15, tolerance: 1.0);
+      // taxable = 40000 - kBpa = 23871 (all in bracket 1)
+      approx(CaSalaryEngine.federalTax(40000), (40000 - kBpa) * kBracket1Rate, tolerance: 1.0);
     });
 
     test('\$80,000 — second bracket', () {
-      // taxable=63871; 8606.25 + (63871-57375)*0.205 (2025 brackets, BPA $16,129)
+      // taxable=63871; kBracket1Tax + (taxable - kBracket1Upper) × kBracket2Rate
+      final taxable = 80000 - kBpa;
       approx(
-          CaSalaryEngine.federalTax(80000), 8606.25 + (63871 - 57375) * 0.205,
+          CaSalaryEngine.federalTax(80000),
+          kBracket1Tax + (taxable - kBracket1Upper) * kBracket2Rate,
           tolerance: 1.0);
     });
 
-    test('\$130,000 — third bracket', () {
-      // taxable=113871 (< 114750) → still in 2nd bracket
-      // 8606.25 + (113871-57375)*0.205 (2025 brackets, BPA $16,129)
+    test('\$130,000 — still second bracket (taxable=113871 < 114750)', () {
+      // taxable=113871 < bracket 2 ceiling (114750) → still in 2nd bracket
+      final taxable = 130000 - kBpa;
       approx(CaSalaryEngine.federalTax(130000),
-          8606.25 + (113871 - 57375) * 0.205,
+          kBracket1Tax + (taxable - kBracket1Upper) * kBracket2Rate,
           tolerance: 1.0);
     });
 
     test('\$180,000 — fourth bracket', () {
-      // taxable=163871; 31736.48 + (163871-158519)*0.29 (2025 brackets, BPA $16,129)
+      // taxable=163871 > kBracket3Upper → fourth bracket
+      final taxable = 180000 - kBpa;
       approx(CaSalaryEngine.federalTax(180000),
-          31736.48 + (163871 - 158519) * 0.29,
+          kBracket3Tax + (taxable - kBracket3Upper) * kBracket4Rate,
           tolerance: 1.0);
     });
 
     test('\$250,000 — top bracket 33%', () {
-      // taxable=233871; 49566.77 + (233871-220000)*0.33 (2025 brackets, BPA $16,129)
+      // taxable=233871 > kBracket4Upper → top bracket
+      final taxable = 250000 - kBpa;
       approx(CaSalaryEngine.federalTax(250000),
-          49566.77 + (233871 - 220000) * 0.33,
+          kBracket4Tax + (taxable - kBracket4Upper) * kBracket5Rate,
           tolerance: 1.0);
     });
   });

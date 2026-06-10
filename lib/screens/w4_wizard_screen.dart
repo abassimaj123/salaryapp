@@ -323,6 +323,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
+      onSaved: () { if (mounted) setState(() {}); },
     );
   }
 

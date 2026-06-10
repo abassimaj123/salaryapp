@@ -312,6 +312,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
+      onSaved: () { if (mounted) setState(() {}); },
     );
   }
 

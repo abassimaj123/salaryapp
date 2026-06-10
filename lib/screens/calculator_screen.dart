@@ -259,6 +259,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       inputHash: _scenarioHash(res),
       l1: _buildL1(res),
       l2: _buildL2(res),
+      onSaved: () { if (mounted) setState(() {}); },
     );
     adService.onSave();
     try {
