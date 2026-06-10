@@ -18,6 +18,7 @@ import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwiseScreenScaffold,
         AppDuration,
         AppSpacing,
         AppRadius,
@@ -650,8 +651,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
         es ? 'Aportación 401(k) anual' : '401(k) Annual Contribution';
     final heroValue = _fmt(r.contribution);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return CalcwiseScreenScaffold(
+      resultKey: ValueKey(_result.hashCode),
       children: [
         CalcwiseHeroCard(
           label: heroLabel,
