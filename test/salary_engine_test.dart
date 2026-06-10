@@ -260,12 +260,15 @@ void main() {
   });
 
   group('CaSalaryEngine — EI', () {
-    test('\$50,000 — 1.66%', () {
-      approx(CaSalaryEngine.ei(50000), 50000 * 0.0166);
+    // Source: CRA T4032 2025 — rate 1.64%, max insurable $65,700
+    test('\$50,000 — 1.64% (2025)', () {
+      approx(CaSalaryEngine.ei(50000), 50000 * 0.0164);
     });
 
     test('EI caps at \$65,700 (2025 max insurable earnings)', () {
-      // 2025: EI max insurable earnings = $65,700 (up from $63,200 in 2024)
+      // CRA 2025: max insurable = $65,700, employee rate 1.64%
+      // max annual EI premium = $65,700 × 0.0164 = $1,077.48
+      approx(CaSalaryEngine.ei(65700), 65700 * 0.0164);
       final atCap = CaSalaryEngine.ei(65700);
       final aboveCap = CaSalaryEngine.ei(80000);
       approx(atCap, aboveCap);
