@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:calcwise_core/calcwise_core.dart';
@@ -155,7 +156,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
-      onSaved: () { if (mounted) setState(() {}); },
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
     );
   }
 

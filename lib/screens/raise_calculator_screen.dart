@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -131,7 +132,10 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
-      onSaved: () { if (mounted) setState(() {}); },
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
     );
   }
 

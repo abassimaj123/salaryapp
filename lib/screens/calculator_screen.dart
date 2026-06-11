@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:calcwise_core/calcwise_core.dart' hide PaywallHard;
@@ -259,7 +260,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       inputHash: _scenarioHash(res),
       l1: _buildL1(res),
       l2: _buildL2(res),
-      onSaved: () { if (mounted) setState(() {}); },
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
     );
     adService.onSave();
     try {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
@@ -323,7 +324,10 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
-      onSaved: () { if (mounted) setState(() {}); },
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
     );
   }
 
@@ -381,6 +385,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       payFrequency: _payFrequency,
     );
     setState(() => _result = result);
+    analyticsService.logCalculationCompleted();
     _nextStep(); // advances _step to 2 — _scheduleAutoSave checks _step == 2
     _scheduleAutoSave();
     paywallSession.recordAction();

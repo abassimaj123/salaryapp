@@ -1,6 +1,7 @@
 import 'dart:math' show min, pow;
 
 import 'package:flutter/material.dart';
+import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -301,7 +302,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       inputHash: _buildHash(),
       l1: _buildL1(),
       l2: _buildL2(),
-      onSaved: () { if (mounted) setState(() {}); },
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
     );
   }
 
