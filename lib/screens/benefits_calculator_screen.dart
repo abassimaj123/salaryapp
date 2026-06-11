@@ -15,6 +15,7 @@ import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
+        AmountFormatter,
         CalcwiseAdFooter,
         CalcwiseHeroCard,
         CalcwisePageEntrance,
@@ -640,6 +641,8 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                                   'Salario + Beneficios / año',
                                   'Salaire + Avantages / an',
                                 ),
+                                rawValue: _result!.totalCompensation,
+                                valueFormatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode),
                                 gradient: LinearGradient(
                                   colors: [
                                     AppTheme.primary,
@@ -709,6 +712,12 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
             'Salario + Beneficios / año',
             'Salaire + Avantages / an',
           ),
+          rawValue: r.totalCompensation,
+          valueFormatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode),
+          rawStats: [
+            (label: t('Base Salary', 'Salario base', 'Salaire de base'), value: r.baseSalary, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
+            (label: t('Total Benefits', 'Total beneficios', 'Total avantages'), value: r.totalBenefits, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
+          ],
           gradient: LinearGradient(
             colors: [
               AppTheme.primary,

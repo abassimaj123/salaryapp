@@ -17,6 +17,7 @@ import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
+        AmountFormatter,
         CalcwiseAdFooter,
         CalcwiseHeroCard,
         CalcwisePageEntrance,
@@ -633,6 +634,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                     ? 'Vous êtes déjà dans la tranche cible'
                                     : 'You\'re already in the target bracket')
                                 : null,
+                            rawValue: _result!.contribution,
+                            valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
                             gradient: LinearGradient(
                               colors: [
                                 AppTheme.primary,
@@ -687,6 +690,12 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                   ? 'Vous êtes déjà dans la tranche cible'
                   : 'You\'re already in the target bracket')
               : null,
+          rawValue: r.contribution,
+          valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
+          rawStats: [
+            (label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund', value: r.taxSaving, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+            (label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund', value: r.netCost, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+          ],
           gradient: LinearGradient(
             colors: [
               AppTheme.primary,

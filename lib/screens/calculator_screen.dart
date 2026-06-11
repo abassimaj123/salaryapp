@@ -1141,6 +1141,13 @@ class _ResultsSectionState extends State<_ResultsSection> {
               ? 'Après impôts'
               : (es ? 'Después de impuestos' : 'After taxes'),
           backgroundColor: AppTheme.primary,
+          rawValue: adjustedNetAnnual,
+          valueFormatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode),
+          rawStats: [
+            (label: monthlyLabel, value: adjustedNetMonthly, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
+            (label: totalTaxLabel, value: adjustedTotalTax, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
+            (label: effectiveLabel, value: adjustedEffectiveRate, formatter: (v) => '${v.toStringAsFixed(1)}%'),
+          ],
           stats: [
             (label: monthlyLabel, value: _fmt(adjustedNetMonthly)),
             (label: totalTaxLabel, value: _fmt(adjustedTotalTax)),

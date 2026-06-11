@@ -17,6 +17,7 @@ import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
     show
+        AmountFormatter,
         CalcwiseAdFooter,
         CalcwiseHeroCard,
         CalcwiseScreenScaffold,
@@ -664,6 +665,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
           secondary: r.isMaxed
               ? (es ? 'Máximo IRS alcanzado' : 'IRS max reached')
               : null,
+          rawValue: r.contribution,
+          valueFormatter: (v) => AmountFormatter.ui(v, 'USD'),
           gradient: LinearGradient(
             colors: [
               AppTheme.primary,
