@@ -20,7 +20,8 @@ import 'package:calcwise_core/calcwise_core.dart'
         iapErrorNotifier,
         showIapErrorSnackBar,
         showPremiumWelcomeSnackBar,
-        SmartHistoryService;
+        SmartHistoryService,
+        CalcwiseTabReveal;
 import 'core/db/salary_database_adapter.dart';
 import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -302,7 +303,16 @@ class _MainShellState extends State<MainShell> {
               ),
             ],
           ),
-          body: IndexedStack(index: _index, children: _pages),
+          body: Stack(
+            fit: StackFit.expand,
+            children: List.generate(
+              _pages.length,
+              (i) => IgnorePointer(
+                ignoring: _index != i,
+                child: CalcwiseTabReveal(active: _index == i, child: _pages[i]),
+              ),
+            ),
+          ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: (i) async {
