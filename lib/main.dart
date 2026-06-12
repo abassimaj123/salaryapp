@@ -127,6 +127,7 @@ void main() async {
     isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
     isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
     onGetPremium: () => IAPService.instance.buy(),
+    analytics: AnalyticsService.instance,
   );
   CalcwiseRewardAdSheet.configure(
     adService: adService,
