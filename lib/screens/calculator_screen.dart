@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
@@ -77,6 +78,245 @@ extension _FreqLabel on PayFrequency {
         return amount * 40 * 52;
     }
   }
+}
+
+// ─── Isolate params + top-level PDF builders ─────────────────────────────────
+
+class _SalaryAnalysisPdfParams {
+  final double grossAnnual, federalTax, ficaTax, stateTax, totalTax, netAnnual,
+      netMonthly, effectiveRate;
+  final String currencySymbol, dateStr;
+  final String federalLabel, ficaLabel, stateLabel, grossLabel, netLabel,
+      totalLabel, rateLabel, monthLabel, titleText;
+  final bool hasFica, hasState;
+  const _SalaryAnalysisPdfParams({
+    required this.grossAnnual,
+    required this.federalTax,
+    required this.ficaTax,
+    required this.stateTax,
+    required this.totalTax,
+    required this.netAnnual,
+    required this.netMonthly,
+    required this.effectiveRate,
+    required this.currencySymbol,
+    required this.dateStr,
+    required this.federalLabel,
+    required this.ficaLabel,
+    required this.stateLabel,
+    required this.grossLabel,
+    required this.netLabel,
+    required this.totalLabel,
+    required this.rateLabel,
+    required this.monthLabel,
+    required this.titleText,
+    required this.hasFica,
+    required this.hasState,
+  });
+}
+
+Future<Uint8List> _buildSalaryAnalysisPdfBytes(
+    _SalaryAnalysisPdfParams p) async {
+  final fmtCurrency =
+      NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 2);
+  String fmtPct(double v) => '${v.toStringAsFixed(1)}%';
+
+  pw.Widget pdfRow(String label, String value) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label, style: const pw.TextStyle(fontSize: AppTextSize.sm)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+      );
+
+  final doc = pw.Document();
+  doc.addPage(pw.Page(
+    build: (ctx) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(p.titleText,
+            style: pw.TextStyle(
+                fontSize: AppTextSize.titleMd,
+                fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 4),
+        pw.Text(p.dateStr,
+            style: const pw.TextStyle(fontSize: AppTextSize.xs)),
+        pw.Divider(height: 20),
+        pdfRow(p.grossLabel, fmtCurrency.format(p.grossAnnual)),
+        pdfRow(p.federalLabel, fmtCurrency.format(p.federalTax)),
+        if (p.hasFica) pdfRow(p.ficaLabel, fmtCurrency.format(p.ficaTax)),
+        if (p.hasState) pdfRow(p.stateLabel, fmtCurrency.format(p.stateTax)),
+        pdfRow(p.totalLabel, fmtCurrency.format(p.totalTax)),
+        pdfRow(p.rateLabel, fmtPct(p.effectiveRate)),
+        pw.Divider(height: 20),
+        pdfRow(p.netLabel, fmtCurrency.format(p.netAnnual)),
+        pdfRow(p.monthLabel, fmtCurrency.format(p.netMonthly)),
+      ],
+    ),
+  ));
+  return await doc.save();
+}
+
+class _TotalCompPdfParams {
+  final double grossAnnual, federalTax, ficaTax, stateTax, totalTax, netAnnual,
+      healthAnnual, retirementAnnual, ptoAnnual, totalBenefits, totalComp;
+  final String currencySymbol, dateStr;
+  final String federalLabel, ficaLabel, stateLabel, retLabel, titleText;
+  final bool hasFica, hasState, isUK, fr, es;
+  const _TotalCompPdfParams({
+    required this.grossAnnual,
+    required this.federalTax,
+    required this.ficaTax,
+    required this.stateTax,
+    required this.totalTax,
+    required this.netAnnual,
+    required this.healthAnnual,
+    required this.retirementAnnual,
+    required this.ptoAnnual,
+    required this.totalBenefits,
+    required this.totalComp,
+    required this.currencySymbol,
+    required this.dateStr,
+    required this.federalLabel,
+    required this.ficaLabel,
+    required this.stateLabel,
+    required this.retLabel,
+    required this.titleText,
+    required this.hasFica,
+    required this.hasState,
+    required this.isUK,
+    required this.fr,
+    required this.es,
+  });
+}
+
+Future<Uint8List> _buildTotalCompPdfBytes(_TotalCompPdfParams p) async {
+  final fmtCur = NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 0);
+  final fmtCur2 = NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 2);
+
+  pw.Widget pdfRow(String label, String value, {bool bold = false}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 3),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label,
+                style: const pw.TextStyle(fontSize: AppTextSize.sm)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          ],
+        ),
+      );
+
+  final doc = pw.Document();
+  doc.addPage(pw.Page(
+    build: (ctx) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          p.fr
+              ? 'Rapport de rémunération globale'
+              : p.es
+                  ? 'Informe de compensación total'
+                  : 'Total Compensation Report',
+          style: pw.TextStyle(
+              fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(p.dateStr,
+            style: const pw.TextStyle(fontSize: AppTextSize.xs)),
+        pw.Divider(height: 20),
+        pw.Text(
+          p.fr
+              ? 'Analyse salariale'
+              : (p.es ? 'Análisis salarial' : 'Salary Breakdown'),
+          style: pw.TextStyle(
+              fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        pdfRow(
+            p.fr
+                ? 'Salaire brut'
+                : (p.es ? 'Salario bruto' : 'Gross Salary'),
+            fmtCur.format(p.grossAnnual)),
+        pdfRow(p.federalLabel, fmtCur.format(p.federalTax)),
+        if (p.hasFica) pdfRow(p.ficaLabel, fmtCur.format(p.ficaTax)),
+        if (p.hasState) pdfRow(p.stateLabel, fmtCur.format(p.stateTax)),
+        pdfRow(
+            p.fr
+                ? 'Total impôts'
+                : (p.es ? 'Total impuestos' : 'Total Tax'),
+            fmtCur.format(p.totalTax)),
+        pdfRow(
+            p.fr ? 'Salaire net' : (p.es ? 'Salario neto' : 'Net Salary'),
+            fmtCur2.format(p.netAnnual)),
+        pw.Divider(height: 20),
+        pw.Text(
+          p.fr
+              ? 'Avantages (hypothèses par défaut)'
+              : p.es
+                  ? 'Beneficios (hipótesis por defecto)'
+                  : 'Benefits (default assumptions)',
+          style: pw.TextStyle(
+              fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        pdfRow(
+            p.fr
+                ? 'Assurance santé (annuelle)'
+                : p.es
+                    ? 'Seguro de salud (anual)'
+                    : (p.isUK
+                        ? 'Private Health Insurance (annual)'
+                        : 'Health Insurance (annual)'),
+            fmtCur.format(p.healthAnnual)),
+        pdfRow(p.retLabel, fmtCur.format(p.retirementAnnual)),
+        pdfRow(
+            p.fr
+                ? 'Valeur congés payés (15 j)'
+                : p.es
+                    ? 'Valor vacaciones (15 días)'
+                    : (p.isUK
+                        ? 'Annual Leave Value (15 days)'
+                        : 'PTO Value (15 days)'),
+            fmtCur.format(p.ptoAnnual)),
+        pw.Divider(height: 20),
+        pdfRow(
+            p.fr
+                ? 'Total des avantages sociaux'
+                : p.es
+                    ? 'Total beneficios'
+                    : 'Total Benefits Value',
+            fmtCur.format(p.totalBenefits),
+            bold: true),
+        pdfRow(
+            p.fr
+                ? 'Rémunération globale'
+                : p.es
+                    ? 'Compensación total'
+                    : 'Total Compensation',
+            fmtCur.format(p.totalComp),
+            bold: true),
+        pw.SizedBox(height: 20),
+        pw.Text(
+          p.fr
+              ? '* Avantages basés sur des hypothèses moyennes du marché. Pour des valeurs exactes, utilisez le Calculateur d\'avantages sociaux.'
+              : p.es
+                  ? '* Beneficios basados en supuestos promedio del mercado. Para valores exactos usa la Calculadora de beneficios.'
+                  : '* Benefits based on mid-market assumptions. For exact values, use the Benefits Value Calculator.',
+          style: const pw.TextStyle(fontSize: 8),
+        ),
+      ],
+    ),
+  ));
+  return await doc.save();
 }
 
 // ─── Shared formatters (flavor-constant, allocated once) ─────────────────────
@@ -387,6 +627,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       'net_salary': res.netAnnual.round(),
       'frequency': _frequency.name,
     });
+    analyticsService.maybeLogFirstCalculate();
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.
@@ -2030,10 +2271,6 @@ class _PdfExportButton extends StatelessWidget {
   }
 
   Future<void> _exportPdf(BuildContext context) async {
-    final symbol = FlavorConfig.currencySymbol;
-    final fmtCurrency = NumberFormat.currency(symbol: symbol, decimalDigits: 2);
-    String fmtPct(double v) => '${v.toStringAsFixed(1)}%';
-
     final federalLabel = FlavorConfig.isUK
         ? 'Income Tax'
         : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
@@ -2047,50 +2284,43 @@ class _PdfExportButton extends StatelessWidget {
     final stateLabel = FlavorConfig.isUS
         ? (es ? 'Impuesto estatal' : 'State Tax')
         : (fr ? 'Impôt provincial' : 'Provincial Tax');
-    final grossLabel =
-        fr ? 'Salaire brut' : (es ? 'Salario bruto' : 'Gross Salary');
-    final netLabel =
-        fr ? 'Salaire net' : (es ? 'Salario neto' : 'Net Salary (Annual)');
-    final totalLabel =
-        fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax');
-    final rateLabel =
-        fr ? 'Taux effectif' : (es ? 'Tasa efectiva' : 'Effective Tax Rate');
-    final monthLabel = fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly');
-    final titleText = fr
-        ? 'Analyse salariale'
-        : (es ? 'Análisis salarial' : 'Salary Analysis');
-
-    final doc = pw.Document();
-    doc.addPage(pw.Page(
-      build: (ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(titleText,
-              style: pw.TextStyle(
-                  fontSize: AppTextSize.titleMd,
-                  fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 4),
-          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
-          pw.Divider(height: 20),
-          _pdfRow(grossLabel, fmtCurrency.format(result.grossAnnual)),
-          _pdfRow(federalLabel, fmtCurrency.format(result.federalTax)),
-          if (result.ficaTax > 0)
-            _pdfRow(ficaLabel, fmtCurrency.format(result.ficaTax)),
-          if (!FlavorConfig.isUK && result.stateTax > 0)
-            _pdfRow(stateLabel, fmtCurrency.format(result.stateTax)),
-          _pdfRow(totalLabel, fmtCurrency.format(result.totalTax)),
-          _pdfRow(rateLabel, fmtPct(result.effectiveRate)),
-          pw.Divider(height: 20),
-          _pdfRow(netLabel, fmtCurrency.format(result.netAnnual)),
-          _pdfRow(monthLabel, fmtCurrency.format(result.netMonthly)),
-        ],
-      ),
-    ));
 
     try {
+      final bytes = await Isolate.run(() => _buildSalaryAnalysisPdfBytes(
+            _SalaryAnalysisPdfParams(
+              grossAnnual: result.grossAnnual,
+              federalTax: result.federalTax,
+              ficaTax: result.ficaTax,
+              stateTax: result.stateTax,
+              totalTax: result.totalTax,
+              netAnnual: result.netAnnual,
+              netMonthly: result.netMonthly,
+              effectiveRate: result.effectiveRate,
+              currencySymbol: FlavorConfig.currencySymbol,
+              dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              federalLabel: federalLabel,
+              ficaLabel: ficaLabel,
+              stateLabel: stateLabel,
+              grossLabel:
+                  fr ? 'Salaire brut' : (es ? 'Salario bruto' : 'Gross Salary'),
+              netLabel: fr
+                  ? 'Salaire net'
+                  : (es ? 'Salario neto' : 'Net Salary (Annual)'),
+              totalLabel:
+                  fr ? 'Total impôts' : (es ? 'Total impuestos' : 'Total Tax'),
+              rateLabel: fr
+                  ? 'Taux effectif'
+                  : (es ? 'Tasa efectiva' : 'Effective Tax Rate'),
+              monthLabel: fr ? 'Mensuel' : (es ? 'Mensual' : 'Monthly'),
+              titleText: fr
+                  ? 'Analyse salariale'
+                  : (es ? 'Análisis salarial' : 'Salary Analysis'),
+              hasFica: result.ficaTax > 0,
+              hasState: !FlavorConfig.isUK && result.stateTax > 0,
+            ),
+          ));
       await Printing.sharePdf(
-          bytes: await doc.save(),
+          bytes: bytes,
           filename:
               'salary_summary_${DateTime.now().millisecondsSinceEpoch}.pdf');
       analyticsService.logPdfExported();
@@ -2123,19 +2353,6 @@ class _PdfExportButton extends StatelessWidget {
       }
     }
   }
-
-  pw.Widget _pdfRow(String label, String value) => pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 4),
-        child: pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(label, style: const pw.TextStyle(fontSize: AppTextSize.sm)),
-            pw.Text(value,
-                style: pw.TextStyle(
-                    fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
-          ],
-        ),
-      );
 }
 
 // ─── Total Compensation Report Button ────────────────────────────────────────
@@ -2209,16 +2426,10 @@ class _TotalCompReportButton extends StatelessWidget {
   }
 
   Future<void> _exportTotalCompPdf(BuildContext context) async {
-    final symbol = FlavorConfig.currencySymbol;
-    final fmtCur =
-        NumberFormat.currency(symbol: symbol, decimalDigits: 0);
-    final fmtCur2 =
-        NumberFormat.currency(symbol: symbol, decimalDigits: 2);
-
     // Default benefit assumptions (mid-market)
     final healthMonthly = FlavorConfig.isUK ? 120.0 : 450.0;
     final retirementPct = FlavorConfig.isCA ? 5.0 : 4.0;
-    final ptoDays = 15.0;
+    const ptoDays = 15.0;
     final gross = result.grossAnnual;
 
     final healthAnnual = healthMonthly * 12;
@@ -2230,7 +2441,6 @@ class _TotalCompReportButton extends StatelessWidget {
     final retLabel = FlavorConfig.isCA
         ? (fr ? 'Cotisation REER employeur' : 'RRSP Match')
         : (FlavorConfig.isUK ? 'Pension Contribution' : '401(k) Match');
-
     final federalLabel = FlavorConfig.isUK
         ? 'Income Tax'
         : (fr ? 'Impôt fédéral' : (es ? 'Impuesto federal' : 'Federal Tax'));
@@ -2245,109 +2455,40 @@ class _TotalCompReportButton extends StatelessWidget {
         ? (es ? 'Impuesto estatal' : 'State Tax')
         : (fr ? 'Impôt provincial' : 'Provincial Tax');
 
-    final doc = pw.Document();
-    doc.addPage(pw.Page(
-      build: (ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            fr
-                ? 'Rapport de rémunération globale'
-                : es
-                    ? 'Informe de compensación total'
-                    : 'Total Compensation Report',
-            style: pw.TextStyle(
-                fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
-          pw.Divider(height: 20),
-          pw.Text(
-            fr ? 'Analyse salariale' : (es ? 'Análisis salarial' : 'Salary Breakdown'),
-            style: pw.TextStyle(
-                fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 6),
-          _pdfRow(
-              fr
-                  ? 'Salaire brut'
-                  : (es ? 'Salario bruto' : 'Gross Salary'),
-              fmtCur.format(result.grossAnnual)),
-          _pdfRow(federalLabel, fmtCur.format(result.federalTax)),
-          if (result.ficaTax > 0)
-            _pdfRow(ficaLabel, fmtCur.format(result.ficaTax)),
-          if (!FlavorConfig.isUK && result.stateTax > 0)
-            _pdfRow(stateLabel, fmtCur.format(result.stateTax)),
-          _pdfRow(
-              fr
-                  ? 'Total impôts'
-                  : (es ? 'Total impuestos' : 'Total Tax'),
-              fmtCur.format(result.totalTax)),
-          _pdfRow(
-              fr
-                  ? 'Salaire net'
-                  : (es ? 'Salario neto' : 'Net Salary'),
-              fmtCur2.format(result.netAnnual)),
-          pw.Divider(height: 20),
-          pw.Text(
-            fr
-                ? 'Avantages (hypothèses par défaut)'
-                : es
-                    ? 'Beneficios (hipótesis por defecto)'
-                    : 'Benefits (default assumptions)',
-            style: pw.TextStyle(
-                fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 6),
-          _pdfRow(
-              fr
-                  ? 'Assurance santé (annuelle)'
-                  : es
-                      ? 'Seguro de salud (anual)'
-                      : (FlavorConfig.isUK ? 'Private Health Insurance (annual)' : 'Health Insurance (annual)'),
-              fmtCur.format(healthAnnual)),
-          _pdfRow(retLabel, fmtCur.format(retirementAnnual)),
-          _pdfRow(
-              fr
-                  ? 'Valeur congés payés (15 j)'
-                  : es
-                      ? 'Valor vacaciones (15 días)'
-                      : (FlavorConfig.isUK ? 'Annual Leave Value (15 days)' : 'PTO Value (15 days)'),
-              fmtCur.format(ptoAnnual)),
-          pw.Divider(height: 20),
-          _pdfRow(
-              fr
-                  ? 'Total des avantages sociaux'
-                  : es
-                      ? 'Total beneficios'
-                      : 'Total Benefits Value',
-              fmtCur.format(totalBenefits),
-              bold: true),
-          _pdfRow(
-              fr
-                  ? 'Rémunération globale'
-                  : es
-                      ? 'Compensación total'
-                      : 'Total Compensation',
-              fmtCur.format(totalComp),
-              bold: true),
-          pw.SizedBox(height: 20),
-          pw.Text(
-            fr
-                ? '* Avantages basés sur des hypothèses moyennes du marché. Pour des valeurs exactes, utilisez le Calculateur d\'avantages sociaux.'
-                : es
-                    ? '* Beneficios basados en supuestos promedio del mercado. Para valores exactos usa la Calculadora de beneficios.'
-                    : '* Benefits based on mid-market assumptions. For exact values, use the Benefits Value Calculator.',
-            style: const pw.TextStyle(fontSize: 8),
-          ),
-        ],
-      ),
-    ));
-
     try {
+      final bytes = await Isolate.run(() => _buildTotalCompPdfBytes(
+            _TotalCompPdfParams(
+              grossAnnual: result.grossAnnual,
+              federalTax: result.federalTax,
+              ficaTax: result.ficaTax,
+              stateTax: result.stateTax,
+              totalTax: result.totalTax,
+              netAnnual: result.netAnnual,
+              healthAnnual: healthAnnual,
+              retirementAnnual: retirementAnnual,
+              ptoAnnual: ptoAnnual,
+              totalBenefits: totalBenefits,
+              totalComp: totalComp,
+              currencySymbol: FlavorConfig.currencySymbol,
+              dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              federalLabel: federalLabel,
+              ficaLabel: ficaLabel,
+              stateLabel: stateLabel,
+              retLabel: retLabel,
+              titleText: fr
+                  ? 'Rapport de rémunération globale'
+                  : es
+                      ? 'Informe de compensación total'
+                      : 'Total Compensation Report',
+              hasFica: result.ficaTax > 0,
+              hasState: !FlavorConfig.isUK && result.stateTax > 0,
+              isUK: FlavorConfig.isUK,
+              fr: fr,
+              es: es,
+            ),
+          ));
       await Printing.sharePdf(
-          bytes: await doc.save(),
+          bytes: bytes,
           filename:
               'total_compensation_${DateTime.now().millisecondsSinceEpoch}.pdf');
       analyticsService.logPdfExported();
@@ -2379,23 +2520,6 @@ class _TotalCompReportButton extends StatelessWidget {
       }
     }
   }
-
-  pw.Widget _pdfRow(String label, String value, {bool bold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 3),
-        child: pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(label,
-                style: const pw.TextStyle(fontSize: AppTextSize.sm)),
-            pw.Text(value,
-                style: pw.TextStyle(
-                    fontSize: AppTextSize.sm,
-                    fontWeight:
-                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          ],
-        ),
-      );
 }
 
 // ─── CSV Export Button ────────────────────────────────────────────────────────

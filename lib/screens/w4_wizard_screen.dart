@@ -1,3 +1,6 @@
+import 'dart:isolate';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
@@ -16,6 +19,106 @@ import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart';
+
+// ─── Isolate param + top-level function ──────────────────────────────────────
+
+class _W4PdfParams {
+  final double step3DependentCredit, step4bDeductions, step4cExtra,
+      estimatedAnnualTax, estimatedWithholding, refundOrOwed;
+  final String dateStr;
+  final bool es;
+  const _W4PdfParams({
+    required this.step3DependentCredit,
+    required this.step4bDeductions,
+    required this.step4cExtra,
+    required this.estimatedAnnualTax,
+    required this.estimatedWithholding,
+    required this.refundOrOwed,
+    required this.dateStr,
+    required this.es,
+  });
+}
+
+Future<Uint8List> _buildW4PdfBytes(_W4PdfParams p) async {
+  pw.Widget pdfRow(String label, String value) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label, style: const pw.TextStyle(fontSize: AppTextSize.sm)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+      );
+
+  final doc = pw.Document();
+  doc.addPage(pw.Page(
+    build: (ctx) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+            p.es ? 'Asistente W-4 2025' : 'W-4 Withholding Wizard — 2025',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 4),
+        pw.Text(p.dateStr,
+            style: const pw.TextStyle(fontSize: AppTextSize.xs)),
+        pw.Divider(height: 24),
+        pw.Text(
+            p.es ? 'Valores recomendados W-4' : 'W-4 Recommended Values',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+        pdfRow(
+            p.es
+                ? 'Paso 3 — Créditos por dependientes'
+                : 'Step 3 — Dependent Credits',
+            '\$${p.step3DependentCredit.toStringAsFixed(0)}'),
+        pdfRow(
+            p.es
+                ? 'Paso 4(b) — Deducciones adicionales'
+                : 'Step 4(b) — Other Deductions',
+            '\$${p.step4bDeductions.toStringAsFixed(0)}'),
+        pdfRow(
+            p.es
+                ? 'Paso 4(c) — Retención adicional por cheque'
+                : 'Step 4(c) — Extra per Paycheck',
+            '\$${p.step4cExtra.toStringAsFixed(2)}'),
+        pw.Divider(height: 24),
+        pw.Text(
+            p.es ? 'Estimaciones' : 'Estimates',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+        pdfRow(
+            p.es
+                ? 'Impuesto federal anual estimado'
+                : 'Estimated Annual Tax',
+            '\$${p.estimatedAnnualTax.toStringAsFixed(2)}'),
+        pdfRow(
+            p.es
+                ? 'Retención estimada con estos ajustes'
+                : 'Estimated Annual Withholding',
+            '\$${p.estimatedWithholding.toStringAsFixed(2)}'),
+        pdfRow(
+            p.refundOrOwed >= 0
+                ? (p.es ? 'Reembolso esperado' : 'Expected Refund')
+                : (p.es ? 'Monto a pagar estimado' : 'Amount Owed'),
+            '\$${p.refundOrOwed.abs().toStringAsFixed(2)}'),
+        pw.SizedBox(height: 20),
+        pw.Text(
+            p.es
+                ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador.'
+                : '* Estimates based on IRS 2025 W-4 worksheet. '
+                    'Submit updated W-4 to your employer.',
+            style: const pw.TextStyle(fontSize: 9)),
+      ],
+    ),
+  ));
+  return await doc.save();
+}
 
 // ─── W-4 Withholding Wizard (US flavor only) ──────────────────────────────────
 //
@@ -1309,89 +1412,22 @@ class _Step3Results extends StatelessWidget {
   }
 
   Future<void> _sharePdf(BuildContext context, _W4Result r) async {
-    final doc = pw.Document();
-    doc.addPage(pw.Page(
-      build: (ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-              es
-                  ? 'Asistente W-4 2025'
-                  : 'W-4 Withholding Wizard — 2025',
-              style: pw.TextStyle(
-                  fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 4),
-          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
-          pw.Divider(height: 24),
-          pw.Text(
-              es ? 'Valores recomendados W-4' : 'W-4 Recommended Values',
-              style: pw.TextStyle(
-                  fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 8),
-          _pdfRow(
-              es
-                  ? 'Paso 3 — Créditos por dependientes'
-                  : 'Step 3 — Dependent Credits',
-              '\$${r.step3DependentCredit.toStringAsFixed(0)}'),
-          _pdfRow(
-              es
-                  ? 'Paso 4(b) — Deducciones adicionales'
-                  : 'Step 4(b) — Other Deductions',
-              '\$${r.step4bDeductions.toStringAsFixed(0)}'),
-          _pdfRow(
-              es
-                  ? 'Paso 4(c) — Retención adicional por cheque'
-                  : 'Step 4(c) — Extra per Paycheck',
-              '\$${r.step4cExtra.toStringAsFixed(2)}'),
-          pw.Divider(height: 24),
-          pw.Text(
-              es ? 'Estimaciones' : 'Estimates',
-              style: pw.TextStyle(
-                  fontSize: AppTextSize.body, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 8),
-          _pdfRow(
-              es
-                  ? 'Impuesto federal anual estimado'
-                  : 'Estimated Annual Tax',
-              '\$${r.estimatedAnnualTax.toStringAsFixed(2)}'),
-          _pdfRow(
-              es
-                  ? 'Retención estimada con estos ajustes'
-                  : 'Estimated Annual Withholding',
-              '\$${r.estimatedWithholding.toStringAsFixed(2)}'),
-          _pdfRow(
-              r.refundOrOwed >= 0
-                  ? (es ? 'Reembolso esperado' : 'Expected Refund')
-                  : (es ? 'Monto a pagar estimado' : 'Amount Owed'),
-              '\$${r.refundOrOwed.abs().toStringAsFixed(2)}'),
-          pw.SizedBox(height: 20),
-          pw.Text(
-              es
-                  ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador.'
-                  : '* Estimates based on IRS 2025 W-4 worksheet. '
-                      'Submit updated W-4 to your employer.',
-              style: const pw.TextStyle(fontSize: 9)),
-        ],
-      ),
-    ));
+    final bytes = await Isolate.run(() => _buildW4PdfBytes(
+          _W4PdfParams(
+            step3DependentCredit: r.step3DependentCredit,
+            step4bDeductions: r.step4bDeductions,
+            step4cExtra: r.step4cExtra,
+            estimatedAnnualTax: r.estimatedAnnualTax,
+            estimatedWithholding: r.estimatedWithholding,
+            refundOrOwed: r.refundOrOwed,
+            dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+            es: es,
+          ),
+        ));
     await Printing.sharePdf(
-        bytes: await doc.save(),
+        bytes: bytes,
         filename: 'w4_wizard_${DateTime.now().millisecondsSinceEpoch}.pdf');
   }
-
-  pw.Widget _pdfRow(String label, String value) => pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 4),
-        child: pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(label, style: const pw.TextStyle(fontSize: AppTextSize.sm)),
-            pw.Text(value,
-                style: pw.TextStyle(
-                    fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
-          ],
-        ),
-      );
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────

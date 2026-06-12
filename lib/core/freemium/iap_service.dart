@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:calcwise_core/calcwise_core.dart';
+import '../analytics/analytics_service.dart';
 import '../flavor_config.dart';
 import 'freemium_service.dart';
 
@@ -20,18 +21,19 @@ class IAPService {
 
   /// Lifetime IAP — UK flavor only. Null on CA/US.
   CalcwiseIAP? _iapLifetime;
+  final _lifetimePriceNotifier = ValueNotifier<String?>(null);
 
   ValueNotifier<String?> get localizedPrice => _iap?.localizedPrice ?? _fallbackPrice;
 
   /// Localized lifetime price — null until store responds or on non-UK flavors.
   ValueNotifier<String?> get localizedLifetimePrice =>
-      _iapLifetime?.localizedPrice ?? ValueNotifier(null);
+      _iapLifetime?.localizedPrice ?? _lifetimePriceNotifier;
 
   Future<void> initialize() async {
     _iap = CalcwiseIAP(
       productId: productId,
       freemium: freemiumService,
-      analytics: CalcwiseAnalytics(appName: 'salaryapp'),
+      analytics: analyticsService,
       onPurchaseCompleted: () => CalcwiseReviewService.instance.requestReview(),
     );
     await _iap!.initialize();
@@ -42,7 +44,7 @@ class IAPService {
       _iapLifetime = CalcwiseIAP(
         productId: _lifetimeProductIdUK,
         freemium: freemiumService,
-        analytics: CalcwiseAnalytics(appName: 'salaryapp'),
+        analytics: analyticsService,
         onPurchaseCompleted: () =>
             CalcwiseReviewService.instance.requestReview(),
       );

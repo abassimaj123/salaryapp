@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/flavor_config.dart';
 import '../core/db/database_service.dart';
+import '../core/salary_engine.dart' show SalaryResult;
 import 'history_detail_screen.dart';
 import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
@@ -14,10 +15,14 @@ import '../l10n/strings_fr.dart';
 import '../main.dart' show isSpanishNotifier, historyService;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
+import 'package:calcwise_core/calcwise_core.dart' as core show HistoryEntry;
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.showAppBar = false});
   final bool showAppBar;
+
+  static final refreshNotifier = ValueNotifier<int>(0);
+
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
@@ -32,17 +37,56 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.initState();
     analyticsService.logHistoryViewed();
     _load();
+    HistoryScreen.refreshNotifier.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    HistoryScreen.refreshNotifier.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final data = await DatabaseService.instance.getAll();
+    final data = await historyService.getHistory('salaryapp');
     if (!mounted) return;
+    // Convert calcwise_core HistoryEntry → local HistoryEntry via l2 snapshot.
+    final local = data.map(_coreToLocal).toList();
     setState(() {
-      _pinned = data.where((e) => e.isPinned).toList();
-      _recent = data.where((e) => !e.isPinned).toList();
+      _pinned = local.where((e) => e.isPinned).toList();
+      _recent = local.where((e) => !e.isPinned).toList();
       _loading = false;
     });
+  }
+
+  /// Converts a calcwise_core [HistoryEntry] (l1/l2 schema) back to the local
+  /// [HistoryEntry] (SalaryResult schema) used by [_HistoryCard] and
+  /// [HistoryDetailScreen].
+  static HistoryEntry _coreToLocal(core.HistoryEntry e) {
+    final results = (e.l2['results'] as Map?)?.cast<String, dynamic>() ?? {};
+    final inputs  = (e.l2['inputs']  as Map?)?.cast<String, dynamic>() ?? {};
+    return HistoryEntry(
+      id:        e.id,
+      flavor:    (inputs['flavor']  as String?)  ?? '',
+      region:    (inputs['region']  as String?)  ?? '',
+      timestamp: e.savedAt,
+      result:    SalaryResult.fromMap({
+        'grossAnnual':   (results['grossAnnual']   as num?)?.toDouble() ?? 0.0,
+        'federalTax':    (results['federalTax']    as num?)?.toDouble() ?? 0.0,
+        'ficaTax':       (results['ficaTax']       as num?)?.toDouble() ?? 0.0,
+        'stateTax':      (results['stateTax']      as num?)?.toDouble() ?? 0.0,
+        'totalTax':      (results['totalTax']      as num?)?.toDouble() ?? 0.0,
+        'netAnnual':     (results['netAnnual']     as num?)?.toDouble() ?? 0.0,
+        'netMonthly':    (results['netMonthly']    as num?)?.toDouble() ?? 0.0,
+        'netBiWeekly':   (results['netBiWeekly']   as num?)?.toDouble() ?? 0.0,
+        'netWeekly':     (results['netWeekly']     as num?)?.toDouble() ?? 0.0,
+        'effectiveRate': (results['effectiveRate'] as num?)?.toDouble() ?? 0.0,
+      }),
+      isPinned:  e.isPinned,
+      inputHash: e.resultHash,
+      pinLabel:  e.pinLabel,
+      pinOrder:  e.pinOrder,
+    );
   }
 
   Future<void> _delete(int id) async {

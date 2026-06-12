@@ -1,4 +1,6 @@
+import 'dart:isolate';
 import 'dart:math' show pow;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +16,349 @@ import 'package:calcwise_core/calcwise_core.dart';
 const _navy = PdfColor(0.043, 0.275, 0.490); // SalaryApp deep blue
 const _green = PdfColor(0.110, 0.627, 0.384); // accent green
 const _light = PdfColor(0.933, 0.976, 0.953);
+
+// ── Isolate param classes ─────────────────────────────────────────────────────
+// Only sendable types: String, int, double, bool, List, Map, Uint8List
+
+class _SalaryPdfParams {
+  final double grossAnnual, federalTax, stateTax, socialSecurity, medicare,
+      totalDeductions, netAnnual, netMonthly, netBiweekly, netHourly;
+  final String country, state;
+  final bool fr, es;
+  const _SalaryPdfParams({
+    required this.grossAnnual,
+    required this.federalTax,
+    required this.stateTax,
+    required this.socialSecurity,
+    required this.medicare,
+    required this.totalDeductions,
+    required this.netAnnual,
+    required this.netMonthly,
+    required this.netBiweekly,
+    required this.netHourly,
+    required this.country,
+    required this.state,
+    required this.fr,
+    required this.es,
+  });
+}
+
+class _BonusPdfParams {
+  final double grossAnnual, bonusAmount;
+  final double usFlatFederalTax, usFlatStateTax, usFlatTotalTax, usFlatNetBonus;
+  final double usAggregateTotalTax, usAggregateNetBonus;
+  final String betterMethod, usState;
+  final double caFederalTax, caProvincialTax, caTotalTax, caNetBonus;
+  final String caProvince;
+  final double ukExtraTax, ukNetBonus;
+  final bool fr, es;
+  const _BonusPdfParams({
+    required this.grossAnnual,
+    required this.bonusAmount,
+    required this.usFlatFederalTax,
+    required this.usFlatStateTax,
+    required this.usFlatTotalTax,
+    required this.usFlatNetBonus,
+    required this.usAggregateTotalTax,
+    required this.usAggregateNetBonus,
+    required this.betterMethod,
+    required this.usState,
+    required this.caFederalTax,
+    required this.caProvincialTax,
+    required this.caTotalTax,
+    required this.caNetBonus,
+    required this.caProvince,
+    required this.ukExtraTax,
+    required this.ukNetBonus,
+    required this.fr,
+    required this.es,
+  });
+}
+
+class _TaxBreakdownPdfParams {
+  final double grossAnnual;
+  // Bracket fields serialized as parallel lists (records not sendable)
+  final List<double> bMin, bMax, bRate, bAmountInBracket, bTaxOwed;
+  final bool fr, es;
+  const _TaxBreakdownPdfParams({
+    required this.grossAnnual,
+    required this.bMin,
+    required this.bMax,
+    required this.bRate,
+    required this.bAmountInBracket,
+    required this.bTaxOwed,
+    required this.fr,
+    required this.es,
+  });
+}
+
+class _RaisePdfParams {
+  final double currentSalary, newAnnual, raisePct, raiseGross, raiseNet,
+      taxIncrease, oldMonthlyNet, newMonthlyNet, effectivePct, marginalRate;
+  final bool fr, es;
+  const _RaisePdfParams({
+    required this.currentSalary,
+    required this.newAnnual,
+    required this.raisePct,
+    required this.raiseGross,
+    required this.raiseNet,
+    required this.taxIncrease,
+    required this.oldMonthlyNet,
+    required this.newMonthlyNet,
+    required this.effectivePct,
+    required this.marginalRate,
+    required this.fr,
+    required this.es,
+  });
+}
+
+class _RetirementPdfParams {
+  final double grossIncome, contribution, contributionLimit, taxSaving, netCost,
+      takeHomeChangeMonthly, projectedValue30yr, utilizationPct;
+  final bool isMaxed, age50Plus, es;
+  const _RetirementPdfParams({
+    required this.grossIncome,
+    required this.contribution,
+    required this.contributionLimit,
+    required this.taxSaving,
+    required this.netCost,
+    required this.takeHomeChangeMonthly,
+    required this.projectedValue30yr,
+    required this.utilizationPct,
+    required this.isMaxed,
+    required this.age50Plus,
+    required this.es,
+  });
+}
+
+class _RrspPdfParams {
+  final double grossIncome, rrspRoom, contribution, taxSaving, netCost,
+      remainingRoom, marginalRate;
+  final String bracketLabel, province;
+  final bool fr;
+  const _RrspPdfParams({
+    required this.grossIncome,
+    required this.rrspRoom,
+    required this.contribution,
+    required this.taxSaving,
+    required this.netCost,
+    required this.remainingRoom,
+    required this.marginalRate,
+    required this.bracketLabel,
+    required this.province,
+    required this.fr,
+  });
+}
+
+class _SalaryComparisonPdfParams {
+  final double grossA, grossB, netAnnualA, netAnnualB, netMonthlyA, netMonthlyB;
+  final double federalTaxA, federalTaxB, ficaTaxA, ficaTaxB, stateTaxA, stateTaxB;
+  final double totalTaxA, totalTaxB, effectiveRateA, effectiveRateB;
+  final String regionA, regionB;
+  final bool fr, es;
+  const _SalaryComparisonPdfParams({
+    required this.grossA,
+    required this.grossB,
+    required this.netAnnualA,
+    required this.netAnnualB,
+    required this.netMonthlyA,
+    required this.netMonthlyB,
+    required this.federalTaxA,
+    required this.federalTaxB,
+    required this.ficaTaxA,
+    required this.ficaTaxB,
+    required this.stateTaxA,
+    required this.stateTaxB,
+    required this.totalTaxA,
+    required this.totalTaxB,
+    required this.effectiveRateA,
+    required this.effectiveRateB,
+    required this.regionA,
+    required this.regionB,
+    required this.fr,
+    required this.es,
+  });
+}
+
+// ── Top-level isolate functions ───────────────────────────────────────────────
+// These run on a background isolate — no Flutter platform channel access.
+// FlavorConfig uses const String.fromEnvironment so it is safe here.
+
+Future<Uint8List> _buildSalaryPdfBytes(_SalaryPdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildSummaryPage(
+      grossAnnual: p.grossAnnual,
+      federalTax: p.federalTax,
+      stateTax: p.stateTax,
+      socialSecurity: p.socialSecurity,
+      medicare: p.medicare,
+      totalDeductions: p.totalDeductions,
+      netAnnual: p.netAnnual,
+      netMonthly: p.netMonthly,
+      netBiweekly: p.netBiweekly,
+      netHourly: p.netHourly,
+      country: p.country,
+      state: p.state,
+      fr: p.fr,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildBonusPdfBytes(_BonusPdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildBonusPage(
+      grossAnnual: p.grossAnnual,
+      bonusAmount: p.bonusAmount,
+      usFlatFederalTax: p.usFlatFederalTax,
+      usFlatStateTax: p.usFlatStateTax,
+      usFlatTotalTax: p.usFlatTotalTax,
+      usFlatNetBonus: p.usFlatNetBonus,
+      usAggregateTotalTax: p.usAggregateTotalTax,
+      usAggregateNetBonus: p.usAggregateNetBonus,
+      betterMethod: p.betterMethod,
+      usState: p.usState,
+      caFederalTax: p.caFederalTax,
+      caProvincialTax: p.caProvincialTax,
+      caTotalTax: p.caTotalTax,
+      caNetBonus: p.caNetBonus,
+      caProvince: p.caProvince,
+      ukExtraTax: p.ukExtraTax,
+      ukNetBonus: p.ukNetBonus,
+      fr: p.fr,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildTaxBreakdownPdfBytes(_TaxBreakdownPdfParams p) async {
+  // Reconstruct named-record list from parallel arrays
+  final brackets = List.generate(p.bMin.length, (i) => (
+    min: p.bMin[i],
+    max: p.bMax[i],
+    rate: p.bRate[i],
+    amountInBracket: p.bAmountInBracket[i],
+    taxOwed: p.bTaxOwed[i],
+  ));
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildTaxBreakdownPage(
+      grossAnnual: p.grossAnnual,
+      brackets: brackets,
+      fr: p.fr,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildRaisePdfBytes(_RaisePdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildRaisePage(
+      currentSalary: p.currentSalary,
+      newAnnual: p.newAnnual,
+      raisePct: p.raisePct,
+      raiseGross: p.raiseGross,
+      raiseNet: p.raiseNet,
+      taxIncrease: p.taxIncrease,
+      oldMonthlyNet: p.oldMonthlyNet,
+      newMonthlyNet: p.newMonthlyNet,
+      effectivePct: p.effectivePct,
+      marginalRate: p.marginalRate,
+      fr: p.fr,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildRetirementPdfBytes(_RetirementPdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildRetirementPage(
+      grossIncome: p.grossIncome,
+      contribution: p.contribution,
+      contributionLimit: p.contributionLimit,
+      taxSaving: p.taxSaving,
+      netCost: p.netCost,
+      takeHomeChangeMonthly: p.takeHomeChangeMonthly,
+      projectedValue30yr: p.projectedValue30yr,
+      utilizationPct: p.utilizationPct,
+      isMaxed: p.isMaxed,
+      age50Plus: p.age50Plus,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildRrspPdfBytes(_RrspPdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildRrspPage(
+      grossIncome: p.grossIncome,
+      rrspRoom: p.rrspRoom,
+      contribution: p.contribution,
+      taxSaving: p.taxSaving,
+      netCost: p.netCost,
+      remainingRoom: p.remainingRoom,
+      marginalRate: p.marginalRate,
+      bracketLabel: p.bracketLabel,
+      province: p.province,
+      fr: p.fr,
+    ),
+  ));
+  return await pdf.save();
+}
+
+Future<Uint8List> _buildSalaryComparisonPdfBytes(
+    _SalaryComparisonPdfParams p) async {
+  final pdf = pw.Document();
+  pdf.addPage(pw.Page(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
+    build: (_) => PdfExportService._buildSalaryComparisonPage(
+      grossA: p.grossA,
+      grossB: p.grossB,
+      netAnnualA: p.netAnnualA,
+      netAnnualB: p.netAnnualB,
+      netMonthlyA: p.netMonthlyA,
+      netMonthlyB: p.netMonthlyB,
+      federalTaxA: p.federalTaxA,
+      federalTaxB: p.federalTaxB,
+      ficaTaxA: p.ficaTaxA,
+      ficaTaxB: p.ficaTaxB,
+      stateTaxA: p.stateTaxA,
+      stateTaxB: p.stateTaxB,
+      totalTaxA: p.totalTaxA,
+      totalTaxB: p.totalTaxB,
+      effectiveRateA: p.effectiveRateA,
+      effectiveRateB: p.effectiveRateB,
+      regionA: p.regionA,
+      regionB: p.regionB,
+      fr: p.fr,
+      es: p.es,
+    ),
+  ));
+  return await pdf.save();
+}
 
 class PdfExportService {
   static NumberFormat get _cur2 => NumberFormat.currency(
@@ -45,31 +390,25 @@ class PdfExportService {
     bool fr = false,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildSummaryPage(
-        grossAnnual: grossAnnual,
-        federalTax: federalTax,
-        stateTax: stateTax,
-        socialSecurity: socialSecurity,
-        medicare: medicare,
-        totalDeductions: totalDeductions,
-        netAnnual: netAnnual,
-        netMonthly: netMonthly,
-        netBiweekly: netBiweekly,
-        netHourly: netHourly,
-        country: country,
-        state: state,
-        fr: fr,
-        es: es,
-      ),
-    ));
+    final bytes = await Isolate.run(() => _buildSalaryPdfBytes(_SalaryPdfParams(
+          grossAnnual: grossAnnual,
+          federalTax: federalTax,
+          stateTax: stateTax,
+          socialSecurity: socialSecurity,
+          medicare: medicare,
+          totalDeductions: totalDeductions,
+          netAnnual: netAnnual,
+          netMonthly: netMonthly,
+          netBiweekly: netBiweekly,
+          netHourly: netHourly,
+          country: country,
+          state: state,
+          fr: fr,
+          es: es,
+        )));
 
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'SalaryCalc_${grossAnnual.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -335,34 +674,29 @@ class PdfExportService {
     bool fr = false,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildBonusPage(
-        grossAnnual: grossAnnual,
-        bonusAmount: bonusAmount,
-        usFlatFederalTax: usFlatFederalTax,
-        usFlatStateTax: usFlatStateTax,
-        usFlatTotalTax: usFlatTotalTax,
-        usFlatNetBonus: usFlatNetBonus,
-        usAggregateTotalTax: usAggregateTotalTax,
-        usAggregateNetBonus: usAggregateNetBonus,
-        betterMethod: betterMethod,
-        usState: usState,
-        caFederalTax: caFederalTax,
-        caProvincialTax: caProvincialTax,
-        caTotalTax: caTotalTax,
-        caNetBonus: caNetBonus,
-        caProvince: caProvince,
-        ukExtraTax: ukExtraTax,
-        ukNetBonus: ukNetBonus,
-        fr: fr,
-        es: es,
-      ),
-    ));
+    final bytes = await Isolate.run(() => _buildBonusPdfBytes(_BonusPdfParams(
+          grossAnnual: grossAnnual,
+          bonusAmount: bonusAmount,
+          usFlatFederalTax: usFlatFederalTax,
+          usFlatStateTax: usFlatStateTax,
+          usFlatTotalTax: usFlatTotalTax,
+          usFlatNetBonus: usFlatNetBonus,
+          usAggregateTotalTax: usAggregateTotalTax,
+          usAggregateNetBonus: usAggregateNetBonus,
+          betterMethod: betterMethod,
+          usState: usState,
+          caFederalTax: caFederalTax,
+          caProvincialTax: caProvincialTax,
+          caTotalTax: caTotalTax,
+          caNetBonus: caNetBonus,
+          caProvince: caProvince,
+          ukExtraTax: ukExtraTax,
+          ukNetBonus: ukNetBonus,
+          fr: fr,
+          es: es,
+        )));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'BonusCalc_${bonusAmount.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -543,19 +877,21 @@ class PdfExportService {
     bool fr = false,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildTaxBreakdownPage(
-        grossAnnual: grossAnnual,
-        brackets: brackets,
-        fr: fr,
-        es: es,
-      ),
-    ));
+    // Serialize named-record list to parallel primitive lists (records not sendable)
+    final bytes = await Isolate.run(() => _buildTaxBreakdownPdfBytes(
+          _TaxBreakdownPdfParams(
+            grossAnnual: grossAnnual,
+            bMin: brackets.map((b) => b.min).toList(),
+            bMax: brackets.map((b) => b.max).toList(),
+            bRate: brackets.map((b) => b.rate).toList(),
+            bAmountInBracket: brackets.map((b) => b.amountInBracket).toList(),
+            bTaxOwed: brackets.map((b) => b.taxOwed).toList(),
+            fr: fr,
+            es: es,
+          ),
+        ));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'TaxBreakdown_${grossAnnual.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -785,27 +1121,22 @@ class PdfExportService {
     bool fr = false,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildRaisePage(
-        currentSalary: currentSalary,
-        newAnnual: newAnnual,
-        raisePct: raisePct,
-        raiseGross: raiseGross,
-        raiseNet: raiseNet,
-        taxIncrease: taxIncrease,
-        oldMonthlyNet: oldMonthlyNet,
-        newMonthlyNet: newMonthlyNet,
-        effectivePct: effectivePct,
-        marginalRate: marginalRate,
-        fr: fr,
-        es: es,
-      ),
-    ));
+    final bytes = await Isolate.run(() => _buildRaisePdfBytes(_RaisePdfParams(
+          currentSalary: currentSalary,
+          newAnnual: newAnnual,
+          raisePct: raisePct,
+          raiseGross: raiseGross,
+          raiseNet: raiseNet,
+          taxIncrease: taxIncrease,
+          oldMonthlyNet: oldMonthlyNet,
+          newMonthlyNet: newMonthlyNet,
+          effectivePct: effectivePct,
+          marginalRate: marginalRate,
+          fr: fr,
+          es: es,
+        )));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'RaiseCalc_${currentSalary.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -1007,26 +1338,22 @@ class PdfExportService {
     required bool age50Plus,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildRetirementPage(
-        grossIncome: grossIncome,
-        contribution: contribution,
-        contributionLimit: contributionLimit,
-        taxSaving: taxSaving,
-        netCost: netCost,
-        takeHomeChangeMonthly: takeHomeChangeMonthly,
-        projectedValue30yr: projectedValue30yr,
-        utilizationPct: utilizationPct,
-        isMaxed: isMaxed,
-        age50Plus: age50Plus,
-        es: es,
-      ),
-    ));
+    final bytes =
+        await Isolate.run(() => _buildRetirementPdfBytes(_RetirementPdfParams(
+              grossIncome: grossIncome,
+              contribution: contribution,
+              contributionLimit: contributionLimit,
+              taxSaving: taxSaving,
+              netCost: netCost,
+              takeHomeChangeMonthly: takeHomeChangeMonthly,
+              projectedValue30yr: projectedValue30yr,
+              utilizationPct: utilizationPct,
+              isMaxed: isMaxed,
+              age50Plus: age50Plus,
+              es: es,
+            )));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           '401k_${grossIncome.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -1193,25 +1520,20 @@ class PdfExportService {
     required String province,
     bool fr = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildRrspPage(
-        grossIncome: grossIncome,
-        rrspRoom: rrspRoom,
-        contribution: contribution,
-        taxSaving: taxSaving,
-        netCost: netCost,
-        remainingRoom: remainingRoom,
-        marginalRate: marginalRate,
-        bracketLabel: bracketLabel,
-        province: province,
-        fr: fr,
-      ),
-    ));
+    final bytes = await Isolate.run(() => _buildRrspPdfBytes(_RrspPdfParams(
+          grossIncome: grossIncome,
+          rrspRoom: rrspRoom,
+          contribution: contribution,
+          taxSaving: taxSaving,
+          netCost: netCost,
+          remainingRoom: remainingRoom,
+          marginalRate: marginalRate,
+          bracketLabel: bracketLabel,
+          province: province,
+          fr: fr,
+        )));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'RRSPCalc_${grossIncome.round()}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
@@ -1384,35 +1706,31 @@ class PdfExportService {
     bool fr = false,
     bool es = false,
   }) async {
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(36, 36, 36, 28),
-      build: (_) => _buildSalaryComparisonPage(
-        grossA: grossA,
-        grossB: grossB,
-        netAnnualA: netAnnualA,
-        netAnnualB: netAnnualB,
-        netMonthlyA: netMonthlyA,
-        netMonthlyB: netMonthlyB,
-        federalTaxA: federalTaxA,
-        federalTaxB: federalTaxB,
-        ficaTaxA: ficaTaxA,
-        ficaTaxB: ficaTaxB,
-        stateTaxA: stateTaxA,
-        stateTaxB: stateTaxB,
-        totalTaxA: totalTaxA,
-        totalTaxB: totalTaxB,
-        effectiveRateA: effectiveRateA,
-        effectiveRateB: effectiveRateB,
-        regionA: regionA,
-        regionB: regionB,
-        fr: fr,
-        es: es,
-      ),
-    ));
+    final bytes = await Isolate.run(
+        () => _buildSalaryComparisonPdfBytes(_SalaryComparisonPdfParams(
+              grossA: grossA,
+              grossB: grossB,
+              netAnnualA: netAnnualA,
+              netAnnualB: netAnnualB,
+              netMonthlyA: netMonthlyA,
+              netMonthlyB: netMonthlyB,
+              federalTaxA: federalTaxA,
+              federalTaxB: federalTaxB,
+              ficaTaxA: ficaTaxA,
+              ficaTaxB: ficaTaxB,
+              stateTaxA: stateTaxA,
+              stateTaxB: stateTaxB,
+              totalTaxA: totalTaxA,
+              totalTaxB: totalTaxB,
+              effectiveRateA: effectiveRateA,
+              effectiveRateB: effectiveRateB,
+              regionA: regionA,
+              regionB: regionB,
+              fr: fr,
+              es: es,
+            )));
     await Printing.sharePdf(
-      bytes: await pdf.save(),
+      bytes: bytes,
       filename:
           'SalaryComparison_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );

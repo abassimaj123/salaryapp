@@ -1,3 +1,6 @@
+import 'dart:isolate';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
@@ -26,6 +29,152 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppRadius,
         AppTextSize,
         ResultHasher;
+
+// ─── Isolate param + top-level function ──────────────────────────────────────
+
+class _BenefitsPdfParams {
+  final double baseSalary, healthAnnual, retirementAnnual, ptoAnnual,
+      remoteAnnual, otherAnnual, totalBenefits, totalCompensation;
+  final String currencySymbol, retirementLabel, dateStr;
+  final bool fr, es, isUK;
+  const _BenefitsPdfParams({
+    required this.baseSalary,
+    required this.healthAnnual,
+    required this.retirementAnnual,
+    required this.ptoAnnual,
+    required this.remoteAnnual,
+    required this.otherAnnual,
+    required this.totalBenefits,
+    required this.totalCompensation,
+    required this.currencySymbol,
+    required this.retirementLabel,
+    required this.dateStr,
+    required this.fr,
+    required this.es,
+    required this.isUK,
+  });
+}
+
+Future<Uint8List> _buildBenefitsPdfBytes(_BenefitsPdfParams p) async {
+  final symbol = p.currencySymbol;
+  final fmtCur = NumberFormat.currency(symbol: symbol, decimalDigits: 0);
+
+  pw.Widget row(String label, String value, {bool bold = false}) => pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 3),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(label,
+                style: const pw.TextStyle(fontSize: AppTextSize.sm)),
+            pw.Text(value,
+                style: pw.TextStyle(
+                    fontSize: AppTextSize.sm,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+          ],
+        ),
+      );
+
+  final doc = pw.Document();
+  doc.addPage(pw.Page(
+    build: (ctx) => pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          p.fr
+              ? 'Rapport de rémunération globale'
+              : p.es
+                  ? 'Informe de compensación total'
+                  : 'Total Compensation Report',
+          style: pw.TextStyle(
+              fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(p.dateStr,
+            style: const pw.TextStyle(fontSize: AppTextSize.xs)),
+        pw.Divider(height: 24),
+        row(
+            p.fr
+                ? 'Salaire de base'
+                : p.es
+                    ? 'Salario base'
+                    : 'Base Salary',
+            fmtCur.format(p.baseSalary)),
+        pw.Divider(height: 16),
+        pw.Text(
+            p.fr
+                ? 'Valeur des avantages sociaux'
+                : p.es
+                    ? 'Valor de beneficios laborales'
+                    : 'Benefits Value',
+            style: pw.TextStyle(
+                fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 6),
+        row(
+            p.fr
+                ? 'Assurance santé (annuelle)'
+                : p.es
+                    ? 'Seguro de salud (anual)'
+                    : (p.isUK
+                        ? 'Private Health Insurance (annual)'
+                        : 'Health Insurance (annual)'),
+            fmtCur.format(p.healthAnnual)),
+        row(p.retirementLabel, fmtCur.format(p.retirementAnnual)),
+        row(
+            p.fr
+                ? 'Valeur des congés payés'
+                : p.es
+                    ? 'Valor de vacaciones pagadas'
+                    : (p.isUK ? 'Annual Leave Value' : 'PTO Value'),
+            fmtCur.format(p.ptoAnnual)),
+        if (p.remoteAnnual > 0)
+          row(
+              p.fr
+                  ? 'Économies télétravail (annuelles)'
+                  : p.es
+                      ? 'Ahorro trabajo remoto (anual)'
+                      : 'Remote Work Savings (annual)',
+              fmtCur.format(p.remoteAnnual)),
+        if (p.otherAnnual > 0)
+          row(
+              p.fr
+                  ? 'Autres avantages'
+                  : p.es
+                      ? 'Otros beneficios'
+                      : 'Other Perks',
+              fmtCur.format(p.otherAnnual)),
+        pw.Divider(height: 16),
+        row(
+            p.fr
+                ? 'Total des avantages sociaux'
+                : p.es
+                    ? 'Total beneficios'
+                    : 'Total Benefits Value',
+            fmtCur.format(p.totalBenefits),
+            bold: true),
+        pw.SizedBox(height: 8),
+        row(
+            p.fr
+                ? 'Rémunération globale'
+                : p.es
+                    ? 'Compensación total'
+                    : 'Total Compensation',
+            fmtCur.format(p.totalCompensation),
+            bold: true),
+        pw.SizedBox(height: 20),
+        pw.Text(
+          p.fr
+              ? '* Estimations à titre informatif uniquement. Ceci n\'est pas un conseil financier.'
+              : p.es
+                  ? '* Estimaciones con fines informativos únicamente. No es asesoramiento financiero.'
+                  : '* Estimates for informational purposes only. Not financial advice.',
+          style: const pw.TextStyle(fontSize: 8),
+        ),
+      ],
+    ),
+  ));
+  return await doc.save();
+}
 
 // ─── Benefits Value Calculator ────────────────────────────────────────────────
 //
@@ -234,128 +383,30 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
 
   Future<void> _sharePdf(BuildContext context, _BenefitsResult r, bool fr,
       bool es) async {
-    final symbol = FlavorConfig.currencySymbol;
-    final fmtCur =
-        NumberFormat.currency(symbol: symbol, decimalDigits: 0);
     final retLabel = _retirementLabel(fr, es);
-    final doc = pw.Document();
-    doc.addPage(pw.Page(
-      build: (ctx) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            fr
-                ? 'Rapport de rémunération globale'
-                : es
-                    ? 'Informe de compensación total'
-                    : 'Total Compensation Report',
-            style: pw.TextStyle(
-                fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold),
+    final bytes = await Isolate.run(() => _buildBenefitsPdfBytes(
+          _BenefitsPdfParams(
+            baseSalary: r.baseSalary,
+            healthAnnual: r.healthAnnual,
+            retirementAnnual: r.retirementAnnual,
+            ptoAnnual: r.ptoAnnual,
+            remoteAnnual: r.remoteAnnual,
+            otherAnnual: r.otherAnnual,
+            totalBenefits: r.totalBenefits,
+            totalCompensation: r.totalCompensation,
+            currencySymbol: FlavorConfig.currencySymbol,
+            retirementLabel: retLabel,
+            dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+            fr: fr,
+            es: es,
+            isUK: FlavorConfig.isUK,
           ),
-          pw.SizedBox(height: 4),
-          pw.Text(DateFormat('MMMM d, yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: AppTextSize.xs)),
-          pw.Divider(height: 24),
-          _pdfRow(
-              fr
-                  ? 'Salaire de base'
-                  : es
-                      ? 'Salario base'
-                      : 'Base Salary',
-              fmtCur.format(r.baseSalary)),
-          pw.Divider(height: 16),
-          pw.Text(
-              fr
-                  ? 'Valeur des avantages sociaux'
-                  : es
-                      ? 'Valor de beneficios laborales'
-                      : 'Benefits Value',
-              style: pw.TextStyle(
-                  fontSize: AppTextSize.sm, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 6),
-          _pdfRow(
-              fr
-                  ? 'Assurance santé (annuelle)'
-                  : es
-                      ? 'Seguro de salud (anual)'
-                      : (FlavorConfig.isUK ? 'Private Health Insurance (annual)' : 'Health Insurance (annual)'),
-              fmtCur.format(r.healthAnnual)),
-          _pdfRow(retLabel, fmtCur.format(r.retirementAnnual)),
-          _pdfRow(
-              fr
-                  ? 'Valeur des congés payés'
-                  : es
-                      ? 'Valor de vacaciones pagadas'
-                      : (FlavorConfig.isUK ? 'Annual Leave Value' : 'PTO Value'),
-              fmtCur.format(r.ptoAnnual)),
-          if (r.remoteAnnual > 0)
-            _pdfRow(
-                fr
-                    ? 'Économies télétravail (annuelles)'
-                    : es
-                        ? 'Ahorro trabajo remoto (anual)'
-                        : 'Remote Work Savings (annual)',
-                fmtCur.format(r.remoteAnnual)),
-          if (r.otherAnnual > 0)
-            _pdfRow(
-                fr
-                    ? 'Autres avantages'
-                    : es
-                        ? 'Otros beneficios'
-                        : 'Other Perks',
-                fmtCur.format(r.otherAnnual)),
-          pw.Divider(height: 16),
-          _pdfRow(
-              fr
-                  ? 'Total des avantages sociaux'
-                  : es
-                      ? 'Total beneficios'
-                      : 'Total Benefits Value',
-              fmtCur.format(r.totalBenefits),
-              bold: true),
-          pw.SizedBox(height: 8),
-          _pdfRow(
-              fr
-                  ? 'Rémunération globale'
-                  : es
-                      ? 'Compensación total'
-                      : 'Total Compensation',
-              fmtCur.format(r.totalCompensation),
-              bold: true),
-          pw.SizedBox(height: 20),
-          pw.Text(
-            fr
-                ? '* Estimations à titre informatif uniquement. Ceci n\'est pas un conseil financier.'
-                : es
-                    ? '* Estimaciones con fines informativos únicamente. No es asesoramiento financiero.'
-                    : '* Estimates for informational purposes only. Not financial advice.',
-            style: const pw.TextStyle(fontSize: 8),
-          ),
-        ],
-      ),
-    ));
+        ));
     await Printing.sharePdf(
-        bytes: await doc.save(),
+        bytes: bytes,
         filename:
             'total_compensation_${DateTime.now().millisecondsSinceEpoch}.pdf');
   }
-
-  pw.Widget _pdfRow(String label, String value, {bool bold = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 3),
-        child: pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(label,
-                style: const pw.TextStyle(fontSize: AppTextSize.sm)),
-            pw.Text(value,
-                style: pw.TextStyle(
-                    fontSize: AppTextSize.sm,
-                    fontWeight:
-                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          ],
-        ),
-      );
 
   String _retirementLabel(bool fr, bool es) {
     if (FlavorConfig.isCA) return fr ? 'Cotisation REER employeur' : 'RRSP Match';

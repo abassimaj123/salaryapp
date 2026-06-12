@@ -62,8 +62,8 @@ class UsSalaryEngine {
   UsSalaryEngine._();
 
   // ── 2025 tax constants ──────────────────────────────────────────────────────
-  static const double _stdDeductionSingle2025 = 15000;
-  static const double _stdDeductionMfj2025 = 30000;
+  static const double _stdDeductionSingle2025 = 15750;
+  static const double _stdDeductionMfj2025 = 31500;
 
   /// Federal income tax brackets 2025 — single filer (post-standard deduction).
   /// Pass [taxableIncome] = grossAnnual − standard deduction − any pre-tax deductions.
@@ -237,14 +237,27 @@ class UsSalaryEngine {
         return grossAnnual * 0.0495;
       case 'PA':
         return grossAnnual * 0.0307;
+      // Ohio 2025: progressive brackets (no standard deduction applied here)
       case 'OH':
-        return grossAnnual * 0.04;
+        return _progressive(grossAnnual, [
+          (26050, 0.0),
+          (100000, 0.02765),
+          (115300, 0.03226),
+          (1000000, 0.03688),
+          (double.infinity, 0.0399),
+        ]);
       case 'GA':
         return grossAnnual * 0.0539; // 5.39% flat (2025)
       case 'NC':
         return grossAnnual * 0.0425; // 4.25% flat (2025)
+      // Virginia 2025: progressive brackets
       case 'VA':
-        return grossAnnual * 0.0575;
+        return _progressive(grossAnnual, [
+          (3000, 0.02),
+          (5000, 0.03),
+          (17000, 0.05),
+          (double.infinity, 0.0575),
+        ]);
       case 'MA':
         return grossAnnual * 0.05;
       case 'CO':
@@ -615,15 +628,15 @@ class CaSalaryEngine {
     final taxable = (grossAnnual - 16129).clamp(0.0, double.infinity);
     if (taxable <= 57375) return taxable * 0.15;
     if (taxable <= 114750) return 8606.25 + (taxable - 57375) * 0.205;
-    if (taxable <= 158519) return 20358.94 + (taxable - 114750) * 0.26;
-    if (taxable <= 220000) return 31736.48 + (taxable - 158519) * 0.29;
-    return 49566.77 + (taxable - 220000) * 0.33;
+    if (taxable <= 177882) return 20368.13 + (taxable - 114750) * 0.26;
+    if (taxable <= 253414) return 36782.45 + (taxable - 177882) * 0.29;
+    return 58686.73 + (taxable - 253414) * 0.33;
   }
 
   // ── 2025 CPP / EI constants ─────────────────────────────────────────────────
   static const double _cpp1BasicExemption = 3500;
   static const double _ympe2025 = 71300; // CPP1 ceiling
-  static const double _yampe2025 = 81900; // CPP2 ceiling
+  static const double _yampe2025 = 81200; // CPP2 ceiling
   static const double _cpp1Rate = 0.0595;
   static const double _cpp2Rate = 0.04;
   static const double _eiInsurableMax2025 = 65700;
@@ -670,40 +683,41 @@ class CaSalaryEngine {
     return tax;
   }
 
-  /// Ontario 2025: 5 progressive brackets, BPA $11,865.
+  /// Ontario 2025: 5 progressive brackets, BPA $12,747.
   static double _ontarioProvincialTax(double grossAnnual) {
-    final taxable = (grossAnnual - 11865).clamp(0.0, double.infinity);
+    final taxable = (grossAnnual - 12747).clamp(0.0, double.infinity);
     return _progressive(taxable, [
-      (51446, 0.0505),
-      (102894, 0.0915),
+      (52886, 0.0505),
+      (105775, 0.0915),
       (150000, 0.1116),
       (220000, 0.1216),
       (double.infinity, 0.1316),
     ]);
   }
 
-  /// British Columbia 2025: 6 progressive brackets, BPA $11,981.
+  /// British Columbia 2025: 7 progressive brackets, BPA $11,981.
   static double _bcProvincialTax(double grossAnnual) {
     final taxable = (grossAnnual - 11981).clamp(0.0, double.infinity);
     return _progressive(taxable, [
-      (45654, 0.0506),
-      (91310, 0.0770),
-      (104835, 0.1050),
-      (127299, 0.1229),
-      (172602, 0.1470),
-      (double.infinity, 0.1680),
+      (49279, 0.0506),
+      (98560, 0.0770),
+      (113158, 0.1050),
+      (137407, 0.1229),
+      (186306, 0.1470),
+      (259829, 0.1680),
+      (double.infinity, 0.2050),
     ]);
   }
 
-  /// Quebec 2026 provincial tax — 4 progressive brackets.
-  /// Personal basic amount: ~$17,183 CAD.
+  /// Quebec 2025 provincial tax — 4 progressive brackets.
+  /// Personal basic amount: $18,571 CAD (2025).
   static double _quebecProvincialTax(double grossAnnual) {
     // Taxable income after QC basic personal amount
-    final taxable = (grossAnnual - 17183).clamp(0.0, double.infinity);
-    if (taxable <= 51780) return taxable * 0.14;
-    if (taxable <= 103545) return 7249.20 + (taxable - 51780) * 0.19;
-    if (taxable <= 126000) return 17084.55 + (taxable - 103545) * 0.24;
-    return 22474.75 + (taxable - 126000) * 0.2575;
+    final taxable = (grossAnnual - 18571).clamp(0.0, double.infinity);
+    if (taxable <= 53255) return taxable * 0.14;
+    if (taxable <= 106495) return 7455.70 + (taxable - 53255) * 0.19;
+    if (taxable <= 129590) return 17571.30 + (taxable - 106495) * 0.24;
+    return 23113.10 + (taxable - 129590) * 0.2575;
   }
 
   /// Quebec federal tax abatement (2026): QC residents pay 16.5% less

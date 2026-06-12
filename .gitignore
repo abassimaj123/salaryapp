@@ -16,6 +16,7 @@ build/
 local.properties
 GeneratedPluginRegistrant.java
 google-services.json
+admob.json
 **/android/key.properties
 **/android/*.jks
 **/android/*.keystore
