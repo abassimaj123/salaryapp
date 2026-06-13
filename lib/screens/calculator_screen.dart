@@ -37,9 +37,6 @@ import '../main.dart'
         salaryNotifier,
         ukStudentLoanNotifier,
         ukScotlandNotifier;
-import 'tax_breakdown_screen.dart';
-import 'w4_wizard_screen.dart';
-import 'bonus_calculator_screen.dart';
 
 // ─── Pay-frequency enum ───────────────────────────────────────────────────────
 
@@ -352,6 +349,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   final _scrollCtrl = ScrollController();
   final _salarySacrificeCtrl = TextEditingController(text: '0');
   final _secondIncomeCtrl = TextEditingController(text: '0');
+  // UK HMRC tax code — defaults to the standard 2025/26 code (1257L).
+  final _ukTaxCodeCtrl = TextEditingController(text: '1257L');
 
   static const _kProvinceKey = 'salary_ca_province';
 
@@ -367,6 +366,13 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   // CA reverse-calculation mode
   bool _caReverseMode = false; // false = gross→net, true = net→gross
   double? _caRequiredGross; // result of reverse calc
+
+  // UK reverse-calculation mode (net → gross), mirroring the CA feature.
+  bool _ukReverseMode = false;
+  double? _ukRequiredGross; // result of UK reverse calc
+
+  // UK HMRC tax code (parsed in _calculate); defaults to standard 1257L.
+  UkTaxCode _ukTaxCode = UkTaxCode.standard;
 
   // UK salary sacrifice
   double _salarySacrifice = 0; // £/year pre-tax deduction
@@ -444,6 +450,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     _salaryCtrl.dispose();
     _salarySacrificeCtrl.dispose();
     _secondIncomeCtrl.dispose();
+    _ukTaxCodeCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -467,6 +474,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       inputs['pg'] = _ukPostgrad;
       inputs['ae'] = _ukAutoEnrolment;
       inputs['sacrifice'] = ResultHasher.roundTo(_salarySacrifice, 100);
+      inputs['taxcode'] = _ukTaxCodeCtrl.text.trim().toUpperCase();
+      inputs['reverse'] = _ukReverseMode;
     }
     if (FlavorConfig.isCA) inputs['reverse'] = _caReverseMode;
     if (_addSecondIncome) {
@@ -573,16 +582,47 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       res = UsSalaryEngine.calculate(inputAnnual, _usState,
           secondIncome: secondIncome);
     } else if (FlavorConfig.isUK) {
-      res = UkSalaryEngine.calculate(
-        inputAnnual,
-        studentLoan: ukStudentLoanNotifier.value,
-        loanPlan: _ukLoanPlan,
-        postgradLoan: _ukPostgrad,
-        scotland: ukScotlandNotifier.value,
-        salarySacrifice: _salarySacrifice,
-        autoEnrolment: _ukAutoEnrolment,
-        secondIncome: secondIncome,
-      );
+      // Parse the HMRC tax code (defaults to 1257L on empty/invalid input).
+      final taxCode = UkTaxCode.parse(_ukTaxCodeCtrl.text);
+      _ukTaxCode = taxCode;
+      if (_ukReverseMode) {
+        // Reverse: the entered amount is the desired take-home; solve for gross.
+        // No second income in reverse mode (the target net is for one income).
+        final targetNet = inputAnnual;
+        final gross = UkSalaryEngine.grossFromNet(
+          targetNet,
+          studentLoan: ukStudentLoanNotifier.value,
+          loanPlan: _ukLoanPlan,
+          postgradLoan: _ukPostgrad,
+          scotland: ukScotlandNotifier.value,
+          salarySacrifice: _salarySacrifice,
+          autoEnrolment: _ukAutoEnrolment,
+          taxCode: taxCode,
+        );
+        res = UkSalaryEngine.calculate(
+          gross,
+          studentLoan: ukStudentLoanNotifier.value,
+          loanPlan: _ukLoanPlan,
+          postgradLoan: _ukPostgrad,
+          scotland: ukScotlandNotifier.value,
+          salarySacrifice: _salarySacrifice,
+          autoEnrolment: _ukAutoEnrolment,
+          taxCode: taxCode,
+        );
+        requiredGross = gross;
+      } else {
+        res = UkSalaryEngine.calculate(
+          inputAnnual,
+          studentLoan: ukStudentLoanNotifier.value,
+          loanPlan: _ukLoanPlan,
+          postgradLoan: _ukPostgrad,
+          scotland: ukScotlandNotifier.value,
+          salarySacrifice: _salarySacrifice,
+          autoEnrolment: _ukAutoEnrolment,
+          secondIncome: secondIncome,
+          taxCode: taxCode,
+        );
+      }
     } else {
       // CA: reverse mode computes the gross needed to achieve target net
       if (_caReverseMode) {
@@ -608,7 +648,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       _result = res;
       _localTax = localTax;
       _showResults = true;
-      _caRequiredGross = requiredGross;
+      _caRequiredGross = FlavorConfig.isCA ? requiredGross : null;
+      _ukRequiredGross = FlavorConfig.isUK ? requiredGross : null;
     });
 
     // Emotional trigger: good annual net salary → ask for review
@@ -640,6 +681,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       _showResults = false;
       _frequency = PayFrequency.annual;
       _caRequiredGross = null;
+      _ukRequiredGross = null;
+      _ukReverseMode = false;
+      _ukTaxCode = UkTaxCode.standard;
+      _ukTaxCodeCtrl.text = '1257L';
       _salarySacrifice = 0;
       _salarySacrificeCtrl.text = '0';
       _addSecondIncome = false;
@@ -794,6 +839,25 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                       ),
                                     ],
                                     if (FlavorConfig.isUK) ...[
+                                      SizedBox(height: AppSpacing.sm),
+                                      // Reverse-calculation toggle (net → gross)
+                                      _UkReverseModeToggle(
+                                        reverseMode: _ukReverseMode,
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _ukReverseMode = v;
+                                            _ukRequiredGross = null;
+                                            _showResults = false;
+                                          });
+                                          _scheduleCalcAndSave();
+                                        },
+                                      ),
+                                      // HMRC tax code field (default 1257L)
+                                      SizedBox(height: AppSpacing.sm),
+                                      _UkTaxCodeField(
+                                        controller: _ukTaxCodeCtrl,
+                                        onChanged: () => _scheduleCalcAndSave(),
+                                      ),
                                       SizedBox(height: AppSpacing.sm),
                                       // Scotland toggle
                                       ValueListenableBuilder<bool>(
@@ -969,6 +1033,9 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                             fr: fr,
                                             caReverseMode: _caReverseMode,
                                             caRequiredGross: _caRequiredGross,
+                                            ukReverseMode: _ukReverseMode,
+                                            ukRequiredGross: _ukRequiredGross,
+                                            ukTaxCode: _ukTaxCode,
                                             ukSalarySacrifice: _salarySacrifice,
                                             onSaveScenario: _saveScenario,
                                           ),
@@ -1279,6 +1346,9 @@ class _ResultsSection extends StatefulWidget {
   final bool useAlt, es, fr;
   final bool caReverseMode;
   final double? caRequiredGross;
+  final bool ukReverseMode;
+  final double? ukRequiredGross;
+  final UkTaxCode ukTaxCode;
   final double ukSalarySacrifice;
   final Future<void> Function(String? label) onSaveScenario;
 
@@ -1293,6 +1363,9 @@ class _ResultsSection extends StatefulWidget {
     required this.onSaveScenario,
     this.caReverseMode = false,
     this.caRequiredGross,
+    this.ukReverseMode = false,
+    this.ukRequiredGross,
+    this.ukTaxCode = UkTaxCode.standard,
     this.ukSalarySacrifice = 0,
   });
 
@@ -1405,6 +1478,18 @@ class _ResultsSectionState extends State<_ResultsSection> {
             requiredGross: widget.caRequiredGross!,
             targetNet: adjustedNetAnnual,
             fr: fr,
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+
+        // UK reverse-mode: show required gross to achieve the target net
+        if (FlavorConfig.isUK &&
+            widget.ukReverseMode &&
+            widget.ukRequiredGross != null) ...[
+          _CaReverseResultBanner(
+            requiredGross: widget.ukRequiredGross!,
+            targetNet: adjustedNetAnnual,
+            fr: false,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
@@ -3076,6 +3161,83 @@ class _SalarySacrificeField extends StatelessWidget {
       },
     );
   }
+}
+
+// ─── UK: Reverse-calculation toggle (net → gross) ────────────────────────────
+
+class _UkReverseModeToggle extends StatelessWidget {
+  final bool reverseMode;
+  final ValueChanged<bool> onChanged;
+
+  const _UkReverseModeToggle({
+    required this.reverseMode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(
+        reverseMode ? 'Calculate from take-home' : 'Calculate from gross',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      subtitle: Text(
+        reverseMode
+            ? 'Enter desired take-home — get required gross'
+            : 'Enter gross salary — get take-home pay',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      value: reverseMode,
+      activeColor: AppTheme.primary,
+      onChanged: onChanged,
+    );
+  }
+}
+
+// ─── UK: HMRC tax code field ─────────────────────────────────────────────────
+
+class _UkTaxCodeField extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  const _UkTaxCodeField({
+    required this.controller,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      textCapitalization: TextCapitalization.characters,
+      inputFormatters: [
+        UpperCaseTextFormatter(),
+        LengthLimitingTextInputFormatter(7),
+      ],
+      decoration: const InputDecoration(
+        labelText: 'HMRC Tax Code',
+        prefixIcon: Icon(Icons.badge_outlined),
+        helperText: '1257L · BR · D0 · D1 · NT · 0T · K… (default 1257L)',
+        hintText: '1257L',
+      ),
+      onChanged: (_) => onChanged(),
+    );
+  }
+}
+
+/// Uppercases tax-code input as the user types (HMRC codes are upper-case).
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) =>
+      TextEditingValue(
+        text: newValue.text.toUpperCase(),
+        selection: newValue.selection,
+      );
 }
 
 // ─── UK student-loan plan dropdown ───────────────────────────────────────────

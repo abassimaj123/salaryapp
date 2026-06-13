@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import '../flavor_config.dart';
-import 'app_theme_ca.dart';
-import 'app_theme_us.dart';
-import 'app_theme_uk.dart';
 
 /// Unified theme export — automatically selects correct theme per flavor
 class AppTheme {

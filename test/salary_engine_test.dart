@@ -11,46 +11,47 @@ void main() {
 
   // ─── US Engine ───────────────────────────────────────────────────────────
 
-  // Source: IRS Rev. Proc. 2024-61 — 2025 tax year brackets
-  // Standard deduction: $15,000 (single). Brackets: 10%/$11,925, 12%/$48,475, 22%/$103,350,
-  // 24%/$197,300, 32%/$250,525, 35%/$626,350, 37%/above.
-  // irs.gov/pub/irs-drop/rp-24-61.pdf
+  // Source: IRS Rev. Proc. 2024-40 (brackets) + OBBBA (P.L. 119-1, July 2025)
+  // standard deduction uplift. 2025 single standard deduction = $15,750.
+  // Brackets: 10%/$11,925, 12%/$48,475, 22%/$103,350, 24%/$197,300,
+  // 32%/$250,525, 35%/$626,350, 37%/above.
+  // irs.gov/filing/federal-income-tax-rates-and-brackets
   group('UsSalaryEngine — federal tax', () {
     test('zero income', () => approx(UsSalaryEngine.federalTax(0), 0));
 
-    test('bracket 1 — \$8,000 (below std deduction \$15,000 → 0)', () {
-      // 2025: standard deduction $15,000. $8,000 taxable = $0
+    test('bracket 1 — \$8,000 (below std deduction \$15,750 → 0)', () {
+      // 2025: standard deduction $15,750. $8,000 taxable = $0
       approx(UsSalaryEngine.federalTax(8000), 0);
     });
 
     test('bracket 2 — \$30,000', () {
-      // 2025: taxable = 30000-15000=15000; 10%×11925=1192.5 + 12%×3075=369 = 1561.5
-      approx(UsSalaryEngine.federalTax(30000), 1561.5);
+      // 2025: taxable = 30000-15750=14250; 10%×11925=1192.5 + 12%×2325=279 = 1471.5
+      approx(UsSalaryEngine.federalTax(30000), 1471.5);
     });
 
     test('bracket 3 — \$75,000', () {
-      // 2025: taxable=60000; 1192.5+4386+12%×(60000-48475)=1192.5+4386+2535.5=8114
-      approx(UsSalaryEngine.federalTax(75000), 8114);
+      // 2025: taxable=59250; 1192.5+12%×(48475-11925)=4386 + 22%×(59250-48475)=2370.5 = 7949
+      approx(UsSalaryEngine.federalTax(75000), 7949);
     });
 
     test('bracket 4 — \$150,000', () {
-      // 2025: taxable=135000; +24%×(135000-103350) = 25247
-      approx(UsSalaryEngine.federalTax(150000), 25247);
+      // 2025: taxable=134250; 17651 + 24%×(134250-103350) = 25067
+      approx(UsSalaryEngine.federalTax(150000), 25067);
     });
 
     test('bracket 5 — \$220,000', () {
-      // 2025: taxable=205000; +32%×(205000-197300) = 42663
-      approx(UsSalaryEngine.federalTax(220000), 42663);
+      // 2025: taxable=204250; 40199 + 32%×(204250-197300) = 42423
+      approx(UsSalaryEngine.federalTax(220000), 42423);
     });
 
     test('bracket 6 — \$400,000', () {
-      // 2025: taxable=385000; +35%×(385000-250525) = 104297.25
-      approx(UsSalaryEngine.federalTax(400000), 104297.25, tolerance: 5.0);
+      // 2025: taxable=384250; 57231 + 35%×(384250-250525) = 104034.75
+      approx(UsSalaryEngine.federalTax(400000), 104034.75, tolerance: 5.0);
     });
 
     test('bracket 7 — \$700,000', () {
-      // 2025: taxable=685000; +37%×(685000-626350) = 210470.25
-      approx(UsSalaryEngine.federalTax(700000), 210470.25, tolerance: 2.0);
+      // 2025: taxable=684250; 188769.75 + 37%×(684250-626350) = 210192.75
+      approx(UsSalaryEngine.federalTax(700000), 210192.75, tolerance: 2.0);
     });
   });
 
@@ -199,22 +200,22 @@ void main() {
     // source: salary_engine.dart — CaSalaryEngine.federalTax()
     const kBpa = 16129.0;           // Basic Personal Amount 2025
     const kBracket1Upper = 57375.0; // bracket 1 ceiling
-    const kBracket1Rate = 0.15;
-    const kBracket1Tax = 8606.25;   // 57375 × 0.15
+    const kBracket1Rate = 0.145;    // 2025 blended lowest rate (15%→14% on 1 Jul 2025)
+    const kBracket1Tax = 8319.375;  // 57375 × 0.145
+    const kBracket2Upper = 114750.0; // bracket 2 ceiling (CRA 2025)
     const kBracket2Rate = 0.205;
-    const kBracket3Upper = 158519.0; // bracket 3 ceiling
-    const kBracket3Tax = 31736.48;  // accumulated tax at bracket 3 ceiling
-    const kBracket4Upper = 220000.0; // bracket 4 ceiling
+    const kBracket2Tax = 20081.25;  // accumulated tax at bracket 2 ceiling
+    const kBracket3Rate = 0.26;
+    const kBracket3Upper = 177882.0; // bracket 3 ceiling (CRA 2025)
+    const kBracket3Tax = 36495.57;  // accumulated tax at bracket 3 ceiling
     const kBracket4Rate = 0.29;
-    const kBracket4Tax = 49566.77;  // accumulated tax at bracket 4 ceiling
-    const kBracket5Rate = 0.33;
 
     test('below BPA \$16,129 → 0', () {
       expect(CaSalaryEngine.federalTax(kBpa), 0.0);
     });
 
-    test('\$40,000 → 15% on taxable', () {
-      // taxable = 40000 - kBpa = 23871 (all in bracket 1)
+    test('\$40,000 → 14.5% on taxable', () {
+      // taxable = 40000 - kBpa = 23871 (all in bracket 1, 2025 blended 14.5%)
       approx(CaSalaryEngine.federalTax(40000), (40000 - kBpa) * kBracket1Rate, tolerance: 1.0);
     });
 
@@ -235,24 +236,24 @@ void main() {
           tolerance: 1.0);
     });
 
-    test('\$180,000 — fourth bracket', () {
-      // taxable=163871 > kBracket3Upper → fourth bracket
+    test('\$180,000 — third bracket', () {
+      // taxable=163871 → in bracket 3 (114750 < 163871 ≤ 177882) @ 26%
       final taxable = 180000 - kBpa;
       approx(CaSalaryEngine.federalTax(180000),
-          kBracket3Tax + (taxable - kBracket3Upper) * kBracket4Rate,
+          kBracket2Tax + (taxable - kBracket2Upper) * kBracket3Rate,
           tolerance: 1.0);
     });
 
-    test('\$250,000 — top bracket 33%', () {
-      // taxable=233871 > kBracket4Upper → top bracket
+    test('\$250,000 — fourth bracket 29%', () {
+      // taxable=233871 → in bracket 4 (177882 < 233871 ≤ 253414) @ 29%
       final taxable = 250000 - kBpa;
       approx(CaSalaryEngine.federalTax(250000),
-          kBracket4Tax + (taxable - kBracket4Upper) * kBracket5Rate,
+          kBracket3Tax + (taxable - kBracket3Upper) * kBracket4Rate,
           tolerance: 1.0);
     });
   });
 
-  // Source: CRA T4032 2025 — CPP base ceiling $71,300 @ 5.95%, CPP2 ceiling $81,900 @ 4.00%
+  // Source: CRA 2026 — CPP base ceiling (YMPE) $74,600 @ 5.95%, CPP2 ceiling (YAMPE) $85,000 @ 4.00%
   // canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/payroll-deductions-contributions/canada-pension-plan-cpp/cpp-contribution-rates-maximums-exemptions.html
   group('CaSalaryEngine — CPP', () {
     test('below \$3,500 floor → 0', () {
@@ -263,47 +264,49 @@ void main() {
       approx(CaSalaryEngine.cpp(30000), (30000 - 3500) * 0.0595);
     });
 
-    test('CPP + CPP2 fully caps above \$81,900 ceiling (2025)', () {
-      // 2025: CPP base max $71,300 @ 5.95%; CPP2 max $81,900 @ 4%.
-      // cpp(81900) = cpp(100000) = base(71300) + cpp2(81900-71300)
-      final atCap = CaSalaryEngine.cpp(81900);
+    test('CPP + CPP2 fully caps above \$85,000 ceiling (2026)', () {
+      // 2026: CPP base ceiling (YMPE) $74,600 @ 5.95%; CPP2 ceiling (YAMPE) $85,000 @ 4%.
+      // cpp(85000) = cpp(100000) = base(74600) + cpp2(85000-74600)
+      final atCap = CaSalaryEngine.cpp(85000);
       final aboveCap = CaSalaryEngine.cpp(100000);
       approx(atCap, aboveCap);
     });
   });
 
   group('CaSalaryEngine — EI', () {
-    // Source: CRA T4032 2025 — rate 1.64%, max insurable $65,700
-    test('\$50,000 — 1.64% (2025)', () {
-      approx(CaSalaryEngine.ei(50000), 50000 * 0.0164);
+    // Source: CRA 2026 — employee rate 1.63% (rest of Canada), max insurable $68,900
+    test('\$50,000 — 1.63% (2026)', () {
+      approx(CaSalaryEngine.ei(50000), 50000 * 0.0163);
     });
 
-    test('EI caps at \$65,700 (2025 max insurable earnings)', () {
-      // CRA 2025: max insurable = $65,700, employee rate 1.64%
-      // max annual EI premium = $65,700 × 0.0164 = $1,077.48
-      approx(CaSalaryEngine.ei(65700), 65700 * 0.0164);
-      final atCap = CaSalaryEngine.ei(65700);
+    test('EI caps at \$68,900 (2026 max insurable earnings)', () {
+      // CRA 2026: max insurable = $68,900, employee rate 1.63%
+      // max annual EI premium = $68,900 × 0.0163 = $1,123.07
+      approx(CaSalaryEngine.ei(68900), 68900 * 0.0163);
+      final atCap = CaSalaryEngine.ei(68900);
       final aboveCap = CaSalaryEngine.ei(80000);
       approx(atCap, aboveCap);
     });
   });
 
   group('CaSalaryEngine — provincial tax', () {
-    test('Ontario — 5.05% first bracket with BPA \$11,865', () {
-      // ON 2025: BPA = $11,865, first bracket ≤ $51,446 at 5.05%
-      // taxable = 60000 - 11865 = 48135; all in first bracket
-      // expected = 48135 × 0.0505 = 2430.8175
-      final taxable = (60000 - 11865).toDouble();
+    test('Ontario — 5.05% first bracket with BPA \$12,747', () {
+      // ON 2025: BPA = $12,747, first bracket ≤ $52,886 at 5.05%
+      // taxable = 60000 - 12747 = 47253; all in first bracket
+      // expected = 47253 × 0.0505 = 2386.2765
+      final taxable = (60000 - 12747).toDouble();
       approx(CaSalaryEngine.provincialTax(60000, 'ON'), taxable * 0.0505);
     });
 
-    // Source: Revenu Québec — 2026 tax brackets: 14% ≤$51,780, 19% ≤$103,545, 24% ≤$126,000, 25.75% above
-    test('Quebec — 4-bracket progressive (2026)', () {
-      // $80k gross: taxable = 80000 - 17183 = 62817
-      // bracket1: 51780 × 14% = 7249.20
-      // bracket2: (62817 - 51780) × 19% = 11037 × 19% = 2097.03
-      // total provincial = 9346.23
-      approx(CaSalaryEngine.provincialTax(80000, 'QC'), 9346.23);
+    // Source: Revenu Québec — 2025 tax brackets: 14% ≤$53,255, 19% ≤$106,495,
+    // 24% ≤$129,590, 25.75% above. Basic personal amount $18,571 (2025).
+    // revenuquebec.ca/en/citizens/income-tax-return/.../new-for-2025/
+    test('Quebec — 4-bracket progressive (2025)', () {
+      // $80k gross: taxable = 80000 - 18571 = 61429
+      // bracket1: 53255 × 14% = 7455.70
+      // bracket2: (61429 - 53255) × 19% = 8174 × 19% = 1553.06
+      // total provincial = 9008.76
+      approx(CaSalaryEngine.provincialTax(80000, 'QC'), 9008.76);
     });
 
     test('unknown province — uses flat 5.05% with \$10,000 exemption', () {

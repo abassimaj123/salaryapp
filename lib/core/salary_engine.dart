@@ -2,6 +2,8 @@
 
 import 'dart:math' show min;
 
+import 'package:calcwise_core/calcwise_core.dart' show CalcwiseReverseSolver;
+
 // ─── Shared result model ──────────────────────────────────────────────────────
 
 class SalaryResult {
@@ -411,45 +413,163 @@ class UsSalaryEngine {
   ];
 }
 
+// ─── UK HMRC tax code ─────────────────────────────────────────────────────────
+
+/// How a parsed HMRC tax code overrides the income-tax calculation.
+///
+/// Reference (HMRC, gov.uk):
+///  - https://www.gov.uk/tax-codes/what-your-tax-code-means
+///  - https://www.gov.uk/employee-tax-codes/letters
+///  - https://www.gov.uk/employee-tax-codes/numbers
+enum UkTaxCodeMode {
+  /// Numeric code with an `L`-type suffix (e.g. `1257L`): the personal
+  /// allowance equals the numeric part × 10 (1257L → £12,570).
+  allowance,
+
+  /// `K` codes (e.g. `K500`): deductions exceed the allowance, so the numeric
+  /// part × 10 is *added* to taxable income (negative allowance).
+  kCode,
+
+  /// `BR`: all income taxed at the basic rate (20%).
+  basicRate,
+
+  /// `D0`: all income taxed at the higher rate (40%).
+  higherRate,
+
+  /// `D1`: all income taxed at the additional rate (45%).
+  additionalRate,
+
+  /// `NT`: no tax is deducted.
+  noTax,
+
+  /// `0T`: no personal allowance (allowance used up).
+  noAllowance,
+}
+
+/// A parsed HMRC PAYE tax code (England/Wales/Scotland), 2025/26.
+///
+/// Numbers carry the tax-free allowance (numeric part × 10); letters carry the
+/// rate treatment. Scottish (`S`) and Welsh (`C`) prefixes are accepted and the
+/// remaining code is interpreted identically — Scottish *rate bands* are still
+/// selected by the existing `scotland` flag on the engine, not by the prefix.
+class UkTaxCode {
+  const UkTaxCode({required this.mode, required this.allowance});
+
+  final UkTaxCodeMode mode;
+
+  /// The personal allowance implied by the code (£/yr). Zero for rate-letter
+  /// codes (BR/D0/D1/0T/NT). For K codes this is the magnitude that is *added*
+  /// to taxable income; [mode] disambiguates the sign.
+  final double allowance;
+
+  /// The default UK code for 2025/26 — standard personal allowance £12,570.
+  static const UkTaxCode standard =
+      UkTaxCode(mode: UkTaxCodeMode.allowance, allowance: 12570);
+
+  /// Parses a raw HMRC tax-code string. Returns [standard] (1257L) for empty or
+  /// unrecognised input so the calculator always produces a sensible result.
+  ///
+  /// Supported: `1257L` (and any nnnnL/M/N/T), `K500`, `BR`, `D0`, `D1`, `NT`,
+  /// `0T`, optionally with an `S`/`C` prefix and a `W1`/`M1`/`X` emergency
+  /// suffix (the emergency suffix does not change the annual figures here).
+  static UkTaxCode parse(String? raw) {
+    if (raw == null) return standard;
+    var code = raw.toUpperCase().replaceAll(RegExp(r'\s'), '');
+    if (code.isEmpty) return standard;
+
+    // Strip a leading region prefix (S = Scotland, C = Wales/Cymru).
+    if (code.startsWith('S') || code.startsWith('C')) {
+      code = code.substring(1);
+    }
+    // Strip an emergency suffix (W1 / M1 / X) — non-cumulative flag only.
+    code = code.replaceAll(RegExp(r'(W1|M1|X)$'), '');
+    if (code.isEmpty) return standard;
+
+    switch (code) {
+      case 'BR':
+        return const UkTaxCode(mode: UkTaxCodeMode.basicRate, allowance: 0);
+      case 'D0':
+        return const UkTaxCode(mode: UkTaxCodeMode.higherRate, allowance: 0);
+      case 'D1':
+        return const UkTaxCode(
+            mode: UkTaxCodeMode.additionalRate, allowance: 0);
+      case 'NT':
+        return const UkTaxCode(mode: UkTaxCodeMode.noTax, allowance: 0);
+      case '0T':
+        return const UkTaxCode(mode: UkTaxCodeMode.noAllowance, allowance: 0);
+    }
+
+    // K code: deductions exceed allowance → add (digits × 10) to taxable income.
+    final kMatch = RegExp(r'^K(\d+)$').firstMatch(code);
+    if (kMatch != null) {
+      final n = int.tryParse(kMatch.group(1)!) ?? 0;
+      return UkTaxCode(mode: UkTaxCodeMode.kCode, allowance: n * 10.0);
+    }
+
+    // Numeric + allowance-letter (L/M/N/T): allowance = digits × 10.
+    final lMatch = RegExp(r'^(\d+)[LMNT]$').firstMatch(code);
+    if (lMatch != null) {
+      final n = int.tryParse(lMatch.group(1)!) ?? 1257;
+      return UkTaxCode(mode: UkTaxCodeMode.allowance, allowance: n * 10.0);
+    }
+
+    // Unrecognised → fall back to the standard code.
+    return standard;
+  }
+}
+
 // ─── UK Engine ────────────────────────────────────────────────────────────────
 
 class UkSalaryEngine {
   UkSalaryEngine._();
 
   // ── 2026/27 constants ───────────────────────────────────────────────────────
-  static const double _personalAllowance = 12570;
+  // The standard personal allowance (£12,570) now lives on UkTaxCode.standard;
+  // the income-tax path derives the allowance from the supplied HMRC tax code.
   static const double _niPrimaryThreshold = 12570;
   static const double _niUpperEarningsLimit = 50270;
+
+  // Income-tax band rates (rest-of-UK) — reused for flat-rate tax codes.
+  static const double _basicRate = 0.20;
+  static const double _higherRate = 0.40;
+  static const double _additionalRate = 0.45;
+
+  /// Resolves the personal allowance to apply for [adjustedGross], honouring the
+  /// HMRC [taxCode] and the >£100k taper. Returns the *taxable income* directly
+  /// because K codes add to (rather than subtract from) income.
+  ///
+  /// - allowance/0T: taxable = gross − allowance (allowance tapered above £100k).
+  /// - K code: taxable = gross + (code allowance) — the >£100k taper does not
+  ///   apply because a K code already has no positive allowance to taper.
+  static double _taxableForCode(double adjustedGross, UkTaxCode taxCode) {
+    if (taxCode.mode == UkTaxCodeMode.kCode) {
+      return (adjustedGross + taxCode.allowance).clamp(0.0, double.infinity);
+    }
+    // Standard allowance from the code (0T → 0), then taper above £100,000.
+    double pa = taxCode.allowance;
+    if (adjustedGross > 100000) {
+      pa = (pa - (adjustedGross - 100000) / 2).clamp(0.0, double.infinity);
+    }
+    return (adjustedGross - pa).clamp(0.0, double.infinity);
+  }
 
   /// England & Wales income tax 2026/27. Personal allowance: £12,570.
   /// Allowance is tapered by £1 per £2 of income over £100,000.
   static double _englandWalesIncomeTax(double grossAnnual,
-      {double salarySacrifice = 0}) {
+      {double salarySacrifice = 0, UkTaxCode? taxCode}) {
     final adjustedGross = grossAnnual - salarySacrifice;
-    // Taper personal allowance above £100,000: £1 reduction per £2 excess
-    double pa = _personalAllowance;
-    if (adjustedGross > 100000) {
-      pa = (_personalAllowance - (adjustedGross - 100000) / 2)
-          .clamp(0.0, double.infinity);
-    }
-    final taxable = (adjustedGross - pa).clamp(0.0, double.infinity);
+    final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    if (taxable <= 37700) return taxable * 0.20;
-    if (taxable <= 125140) return 7540 + (taxable - 37700) * 0.40;
-    return 42384 + (taxable - 125140) * 0.45;
+    if (taxable <= 37700) return taxable * _basicRate;
+    if (taxable <= 125140) return 7540 + (taxable - 37700) * _higherRate;
+    return 42384 + (taxable - 125140) * _additionalRate;
   }
 
   /// Scottish income tax 2026/27. Personal allowance: £12,570 (tapered above £100k).
   static double _scottishIncomeTax(double grossAnnual,
-      {double salarySacrifice = 0}) {
+      {double salarySacrifice = 0, UkTaxCode? taxCode}) {
     final adjustedGross = grossAnnual - salarySacrifice;
-    // Taper personal allowance above £100,000
-    double pa = _personalAllowance;
-    if (adjustedGross > 100000) {
-      pa = (_personalAllowance - (adjustedGross - 100000) / 2)
-          .clamp(0.0, double.infinity);
-    }
-    final taxable = (adjustedGross - pa).clamp(0.0, double.infinity);
+    final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
     // Scottish bands (above personal allowance):
     // Starter  19%: £0       – £2,306  (£12,571–£14,876)
@@ -480,16 +600,36 @@ class UkSalaryEngine {
     return tax;
   }
 
-  /// Compute income tax based on region (Scotland vs rest of UK).
+  /// Compute income tax based on region (Scotland vs rest of UK), honouring an
+  /// optional HMRC [taxCode]. Flat-rate codes (BR/D0/D1) and NT bypass the bands
+  /// entirely and apply to the full post-sacrifice income (no allowance).
   static double incomeTax(
     double grossAnnual, {
     bool scotland = false,
     double salarySacrifice = 0,
-  }) =>
-      scotland
-          ? _scottishIncomeTax(grossAnnual, salarySacrifice: salarySacrifice)
-          : _englandWalesIncomeTax(grossAnnual,
-              salarySacrifice: salarySacrifice);
+    UkTaxCode? taxCode,
+  }) {
+    final code = taxCode ?? UkTaxCode.standard;
+    final taxableAll = (grossAnnual - salarySacrifice).clamp(0.0, double.infinity);
+    switch (code.mode) {
+      case UkTaxCodeMode.noTax:
+        return 0;
+      case UkTaxCodeMode.basicRate:
+        return taxableAll * _basicRate;
+      case UkTaxCodeMode.higherRate:
+        return taxableAll * _higherRate;
+      case UkTaxCodeMode.additionalRate:
+        return taxableAll * _additionalRate;
+      case UkTaxCodeMode.allowance:
+      case UkTaxCodeMode.kCode:
+      case UkTaxCodeMode.noAllowance:
+        return scotland
+            ? _scottishIncomeTax(grossAnnual,
+                salarySacrifice: salarySacrifice, taxCode: code)
+            : _englandWalesIncomeTax(grossAnnual,
+                salarySacrifice: salarySacrifice, taxCode: code);
+    }
+  }
 
   /// NI Class 1 (employee) 2026/27: 8% on £12,570–£50,270, 2% above.
   /// Salary sacrifice reduces NIable earnings.
@@ -580,6 +720,7 @@ class UkSalaryEngine {
     bool autoEnrolment = false,
     double autoEnrolmentRate = 0.05,
     double secondIncome = 0,
+    UkTaxCode? taxCode,
   }) {
     // Cumulate the second income into the gross used for all UK calculations:
     // tax bands and NI apply to the combined total, which is the most useful
@@ -593,7 +734,7 @@ class UkSalaryEngine {
     final totalSacrifice = salarySacrifice + aeContribution;
 
     final income = incomeTax(grossAnnual,
-        scotland: scotland, salarySacrifice: totalSacrifice);
+        scotland: scotland, salarySacrifice: totalSacrifice, taxCode: taxCode);
     final ni =
         nationalInsurance(grossAnnual, salarySacrifice: totalSacrifice);
     final sl =
@@ -616,6 +757,51 @@ class UkSalaryEngine {
       effectiveRate: total / grossAnnual * 100,
     );
   }
+
+  /// Reverse calculation: find the gross salary whose take-home equals
+  /// [targetNet], given the same UK options used by [calculate].
+  ///
+  /// This introduces **no new tax values** — it wraps the existing forward
+  /// [calculate] (which already applies the real 2025/26 PAYE bands, NI,
+  /// pension sacrifice and student-loan rules) as the monotonic `forward`
+  /// function for the shared [CalcwiseReverseSolver]. The reverse therefore
+  /// inherits whatever rates the forward uses automatically.
+  ///
+  /// Bounds: `lo = 0`, `hi` = a generous multiple of the target net (gross is
+  /// always >= net and effective rates stay well under ~50%, so 3x plus
+  /// headroom covers every realistic case; the solver clamps gracefully).
+  static double grossFromNet(
+    double targetNet, {
+    bool studentLoan = false,
+    int loanPlan = 2,
+    bool postgradLoan = false,
+    bool scotland = false,
+    double salarySacrifice = 0,
+    bool autoEnrolment = false,
+    double autoEnrolmentRate = 0.05,
+    UkTaxCode? taxCode,
+  }) {
+    if (targetNet <= 0) return 0;
+
+    double netFromGross(double gross) => calculate(
+          gross,
+          studentLoan: studentLoan,
+          loanPlan: loanPlan,
+          postgradLoan: postgradLoan,
+          scotland: scotland,
+          salarySacrifice: salarySacrifice,
+          autoEnrolment: autoEnrolment,
+          autoEnrolmentRate: autoEnrolmentRate,
+          taxCode: taxCode,
+        ).netAnnual;
+
+    return CalcwiseReverseSolver.solve(
+      forward: netFromGross,
+      target: targetNet,
+      lo: 0,
+      hi: targetNet * 3 + 25000, // headroom for low targets near the allowance
+    );
+  }
 }
 
 // ─── CA Engine ────────────────────────────────────────────────────────────────
@@ -624,45 +810,61 @@ class CaSalaryEngine {
   CaSalaryEngine._();
 
   /// Federal tax 2025. Basic Personal Amount (BPA): $16,129 (ARC officiel 2025).
+  /// Lowest bracket rate is 14.5% for the 2025 tax year: the rate was cut from
+  /// 15% to 14% effective 1 July 2025, so the CRA applies a blended full-year
+  /// rate of 14.5% on the 2025 return.
+  /// Source (verified 2026-06-13): canada.ca — Department of Finance,
+  /// "Delivering a middle-class tax cut" + CRA "What's new for 2025".
   static double federalTax(double grossAnnual) {
     final taxable = (grossAnnual - 16129).clamp(0.0, double.infinity);
-    if (taxable <= 57375) return taxable * 0.15;
-    if (taxable <= 114750) return 8606.25 + (taxable - 57375) * 0.205;
-    if (taxable <= 177882) return 20368.13 + (taxable - 114750) * 0.26;
-    if (taxable <= 253414) return 36782.45 + (taxable - 177882) * 0.29;
-    return 58686.73 + (taxable - 253414) * 0.33;
+    if (taxable <= 57375) return taxable * 0.145;
+    if (taxable <= 114750) return 8319.375 + (taxable - 57375) * 0.205;
+    if (taxable <= 177882) return 20081.25 + (taxable - 114750) * 0.26;
+    if (taxable <= 253414) return 36495.57 + (taxable - 177882) * 0.29;
+    return 58399.85 + (taxable - 253414) * 0.33;
   }
 
-  // ── 2025 CPP / EI constants ─────────────────────────────────────────────────
+  // ── 2026 CPP / EI constants ─────────────────────────────────────────────────
+  // Sources (verified 2026-06-13):
+  //  - CPP rates/maximums & CPP2: canada.ca/en/revenue-agency/.../canada-pension-plan-cpp/
+  //    cpp-contribution-rates-maximums-exemptions.html
+  //    YMPE 2026 = $74,600 · YAMPE 2026 = $85,000 · CPP1 5.95% · CPP2 4.00%.
+  //    QPP 2026 (Revenu Québec) shares the same YMPE/YAMPE ceilings; QPP base
+  //    employee rate is 5.4% vs CPP 5.95% — modelled here with the single CPP
+  //    rate as a portfolio-wide simplification (see TODO in calculate()).
+  //  - EI 2026: canada.ca/.../employment-insurance-ei/ei-premium-rates-maximums.html
+  //    MIE 2026 = $68,900 · employee rate (rest of Canada) = 1.63%
+  //    (Quebec employee rate is 1.30% due to QPIP — not modelled separately).
   static const double _cpp1BasicExemption = 3500;
-  static const double _ympe2025 = 71300; // CPP1 ceiling
-  static const double _yampe2025 = 81900; // CPP2 ceiling
+  static const double _ympe2026 = 74600; // CPP1 / QPP1 first ceiling (YMPE)
+  static const double _yampe2026 = 85000; // CPP2 / QPP2 second ceiling (YAMPE)
   static const double _cpp1Rate = 0.0595;
   static const double _cpp2Rate = 0.04;
-  static const double _eiInsurableMax2025 = 65700;
-  static const double _eiRate2025 = 0.0164; // employee rate
+  static const double _eiInsurableMax2026 = 68900;
+  static const double _eiRate2026 = 0.0163; // employee rate (rest of Canada)
 
-  /// CPP1 2025: 5.95% on earnings $3,500–$71,300 (YMPE).
+  /// CPP1 2026: 5.95% on earnings $3,500–$74,600 (YMPE).
   static double cpp1(double grossAnnual) {
     final pensionable =
-        grossAnnual.clamp(_cpp1BasicExemption, _ympe2025) - _cpp1BasicExemption;
+        grossAnnual.clamp(_cpp1BasicExemption, _ympe2026) - _cpp1BasicExemption;
     return pensionable * _cpp1Rate;
   }
 
-  /// CPP2 2025: 4.00% on earnings from YMPE ($71,300) up to YAMPE ($81,900).
-  /// Introduced 2024, fully effective 2025.
+  /// CPP2 / QPP2 2026: 4.00% on earnings from YMPE ($74,600) up to YAMPE
+  /// ($85,000). Second additional contribution, phased in 2024, fully effective
+  /// since 2025.
   static double cpp2(double grossAnnual) {
-    if (grossAnnual <= _ympe2025) return 0;
-    return (min(grossAnnual, _yampe2025) - _ympe2025) * _cpp2Rate;
+    if (grossAnnual <= _ympe2026) return 0;
+    return (min(grossAnnual, _yampe2026) - _ympe2026) * _cpp2Rate;
   }
 
-  /// Combined CPP (CPP1 + CPP2) 2025.
+  /// Combined CPP (CPP1 + CPP2) 2026.
   static double cpp(double grossAnnual) =>
       cpp1(grossAnnual) + cpp2(grossAnnual);
 
-  /// EI 2025: 1.64% up to insurable max $65,700.
+  /// EI 2026: 1.63% (rest of Canada) up to insurable max $68,900.
   static double ei(double grossAnnual) {
-    return grossAnnual.clamp(0, _eiInsurableMax2025) * _eiRate2025;
+    return grossAnnual.clamp(0, _eiInsurableMax2026) * _eiRate2026;
   }
 
   /// Applies progressive brackets to [income].
@@ -761,6 +963,11 @@ class CaSalaryEngine {
     // (QC runs its own equivalent social programs).
     final fedAbatement =
         province == 'QC' ? quebecFederalAbatement(grossAnnual) : 0.0;
+    // TODO(qc): Quebec uses QPP (base employee rate 5.4%) and a lower EI rate
+    // (1.30% vs 1.63%) because of the Quebec Parental Insurance Plan. We model
+    // both QC and the rest of Canada with the single CPP rate (5.95%) and the
+    // rest-of-Canada EI rate (1.63%) — a small over-estimate of QC deductions.
+    // The CPP2/QPP2 second-ceiling logic ($74,600→$85,000 @ 4%) is identical.
     final cppAmt = cpp(grossAnnual);
     final eiAmt = ei(grossAnnual);
     final prov = provincialTax(grossAnnual, province);
@@ -781,25 +988,21 @@ class CaSalaryEngine {
   }
 
   /// Reverse calculation: find the gross salary that yields [targetNet] after
-  /// all deductions for [province]. Uses binary search (50 iterations ≈ ±0.01).
+  /// all deductions (federal + provincial tax, CPP/CPP2, EI) for [province].
+  ///
+  /// Wraps the existing FORWARD [calculate] function — `gross → netAnnual` — as
+  /// the monotonic forward passed to [CalcwiseReverseSolver]. The reverse therefore
+  /// inherits every verified tax rate/threshold of the forward; it introduces no
+  /// new fiscal values. Bounds: lo = 0, hi = a generous multiple of the target
+  /// net (the marginal take-home keeps gross < ~2.5× net even in the top band).
   static double grossFromNet(double targetNet, String province) {
     if (targetNet <= 0) return 0;
-    double low = targetNet;
-    double high = targetNet * 2;
-    // Ensure upper bound is genuinely above target
-    while (calculate(high, province).netAnnual < targetNet) {
-      high *= 2;
-    }
-    for (int i = 0; i < 50; i++) {
-      final mid = (low + high) / 2;
-      final calculatedNet = calculate(mid, province).netAnnual;
-      if (calculatedNet < targetNet) {
-        low = mid;
-      } else {
-        high = mid;
-      }
-    }
-    return (low + high) / 2;
+    return CalcwiseReverseSolver.solve(
+      forward: (gross) => calculate(gross, province).netAnnual,
+      target: targetNet,
+      lo: 0,
+      hi: targetNet * 3,
+    );
   }
 
   static const List<String> provinces = [
