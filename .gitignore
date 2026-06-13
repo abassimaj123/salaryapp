@@ -36,3 +36,6 @@ ios/build/
 
 # Gradle local build cache
 android/.gradle/
+
+# Build debug symbols (binary, not for VCS)
+debug_symbols/
