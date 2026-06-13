@@ -203,7 +203,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       if (annual < 55867) return annual * 0.205;
       if (annual < 111733) return annual * 0.260;
       if (annual < 154906) return annual * 0.290;
-      if (annual < 220000) return annual * 0.330;
+      if (annual < 253414) return annual * 0.330;
       return annual * 0.353;
     }
     // UK — simplified basic/higher rate
@@ -230,7 +230,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       if (annual < 55867) return 0.205;
       if (annual < 111733) return 0.260;
       if (annual < 154906) return 0.290;
-      if (annual < 220000) return 0.330;
+      if (annual < 253414) return 0.330;
       return 0.353;
     }
     // UK

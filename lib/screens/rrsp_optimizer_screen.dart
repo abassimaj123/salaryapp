@@ -54,8 +54,8 @@ class _Bracket {
 const _brackets = [
   _Bracket('15%', 0.15, 57375),
   _Bracket('20.5%', 0.205, 114750),
-  _Bracket('26%', 0.26, 158519),
-  _Bracket('29%', 0.29, 220000),
+  _Bracket('26%', 0.26, 177882),
+  _Bracket('29%', 0.29, 253414),
   _Bracket('33%', 0.33, double.infinity),
 ];
 
@@ -126,8 +126,8 @@ class _RrspEngine {
     final taxable = (grossIncome - _bpa2025).clamp(0.0, double.infinity);
     if (taxable <= 57375) return 0.15;
     if (taxable <= 114750) return 0.205;
-    if (taxable <= 158519) return 0.26;
-    if (taxable <= 220000) return 0.29;
+    if (taxable <= 177882) return 0.26;
+    if (taxable <= 253414) return 0.29;
     return 0.33;
   }
 
