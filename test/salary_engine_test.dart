@@ -140,8 +140,9 @@ void main() {
     test('£140,000 — enters 45% band (PA fully tapered to £0)', () {
       // 2025/26: PA tapered to 0 at £140k (taper: (140k-100k)/2=20k > PA £12,570)
       // taxable=140000; 20%×37700=7540 + 40%×87440=34976 + 45%×14860=6687 = 49203
-      // Engine returns 49071 (marginal difference from PA taper impl)
-      approx(UkSalaryEngine.incomeTax(140000), 49071, tolerance: 50.0);
+      // Now correct: registry-sourced bands fixed the old £42,384 additional-rate
+      // cumulative (should be 42,516) that previously made the engine return 49071.
+      approx(UkSalaryEngine.incomeTax(140000), 49203, tolerance: 1.0);
     });
   });
 

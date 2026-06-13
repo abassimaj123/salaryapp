@@ -64,57 +64,26 @@ class SalaryResult {
 class UsSalaryEngine {
   UsSalaryEngine._();
 
-  // ── 2025 tax constants ──────────────────────────────────────────────────────
-  static const double _stdDeductionSingle2025 = 15750;
-  static const double _stdDeductionMfj2025 = 31500;
+  /// Centralized, effective-dated tax tables (calcwise_core). Baked-in floor;
+  /// the same registry can be swapped for a remote-updated dataset.
+  static final TaxRegistry _reg = TaxRegistry.baked();
 
-  /// Federal income tax brackets 2025 — single filer (post-standard deduction).
-  /// Pass [taxableIncome] = grossAnnual − standard deduction − any pre-tax deductions.
-  static double _federalTaxOnTaxable(double taxableIncome) {
-    if (taxableIncome <= 0) return 0;
-    if (taxableIncome <= 11925) return taxableIncome * 0.10;
-    if (taxableIncome <= 48475) return 1192.50 + (taxableIncome - 11925) * 0.12;
-    if (taxableIncome <= 103350)
-      return 5578.50 + (taxableIncome - 48475) * 0.22;
-    if (taxableIncome <= 197300)
-      return 17651.00 + (taxableIncome - 103350) * 0.24;
-    if (taxableIncome <= 250525)
-      return 40199.00 + (taxableIncome - 197300) * 0.32;
-    if (taxableIncome <= 626350)
-      return 57231.00 + (taxableIncome - 250525) * 0.35;
-    return 188769.75 + (taxableIncome - 626350) * 0.37;
-  }
-
-  /// Federal income tax brackets 2025 — married filing jointly (post-standard deduction).
-  static double _federalTaxOnTaxableMfj(double taxableIncome) {
-    if (taxableIncome <= 0) return 0;
-    if (taxableIncome <= 23850) return taxableIncome * 0.10;
-    if (taxableIncome <= 96950) return 2385.00 + (taxableIncome - 23850) * 0.12;
-    if (taxableIncome <= 206700)
-      return 11157.00 + (taxableIncome - 96950) * 0.22;
-    if (taxableIncome <= 394600)
-      return 35302.00 + (taxableIncome - 206700) * 0.24;
-    if (taxableIncome <= 501050)
-      return 80398.00 + (taxableIncome - 394600) * 0.32;
-    if (taxableIncome <= 751600)
-      return 114462.00 + (taxableIncome - 501050) * 0.35;
-    return 202154.50 + (taxableIncome - 751600) * 0.37;
-  }
-
-  /// Federal income tax 2025. Supports single and MFJ filing statuses.
-  /// [preTaxDeductions] reduces taxable income (e.g. 401k, HSA, FSA).
+  /// Federal income tax 2025 — brackets + standard deduction now sourced from
+  /// the shared [TaxRegistry] (`us_federal` 2025; default = single filer, `mfj`
+  /// variant for married filing jointly). [preTaxDeductions] reduces taxable
+  /// income (e.g. 401k, HSA, FSA). Data verified vs IRS (Rev. Proc. 2024-40 +
+  /// OBBBA standard deduction). See the calcwise-tax-data repo.
   static double federalTax(
     double grossAnnual, {
     bool marriedFilingJointly = false,
     double preTaxDeductions = 0,
   }) {
-    final stdDeduction =
-        marriedFilingJointly ? _stdDeductionMfj2025 : _stdDeductionSingle2025;
-    final taxableIncome = (grossAnnual - stdDeduction - preTaxDeductions)
-        .clamp(0.0, double.infinity);
-    return marriedFilingJointly
-        ? _federalTaxOnTaxableMfj(taxableIncome)
-        : _federalTaxOnTaxable(taxableIncome);
+    final set = _reg.annual('us_federal', 2025,
+        status: marriedFilingJointly ? 'mfj' : null)!;
+    final taxable =
+        (grossAnnual - (set.basicPersonalAmount ?? 0) - preTaxDeductions)
+            .clamp(0.0, double.infinity);
+    return taxOnIncome(set.bands, taxable);
   }
 
   /// FICA 2025: Social Security (6.2% up to $176,100 SS wage base) +
@@ -554,51 +523,31 @@ class UkSalaryEngine {
     return (adjustedGross - pa).clamp(0.0, double.infinity);
   }
 
-  /// England & Wales income tax 2026/27. Personal allowance: £12,570.
-  /// Allowance is tapered by £1 per £2 of income over £100,000.
+  /// Centralized tax tables (calcwise_core). Baked-in floor; remote-updatable.
+  static final TaxRegistry _reg = TaxRegistry.baked();
+
+  /// England, Wales & N. Ireland income tax 2025/26. Bands sourced from the
+  /// shared [TaxRegistry] (`uk` 2025); the HMRC tax code (allowance/taper/K/0T)
+  /// is resolved by [_taxableForCode] first. (Computing bands via the registry
+  /// also corrects the old £42,384 additional-rate cumulative discontinuity.)
   static double _englandWalesIncomeTax(double grossAnnual,
       {double salarySacrifice = 0, UkTaxCode? taxCode}) {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    if (taxable <= 37700) return taxable * _basicRate;
-    if (taxable <= 125140) return 7540 + (taxable - 37700) * _higherRate;
-    return 42384 + (taxable - 125140) * _additionalRate;
+    return taxOnIncome(_reg.annual('uk', 2025)!.bands, taxable);
   }
 
-  /// Scottish income tax 2026/27. Personal allowance: £12,570 (tapered above £100k).
+  /// Scottish income tax 2025/26 (6 bands). Bands sourced from the shared
+  /// [TaxRegistry] (`uk_scotland` 2025) — this CORRECTS previously stale 2024/25
+  /// thresholds (starter £2,306→£2,827, basic £13,991→£14,921) and the
+  /// advanced/top boundary. The HMRC tax code is resolved by [_taxableForCode].
   static double _scottishIncomeTax(double grossAnnual,
       {double salarySacrifice = 0, UkTaxCode? taxCode}) {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    // Scottish bands (above personal allowance):
-    // Starter  19%: £0       – £2,306  (£12,571–£14,876)
-    // Basic    20%: £2,307   – £13,991 (£14,877–£26,561)
-    // Intermediate 21%: £13,992 – £31,092 (£26,562–£43,662)
-    // Higher   42%: £31,093  – £62,430 (£43,663–£75,000)
-    // Advanced 45%: £62,431  – £112,570 (£75,001–£125,140)
-    // Top      48%: over £112,570 (over £125,140)
-    double tax = 0;
-    double prev = 0;
-    final bands = <(double upper, double rate)>[
-      (2306, 0.19),
-      (13991, 0.20),
-      (31092, 0.21),
-      (62430, 0.42),
-      (112570, 0.45),
-      (double.infinity, 0.48),
-    ];
-    for (int i = 0; i < bands.length; i++) {
-      final upper = bands[i].$1;
-      final rate = bands[i].$2;
-      if (taxable <= prev) break;
-      final slice = (taxable < upper ? taxable : upper) - prev;
-      tax += slice * rate;
-      prev = upper;
-      if (upper == double.infinity) break;
-    }
-    return tax;
+    return taxOnIncome(_reg.annual('uk_scotland', 2025)!.bands, taxable);
   }
 
   /// Compute income tax based on region (Scotland vs rest of UK), honouring an
