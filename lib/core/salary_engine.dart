@@ -2,7 +2,8 @@
 
 import 'dart:math' show min;
 
-import 'package:calcwise_core/calcwise_core.dart' show CalcwiseReverseSolver;
+import 'package:calcwise_core/calcwise_core.dart'
+    show CalcwiseReverseSolver, TaxRegistry, taxOnIncome;
 
 // ─── Shared result model ──────────────────────────────────────────────────────
 
@@ -809,19 +810,20 @@ class UkSalaryEngine {
 class CaSalaryEngine {
   CaSalaryEngine._();
 
-  /// Federal tax 2025. Basic Personal Amount (BPA): $16,129 (ARC officiel 2025).
-  /// Lowest bracket rate is 14.5% for the 2025 tax year: the rate was cut from
-  /// 15% to 14% effective 1 July 2025, so the CRA applies a blended full-year
-  /// rate of 14.5% on the 2025 return.
-  /// Source (verified 2026-06-13): canada.ca — Department of Finance,
-  /// "Delivering a middle-class tax cut" + CRA "What's new for 2025".
+  /// Centralized, effective-dated tax tables (calcwise_core). Baked-in floor;
+  /// the same registry can be swapped for a remote-updated dataset.
+  static final TaxRegistry _reg = TaxRegistry.baked();
+
+  /// Federal tax 2025 — brackets + Basic Personal Amount now sourced from the
+  /// shared [TaxRegistry] (`ca_federal` 2025), not hardcoded here. The lowest
+  /// band carries the official 14.5% blended 2025 rate (15%→14% on 2025-07-01).
+  /// Source of the data: canada.ca (CRA), verified 2026-06-13. See the
+  /// calcwise-tax-data repo for the canonical dataset + golden tests.
   static double federalTax(double grossAnnual) {
-    final taxable = (grossAnnual - 16129).clamp(0.0, double.infinity);
-    if (taxable <= 57375) return taxable * 0.145;
-    if (taxable <= 114750) return 8319.375 + (taxable - 57375) * 0.205;
-    if (taxable <= 177882) return 20081.25 + (taxable - 114750) * 0.26;
-    if (taxable <= 253414) return 36495.57 + (taxable - 177882) * 0.29;
-    return 58399.85 + (taxable - 253414) * 0.33;
+    final set = _reg.annual('ca_federal', 2025)!;
+    final taxable = (grossAnnual - (set.basicPersonalAmount ?? 0))
+        .clamp(0.0, double.infinity);
+    return taxOnIncome(set.bands, taxable);
   }
 
   // ── 2026 CPP / EI constants ─────────────────────────────────────────────────
