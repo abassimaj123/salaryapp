@@ -16,9 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    try {
-      analyticsService.logAppOpen();
-    } catch (_) {}
+
   }
 
   String _flavorSuffix() {

@@ -143,9 +143,14 @@ class _PremiumSection extends StatelessWidget {
                   ),
                 ]
               : [
-                  // ── UK: Lifetime "Best Value" card (shown above standard) ──
+                  // ── UK: Lifetime "Best Value" card — only shown when Play Store has returned a price ──
                   if (FlavorConfig.isUK)
-                    _LifetimeCard(premiumDesc: premiumDesc),
+                    ValueListenableBuilder<String?>(
+                      valueListenable: IAPService.instance.localizedLifetimePrice,
+                      builder: (_, price, __) => price != null
+                          ? _LifetimeCard(premiumDesc: premiumDesc)
+                          : const SizedBox.shrink(),
+                    ),
 
                   CalcwiseSettingsTile(
                     icon: Icons.star_rounded,
@@ -393,6 +398,13 @@ class _LinksSection extends StatelessWidget {
           icon: Icons.privacy_tip_rounded,
           label: privacyLabel,
           onTap: () => _launch(FlavorConfig.privacyPolicyUrl),
+        ),
+        CalcwiseSettingsTile(
+          icon: Icons.manage_search_rounded,
+          label: fr
+              ? 'Paramètres de confidentialité'
+              : (es ? 'Configuración de privacidad' : 'Privacy Settings'),
+          onTap: showCalcwisePrivacyOptions,
         ),
         CalcwiseSettingsTile(
           icon: Icons.mail_outline,

@@ -636,7 +636,7 @@ class CaSalaryEngine {
   // ── 2025 CPP / EI constants ─────────────────────────────────────────────────
   static const double _cpp1BasicExemption = 3500;
   static const double _ympe2025 = 71300; // CPP1 ceiling
-  static const double _yampe2025 = 81200; // CPP2 ceiling
+  static const double _yampe2025 = 81900; // CPP2 ceiling
   static const double _cpp1Rate = 0.0595;
   static const double _cpp2Rate = 0.04;
   static const double _eiInsurableMax2025 = 65700;

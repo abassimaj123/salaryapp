@@ -53,6 +53,6 @@ class AppThemeUS {
               accent: Color(0xFFF59E0B),
               primaryDeep: Color(0xFFB91C1C))
         ],
-        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       );
 }

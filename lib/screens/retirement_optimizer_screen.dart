@@ -44,8 +44,8 @@ class _K401Engine {
 
   static const double _limitUnder50 = 23500;
   static const double _limitOver50 = 31000;
-  static const double _stdSingle = 15000;
-  static const double _stdMfj = 30000;
+  static const double _stdSingle = 15750; // 2025
+  static const double _stdMfj = 31500; // 2025
 
   static double contributionLimit(bool age50Plus) =>
       age50Plus ? _limitOver50 : _limitUnder50;

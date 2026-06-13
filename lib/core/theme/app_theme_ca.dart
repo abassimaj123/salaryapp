@@ -55,6 +55,6 @@ class AppThemeCA {
               accent: Color(0xFFFF3D5A),
               primaryDeep: Color(0xFFA50D24))
         ],
-        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       );
 }

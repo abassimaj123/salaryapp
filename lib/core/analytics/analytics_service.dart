@@ -1,4 +1,5 @@
 import 'package:calcwise_core/calcwise_core.dart';
+import '../flavor_config.dart';
 
 /// Firebase Analytics wrapper for SalaryApp.
 /// Common events inherited from CalcwiseAnalytics.
@@ -6,6 +7,12 @@ import 'package:calcwise_core/calcwise_core.dart';
 class AnalyticsService extends CalcwiseAnalytics {
   AnalyticsService._() : super(appName: 'SalaryApp');
   static final AnalyticsService instance = AnalyticsService._();
+
+  @override
+  Future<void> initialize() async {
+    await super.initialize();
+    await setProperty('flavor', FlavorConfig.flavor);
+  }
 
   // ── Calculator (SalaryApp-specific) ──────────────────────────────────────
 

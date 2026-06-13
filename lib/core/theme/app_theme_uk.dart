@@ -49,6 +49,6 @@ class AppThemeUK {
           CalcwiseTheme.dark(
               primary: Color(0xFFD4AF37), accent: Color(0xFFD4AF37))
         ],
-        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       );
 }
