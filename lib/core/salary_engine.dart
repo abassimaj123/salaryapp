@@ -79,7 +79,9 @@ class UsSalaryEngine {
     double preTaxDeductions = 0,
   }) {
     final set = _reg.annual('us_federal', 2025,
-        status: marriedFilingJointly ? 'mfj' : null)!;
+            status: marriedFilingJointly ? 'mfj' : null) ??
+        _reg.annual('us_federal', 2025);
+    if (set == null) return 0.0; // baked data guarantees presence; guard only
     final taxable =
         (grossAnnual - (set.basicPersonalAmount ?? 0) - preTaxDeductions)
             .clamp(0.0, double.infinity);
@@ -535,7 +537,9 @@ class UkSalaryEngine {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    return taxOnIncome(_reg.annual('uk', 2025)!.bands, taxable);
+    final ukBands = _reg.annual('uk', 2025)?.bands;
+    if (ukBands == null) return 0.0; // baked data guarantees presence; guard only
+    return taxOnIncome(ukBands, taxable);
   }
 
   /// Scottish income tax 2025/26 (6 bands). Bands sourced from the shared
@@ -547,7 +551,9 @@ class UkSalaryEngine {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    return taxOnIncome(_reg.annual('uk_scotland', 2025)!.bands, taxable);
+    final scotBands = _reg.annual('uk_scotland', 2025)?.bands;
+    if (scotBands == null) return 0.0; // baked data guarantees presence; guard only
+    return taxOnIncome(scotBands, taxable);
   }
 
   /// Compute income tax based on region (Scotland vs rest of UK), honouring an
@@ -769,7 +775,8 @@ class CaSalaryEngine {
   /// Source of the data: canada.ca (CRA), verified 2026-06-13. See the
   /// calcwise-tax-data repo for the canonical dataset + golden tests.
   static double federalTax(double grossAnnual) {
-    final set = _reg.annual('ca_federal', 2025)!;
+    final set = _reg.annual('ca_federal', 2025);
+    if (set == null) return 0.0; // baked data guarantees presence; guard only
     final taxable = (grossAnnual - (set.basicPersonalAmount ?? 0))
         .clamp(0.0, double.infinity);
     return taxOnIncome(set.bands, taxable);
