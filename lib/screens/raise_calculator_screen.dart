@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
@@ -239,6 +241,21 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
     return 0.40;
   }
 
+  // ── Marginal table data ──────────────────────────────────────────────────────
+
+  List<_MarginalRow> _buildMarginalRows(_RaiseCalcResult r) {
+    const steps = [1000.0, 5000.0, 10000.0, 15000.0, 20000.0];
+    final baseTax = _calcTax(r.newAnnual);
+    final baseNet = r.newAnnual - baseTax;
+    return steps.map((step) {
+      final gross = r.newAnnual + step;
+      final net = gross - _calcTax(gross);
+      final gain = net - baseNet;
+      final keepPct = step > 0 ? (gain / step * 100).clamp(0.0, 100.0) : 0.0;
+      return _MarginalRow(step: step, gain: gain, keepPct: keepPct);
+    }).toList();
+  }
+
   // ── Calculation ─────────────────────────────────────────────────────────────
 
   void _calculate() {
@@ -402,6 +419,12 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                           es: es,
                           fr: fr,
                           onShare: () => _share(_result!, es),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _MarginalTakeHomeCard(
+                          rows: _buildMarginalRows(_result!),
+                          es: es,
+                          fr: fr,
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         SaveScenarioButton(onSave: _saveScenario),
@@ -881,5 +904,286 @@ class _ResultsSection extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+// ─── Marginal take-home data ──────────────────────────────────────────────────
+
+class _MarginalRow {
+  final double step;
+  final double gain;
+  final double keepPct;
+
+  const _MarginalRow({
+    required this.step,
+    required this.gain,
+    required this.keepPct,
+  });
+}
+
+// ─── Marginal Take-Home Card ──────────────────────────────────────────────────
+
+class _MarginalTakeHomeCard extends StatefulWidget {
+  final List<_MarginalRow> rows;
+  final bool es, fr;
+
+  const _MarginalTakeHomeCard({
+    required this.rows,
+    required this.es,
+    required this.fr,
+  });
+
+  @override
+  State<_MarginalTakeHomeCard> createState() => _MarginalTakeHomeCardState();
+}
+
+class _MarginalTakeHomeCardState extends State<_MarginalTakeHomeCard> {
+  bool _expanded = true;
+
+  String _fmtStep(double step) {
+    final sym = FlavorConfig.currencySymbol;
+    if (step >= 1000) {
+      final k = (step / 1000).toStringAsFixed(0);
+      return '+${sym}${k}k';
+    }
+    return '+$sym${step.toStringAsFixed(0)}';
+  }
+
+  String _fmtGain(double gain) =>
+      AmountFormatter.ui(gain.round().toDouble(), FlavorConfig.currencyCode);
+
+  Color _barColor(double pct) {
+    if (pct >= 65) return AppTheme.success;
+    if (pct >= 45) return AppTheme.warning;
+    return AppTheme.error;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ct = CalcwiseTheme.of(context);
+    final title = widget.fr
+        ? 'Que garde-t-on sur le prochain dollar ?'
+        : (widget.es
+            ? '¿Cuánto se queda del próximo dólar?'
+            : 'What does your next dollar earn?');
+    final cardTitle = widget.fr
+        ? 'Gain net marginal'
+        : (widget.es ? 'Ganancia neta marginal' : 'Marginal Take-Home');
+
+    return Card(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        InkWell(
+          borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadius.md)),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg, vertical: AppSpacing.mdPlus),
+            child: Row(children: [
+              Icon(Icons.trending_up_rounded,
+                  size: 18, color: AppTheme.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  cardTitle,
+                  style: const TextStyle(
+                      fontSize: AppTextSize.bodyMd,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              Icon(
+                _expanded
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: ct.textSecondary,
+              ),
+            ]),
+          ),
+        ),
+        if (_expanded) ...[
+          Padding(
+            padding: const EdgeInsets.only(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                bottom: AppSpacing.sm),
+            child: Text(
+              title,
+              style: TextStyle(
+                  fontSize: AppTextSize.sm, color: ct.textSecondary),
+            ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: freemiumService.hasFullAccessNotifier,
+            builder: (context, isPremium, _) {
+              const freeRows = 2;
+              final rows = widget.rows;
+              return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (int i = 0; i < rows.length; i++)
+                      _buildRow(rows[i], ct, i < freeRows || isPremium),
+                    if (!isPremium)
+                      _GateOverlay(
+                        es: widget.es,
+                        fr: widget.fr,
+                        onUnlock: () => IAPService.instance.buy(),
+                      ),
+                    const SizedBox(height: AppSpacing.md),
+                  ]);
+            },
+          ),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildRow(_MarginalRow row, CalcwiseTheme ct, bool visible) {
+    final sym = FlavorConfig.currencySymbol;
+    final stepLabel = _fmtStep(row.step);
+    final keepLabel = visible
+        ? 'Keep ${_fmtGain(row.gain)} (${row.keepPct.toStringAsFixed(0)}%)'
+        : '██████████ (██%)';
+    final barColor = _barColor(row.keepPct);
+    final barFraction = (row.keepPct / 100).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      child: Row(children: [
+        SizedBox(
+          width: 52,
+          child: Text(stepLabel,
+              style: TextStyle(
+                  fontSize: AppTextSize.sm,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary)),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                visible
+                    ? Text(keepLabel,
+                        style: TextStyle(
+                            fontSize: AppTextSize.sm,
+                            color: ct.textPrimary))
+                    : Container(
+                        height: 13,
+                        decoration: BoxDecoration(
+                          color: ct.cardBorder,
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.sm),
+                        ),
+                      ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: LinearProgressIndicator(
+                    value: visible ? barFraction : 0.0,
+                    minHeight: 6,
+                    backgroundColor: ct.cardBorder,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(barColor),
+                  ),
+                ),
+              ]),
+        ),
+        if (visible) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            '${row.keepPct.toStringAsFixed(0)}%',
+            style: TextStyle(
+                fontSize: AppTextSize.sm,
+                fontWeight: FontWeight.w600,
+                color: barColor),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+// ─── Gate overlay for locked rows ────────────────────────────────────────────
+
+class _GateOverlay extends StatelessWidget {
+  final bool es, fr;
+  final VoidCallback onUnlock;
+
+  const _GateOverlay({
+    required this.es,
+    required this.fr,
+    required this.onUnlock,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = fr
+        ? 'Voir les 3 paliers suivants'
+        : (es ? 'Ver los 3 niveles restantes' : 'See all 5 salary steps');
+    final sub = fr
+        ? 'Accès Premium requis'
+        : (es ? 'Requiere Premium' : 'Premium required');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.md, horizontal: AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.06),
+              border:
+                  Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(children: [
+              Icon(Icons.lock_outline_rounded,
+                  size: 16, color: AppTheme.primary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label,
+                          style: TextStyle(
+                              fontSize: AppTextSize.sm,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primary)),
+                      Text(sub,
+                          style: TextStyle(
+                              fontSize: AppTextSize.xs,
+                              color: AppTheme.labelGray)),
+                    ]),
+              ),
+              InkWell(
+                onTap: onUnlock,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                  child: Text(
+                    fr ? 'Débloquer' : (es ? 'Desbloquear' : 'Unlock'),
+                    style: const TextStyle(
+                        fontSize: AppTextSize.sm,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }
