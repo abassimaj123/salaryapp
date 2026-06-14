@@ -63,11 +63,11 @@ const _kUSBrackets = <_Bracket>[
 const _kCABPA = 16129.0;
 
 const _kCABrackets = <_Bracket>[
-  _Bracket(min: 0, max: 55867, rate: 0.15),
-  _Bracket(min: 55867, max: 111733, rate: 0.205),
-  _Bracket(min: 111733, max: 154906, rate: 0.26),
-  _Bracket(min: 154906, max: 220000, rate: 0.29),
-  _Bracket(min: 220000, max: double.infinity, rate: 0.33),
+  _Bracket(min: 0, max: 57375, rate: 0.145),
+  _Bracket(min: 57375, max: 114750, rate: 0.205),
+  _Bracket(min: 114750, max: 177882, rate: 0.26),
+  _Bracket(min: 177882, max: 253414, rate: 0.29),
+  _Bracket(min: 253414, max: double.infinity, rate: 0.33),
 ];
 
 // ─── UK 2025-26 Income Tax Brackets ─────────────────────────────────────────

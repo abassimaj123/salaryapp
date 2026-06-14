@@ -158,9 +158,9 @@ class _RrspEngine {
       finalBracket = '15%';
     } else if (taxableAfterRrsp <= 114750) {
       finalBracket = '20.5%';
-    } else if (taxableAfterRrsp <= 158519) {
+    } else if (taxableAfterRrsp <= 177882) {
       finalBracket = '26%';
-    } else if (taxableAfterRrsp <= 220000) {
+    } else if (taxableAfterRrsp <= 253414) {
       finalBracket = '29%';
     }
 

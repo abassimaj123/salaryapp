@@ -202,9 +202,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
     }
     if (FlavorConfig.isCA) {
       // Simplified Canadian federal + provincial est. (~25–33%)
-      if (annual < 55867) return annual * 0.205;
-      if (annual < 111733) return annual * 0.260;
-      if (annual < 154906) return annual * 0.290;
+      if (annual < 57375) return annual * 0.205;
+      if (annual < 114750) return annual * 0.260;
+      if (annual < 177882) return annual * 0.290;
       if (annual < 253414) return annual * 0.330;
       return annual * 0.353;
     }
@@ -229,9 +229,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       return 0.37;
     }
     if (FlavorConfig.isCA) {
-      if (annual < 55867) return 0.205;
-      if (annual < 111733) return 0.260;
-      if (annual < 154906) return 0.290;
+      if (annual < 57375) return 0.205;
+      if (annual < 114750) return 0.260;
+      if (annual < 177882) return 0.290;
       if (annual < 253414) return 0.330;
       return 0.353;
     }
