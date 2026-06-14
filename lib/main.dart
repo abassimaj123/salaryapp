@@ -21,7 +21,9 @@ import 'package:calcwise_core/calcwise_core.dart'
         showIapErrorSnackBar,
         showPremiumWelcomeSnackBar,
         SmartHistoryService,
-        CalcwiseTabReveal;
+        CalcwiseTabReveal,
+        CalcwiseTax,
+        calcwiseTaxRemoteFetch;
 import 'core/db/salary_database_adapter.dart';
 import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,6 +86,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Centralized tax tables: baked-in floor now, upgraded to the remote dataset
+  // when available. Fails safe to baked/cached — never blocks startup.
+  await CalcwiseTax.init(remoteFetcher: calcwiseTaxRemoteFetch);
 
   await CrashlyticsService.init();
   await analyticsService.initialize();

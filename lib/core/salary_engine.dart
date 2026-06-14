@@ -3,7 +3,7 @@
 import 'dart:math' show min;
 
 import 'package:calcwise_core/calcwise_core.dart'
-    show CalcwiseReverseSolver, TaxRegistry, taxOnIncome;
+    show CalcwiseReverseSolver, TaxRegistry, taxOnIncome, CalcwiseTax;
 
 // ─── Shared result model ──────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ class UsSalaryEngine {
 
   /// Centralized, effective-dated tax tables (calcwise_core). Baked-in floor;
   /// the same registry can be swapped for a remote-updated dataset.
-  static final TaxRegistry _reg = TaxRegistry.baked();
+  static TaxRegistry get _reg => CalcwiseTax.registry;
 
   /// Federal income tax 2025 — brackets + standard deduction now sourced from
   /// the shared [TaxRegistry] (`us_federal` 2025; default = single filer, `mfj`
@@ -524,7 +524,7 @@ class UkSalaryEngine {
   }
 
   /// Centralized tax tables (calcwise_core). Baked-in floor; remote-updatable.
-  static final TaxRegistry _reg = TaxRegistry.baked();
+  static TaxRegistry get _reg => CalcwiseTax.registry;
 
   /// England, Wales & N. Ireland income tax 2025/26. Bands sourced from the
   /// shared [TaxRegistry] (`uk` 2025); the HMRC tax code (allowance/taper/K/0T)
@@ -761,7 +761,7 @@ class CaSalaryEngine {
 
   /// Centralized, effective-dated tax tables (calcwise_core). Baked-in floor;
   /// the same registry can be swapped for a remote-updated dataset.
-  static final TaxRegistry _reg = TaxRegistry.baked();
+  static TaxRegistry get _reg => CalcwiseTax.registry;
 
   /// Federal tax 2025 — brackets + Basic Personal Amount now sourced from the
   /// shared [TaxRegistry] (`ca_federal` 2025), not hardcoded here. The lowest
