@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +24,8 @@ import 'package:calcwise_core/calcwise_core.dart'
         SmartHistoryService,
         CalcwiseTabReveal,
         CalcwiseTax,
-        calcwiseTaxRemoteFetch;
+        calcwiseTaxRemoteFetch,
+        CalcwiseRemoteConfig;
 import 'core/db/salary_database_adapter.dart';
 import 'widgets/paywall_hard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -86,6 +88,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  unawaited(CalcwiseRemoteConfig.initialize());
   // Centralized tax tables: baked-in floor now, upgraded to the remote dataset
   // when available. Fails safe to baked/cached — never blocks startup.
   await CalcwiseTax.init(remoteFetcher: calcwiseTaxRemoteFetch);
