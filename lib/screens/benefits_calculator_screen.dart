@@ -678,7 +678,19 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                                   retLabel, t)
                             else ...[
                               // Show hero card as preview
-                              CalcwiseHeroCard(
+                              Container(
+                                margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(28),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: CalcwiseHeroCard(
                                 label: t(
                                   'Total Compensation',
                                   'Compensación total',
@@ -703,6 +715,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
+                              ),
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               CalcwisePremiumGate(
