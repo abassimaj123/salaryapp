@@ -1505,15 +1505,20 @@ class _ResultsSectionState extends State<_ResultsSection> {
         ],
 
         // Bi-weekly / Weekly row
-        Row(children: [
-          Expanded(
-              child: ResultCard(
-                  label: biWeeklyLabel, value: _fmt(adjustedNetBiWeekly))),
-          SizedBox(width: 8),
-          Expanded(
-              child: ResultCard(
-                  label: weeklyLabel, value: _fmt(adjustedNetWeekly))),
-        ]),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                  child: ResultCard(
+                      label: biWeeklyLabel, value: _fmt(adjustedNetBiWeekly))),
+              SizedBox(width: 8),
+              Expanded(
+                  child: ResultCard(
+                      label: weeklyLabel, value: _fmt(adjustedNetWeekly))),
+            ],
+          ),
+        ),
         SizedBox(height: AppSpacing.xl),
 
         // ── Sankey paycheck flow ─────────────────────────────────────────

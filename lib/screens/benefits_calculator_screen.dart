@@ -679,7 +679,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                             else ...[
                               // Show hero card as preview
                               Container(
-                                margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                                margin: const EdgeInsets.only(top: AppSpacing.lg),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(28),
                                   boxShadow: [

@@ -768,8 +768,9 @@ class _ResultsSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
 
         // Side-by-side methods
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        IntrinsicHeight(
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: _MethodCard(
@@ -807,6 +808,7 @@ class _ResultsSection extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
         const SizedBox(height: AppSpacing.lg),
 

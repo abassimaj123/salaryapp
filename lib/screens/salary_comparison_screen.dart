@@ -287,8 +287,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Input cards ──────────────────────────────────────
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      IntrinsicHeight(
+                        child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
                             child: _InputCard(
@@ -324,6 +325,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                             ),
                           ),
                         ],
+                      ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
 
