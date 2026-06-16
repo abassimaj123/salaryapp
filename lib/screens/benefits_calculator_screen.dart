@@ -13,7 +13,7 @@ import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
-import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession, adService;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
@@ -301,6 +301,10 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
         HistoryScreen.refreshNotifier.value++;
       },
     );
+    try { AnalyticsService.instance.logSave(); } catch (_) {}
+    try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
+    adService.onSave();
+    paywallSession.recordAction().ignore();
   }
 
   Future<void> _saveScenario(String? label) async {

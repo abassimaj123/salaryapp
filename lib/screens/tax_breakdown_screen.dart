@@ -9,7 +9,7 @@ import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/services/pdf_export_service.dart';
-import '../main.dart' show isSpanishNotifier, historyService, paywallSession;
+import '../main.dart' show isSpanishNotifier, historyService, paywallSession, adService;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
@@ -249,6 +249,10 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
         HistoryScreen.refreshNotifier.value++;
       },
     );
+    try { AnalyticsService.instance.logSave(); } catch (_) {}
+    try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
+    adService.onSave();
+    paywallSession.recordAction().ignore();
   }
 
   Future<void> _saveScenario(String? label) async {

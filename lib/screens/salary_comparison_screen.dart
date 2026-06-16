@@ -10,7 +10,8 @@ import '../main.dart'
         salaryNotifier,
         ukStudentLoanNotifier,
         ukScotlandNotifier,
-        historyService;
+        historyService,
+        adService;
 import '../core/analytics/analytics_service.dart';
 import '../core/salary_engine.dart';
 import '../core/data/city_col_data.dart';
@@ -161,6 +162,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
         HistoryScreen.refreshNotifier.value++;
       },
     );
+    try { AnalyticsService.instance.logSave(); } catch (_) {}
+    try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
+    adService.onSave();
+    paywallSession.recordAction().ignore();
   }
 
   Future<void> _saveScenario(String? label) async {
@@ -193,6 +198,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       l2: _buildL2(),
       label: label,
     );
+    paywallSession.recordAction().ignore();
   }
 
   void _calculate() {

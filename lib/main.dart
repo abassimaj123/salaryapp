@@ -19,6 +19,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         PaywallSoft,
         AppDuration,
         iapErrorNotifier,
+        iapRestoreResultNotifier,
         showIapErrorSnackBar,
         showPremiumWelcomeSnackBar,
         SmartHistoryService,
@@ -101,6 +102,9 @@ void main() async {
   await IAPService.instance.initialize();
   await requestCalcwiseConsent();
   await MobileAds.instance.initialize();
+  unawaited(MobileAds.instance.updateRequestConfiguration(
+    RequestConfiguration(testDeviceIds: ['FD16D4616C3A21C3ACE5E48F8DC9C1DC']),
+  ));
   if (AdConfig.adsEnabled) await adService.initialize();
   await themeModeService.initialize();
 
@@ -127,6 +131,8 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
   ));
+
+  AnalyticsService.instance.setUserPremium(freemiumService.hasFullAccess);
 
   CalcwiseAdFooter.configure(
     adService: adService,
@@ -221,6 +227,7 @@ class _MainShellState extends State<MainShell> {
     _wasPremium = freemiumService.hasFullAccess;
     freemiumService.isPremiumNotifier.addListener(_onPremiumChange);
     iapErrorNotifier.addListener(_onIapError);
+    iapRestoreResultNotifier.addListener(_onRestoreResult);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) async => await paywallSession.recordSession(),
     );
@@ -230,7 +237,23 @@ class _MainShellState extends State<MainShell> {
   void dispose() {
     freemiumService.isPremiumNotifier.removeListener(_onPremiumChange);
     iapErrorNotifier.removeListener(_onIapError);
+    iapRestoreResultNotifier.removeListener(_onRestoreResult);
     super.dispose();
+  }
+
+  void _onRestoreResult() {
+    final result = iapRestoreResultNotifier.value;
+    if (result == null || !mounted) return;
+    final useAlt = isSpanishNotifier.value;
+    final es = FlavorConfig.isUS && useAlt;
+    final fr = FlavorConfig.isCA && useAlt;
+    final msg = result == 'restored'
+        ? (fr ? 'Premium restauré !' : (es ? '¡Premium restaurado!' : 'Premium restored!'))
+        : (fr ? 'Aucun achat à restaurer.' : (es ? 'No hay compras para restaurar.' : 'No purchases to restore.'));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+    iapRestoreResultNotifier.value = null;
   }
 
   void _onPremiumChange() {
@@ -239,6 +262,7 @@ class _MainShellState extends State<MainShell> {
       showPremiumWelcomeSnackBar(context, isSpanish: isSpanishNotifier.value);
     }
     _wasPremium = now;
+    unawaited(AnalyticsService.instance.setUserPremium(now));
   }
 
   void _onIapError() {
@@ -304,11 +328,14 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
                 onRewardAd: () => CalcwiseRewardAdSheet.show(context),
-                onPremium: () => PaywallHard.show(context,
-                    isSpanish: es,
-                    isFrench: fr,
-                    priceLabel: IAPService.instance.localizedPrice.value,
-                    onPurchase: IAPService.instance.buy),
+                onPremium: () {
+                  AnalyticsService.instance.logPaywallShown('hard');
+                  PaywallHard.show(context,
+                      isSpanish: es,
+                      isFrench: fr,
+                      priceLabel: IAPService.instance.localizedPrice.value,
+                      onPurchase: IAPService.instance.buy);
+                },
               ),
             ],
           ),
@@ -332,6 +359,7 @@ class _MainShellState extends State<MainShell> {
               if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
               if (trigger == PaywallTrigger.hard) {
                 analyticsService.logPaywallViewed('session_hard');
+                AnalyticsService.instance.logPaywallShown('hard');
                 PaywallHard.show(context,
                     isSpanish: es,
                     isFrench: fr,
@@ -339,6 +367,7 @@ class _MainShellState extends State<MainShell> {
                     onPurchase: IAPService.instance.buy);
               } else if (trigger == PaywallTrigger.soft) {
                 analyticsService.logPaywallViewed('session_soft');
+                AnalyticsService.instance.logPaywallShown('soft');
                 PaywallSoft.show(context,
                     isSpanish: es,
                     isFrench: fr,
