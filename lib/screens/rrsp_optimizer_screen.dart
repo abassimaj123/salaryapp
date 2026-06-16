@@ -236,6 +236,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       if (!mounted) return;
       _calculate();
     });
+    _grossCtrl.addListener(() { if (mounted) _calculate(); });
+    _rrspRoomCtrl.addListener(() { if (mounted) _calculate(); });
   }
 
   @override

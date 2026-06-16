@@ -226,6 +226,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
       analyticsService.logScreenView('bonus_calculator');
       _calculate();
     });
+    _salaryCtrl.addListener(() { if (mounted) _calculate(); });
+    _bonusCtrl.addListener(() { if (mounted) _calculate(); });
   }
 
   @override
@@ -466,9 +468,9 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                         ),
                         if (_result != null) ...[
                           const SizedBox(height: AppSpacing.xxlPlus),
-                          _ResultsSection(result: _result!, es: es, fr: fr),
+                          CalcwiseStaggerItem(index: 0, child: _ResultsSection(result: _result!, es: es, fr: fr)),
                           const SizedBox(height: AppSpacing.lg),
-                          SaveScenarioButton(onSave: _saveScenario),
+                          CalcwiseStaggerItem(index: 1, child: SaveScenarioButton(onSave: _saveScenario)),
                           const SizedBox(height: AppSpacing.sm),
                           ValueListenableBuilder<bool>(
                             valueListenable:

@@ -83,6 +83,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     }
     // Calculate with defaults immediately
     WidgetsBinding.instance.addPostFrameCallback((_) => _calculate());
+    _grossACtrl.addListener(() { if (mounted) _calculate(); });
+    _grossBCtrl.addListener(() { if (mounted) _calculate(); });
   }
 
   @override
@@ -362,18 +364,24 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                           _resultA != null &&
                           _resultB != null) ...[
                         const SizedBox(height: AppSpacing.xl),
-                        _ResultsTable(
-                          resultA: _resultA!,
-                          resultB: _resultB!,
-                          labelA: fr ? 'Offre A' : (es ? 'Oferta A' : 'Offer A'),
-                          labelB: fr ? 'Offre B' : (es ? 'Oferta B' : 'Offer B'),
-                          useAlt: useAlt,
+                        CalcwiseStaggerItem(
+                          index: 0,
+                          child: _ResultsTable(
+                            resultA: _resultA!,
+                            resultB: _resultB!,
+                            labelA: fr ? 'Offre A' : (es ? 'Oferta A' : 'Offer A'),
+                            labelB: fr ? 'Offre B' : (es ? 'Oferta B' : 'Offer B'),
+                            useAlt: useAlt,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        _WinnerCard(
-                          resultA: _resultA!,
-                          resultB: _resultB!,
-                          useAlt: useAlt,
+                        CalcwiseStaggerItem(
+                          index: 1,
+                          child: _WinnerCard(
+                            resultA: _resultA!,
+                            resultB: _resultB!,
+                            useAlt: useAlt,
+                          ),
                         ),
 
                         // ── Save Scenario button ─────────────────────────────

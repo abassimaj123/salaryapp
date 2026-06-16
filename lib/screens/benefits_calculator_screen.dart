@@ -220,6 +220,9 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
       analyticsService.logScreenView('benefits_calculator');
       _calculate();
     });
+    for (final c in [_salaryCtrl, _healthCtrl, _retirementPctCtrl, _ptoDaysCtrl, _remoteCtrl, _otherCtrl]) {
+      c.addListener(() { if (mounted) _calculate(); });
+    }
   }
 
   @override

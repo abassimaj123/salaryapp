@@ -163,6 +163,9 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
       if (!mounted) return;
       if (freemiumService.hasFullAccess) _calculate();
     });
+    _grossCtrl.addListener(() {
+      if (mounted && freemiumService.hasFullAccess) _calculate();
+    });
   }
 
   @override

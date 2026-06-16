@@ -68,6 +68,8 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       AnalyticsService.instance.logScreenView('raise_calculator');
       _calculate();
     });
+    _salaryCtrl.addListener(() { if (mounted) _calculate(); });
+    _flatCtrl.addListener(() { if (mounted) _calculate(); });
   }
 
   @override
@@ -418,17 +420,23 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                       ),
                       if (_result != null) ...[
                         const SizedBox(height: AppSpacing.xxlPlus),
-                        _ResultsSection(
-                          result: _result!,
-                          es: es,
-                          fr: fr,
-                          onShare: () => _share(_result!, es),
+                        CalcwiseStaggerItem(
+                          index: 0,
+                          child: _ResultsSection(
+                            result: _result!,
+                            es: es,
+                            fr: fr,
+                            onShare: () => _share(_result!, es),
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        _MarginalTakeHomeCard(
-                          rows: _buildMarginalRows(_result!),
-                          es: es,
-                          fr: fr,
+                        CalcwiseStaggerItem(
+                          index: 1,
+                          child: _MarginalTakeHomeCard(
+                            rows: _buildMarginalRows(_result!),
+                            es: es,
+                            fr: fr,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         SaveScenarioButton(onSave: _saveScenario),
