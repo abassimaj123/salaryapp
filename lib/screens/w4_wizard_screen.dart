@@ -165,15 +165,20 @@ class _W4Result {
 class _W4Engine {
   _W4Engine._();
 
-  /// 2025 standard deductions
+  /// Standard deduction — reads from CalcwiseTax registry (us_federal 2025).
+  /// HOH derived as 1.5× single (IRS convention). Auto-updates with dataset.
   static double standardDeduction(_FilingStatus status) {
+    final reg = CalcwiseTax.registry;
+    final single =
+        reg.annual('us_federal', 2025)?.basicPersonalAmount ?? 15750.0;
     switch (status) {
       case _FilingStatus.single:
-        return 15000;
+        return single;
       case _FilingStatus.marriedJointly:
-        return 30000;
+        return reg.annual('us_federal', 2025, status: 'mfj')?.basicPersonalAmount
+            ?? single * 2;
       case _FilingStatus.headOfHousehold:
-        return 22500;
+        return single * 1.5;
     }
   }
 
@@ -198,7 +203,7 @@ class _W4Engine {
           return 57231 + (taxableIncome - 250525) * 0.35;
         return 188769.75 + (taxableIncome - 626350) * 0.37;
       case _FilingStatus.marriedJointly:
-        // MFJ 2025 brackets (taxable income after $30,000 standard deduction)
+        // MFJ 2025 brackets (taxable income after $31,500 standard deduction — OBBBA)
         if (taxableIncome <= 23850) return taxableIncome * 0.10;
         if (taxableIncome <= 96950)
           return 2385 + (taxableIncome - 23850) * 0.12;
@@ -212,7 +217,7 @@ class _W4Engine {
           return 114462 + (taxableIncome - 501050) * 0.35;
         return 202154.5 + (taxableIncome - 751600) * 0.37;
       case _FilingStatus.headOfHousehold:
-        // HoH 2025 brackets (taxable income after $22,500 standard deduction)
+        // HoH 2025 brackets (taxable income after $23,625 standard deduction — OBBBA)
         if (taxableIncome <= 17000) return taxableIncome * 0.10;
         if (taxableIncome <= 64850)
           return 1700 + (taxableIncome - 17000) * 0.12;
