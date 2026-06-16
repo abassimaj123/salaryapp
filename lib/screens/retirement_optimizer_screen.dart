@@ -22,6 +22,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseHeroCard,
         CalcwisePageEntrance,
         CalcwiseScreenScaffold,
+        CurrencyInputFormatter,
         AppDuration,
         AppSpacing,
         AppRadius,
@@ -407,8 +408,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                  RegExp(r'[\d.,]')),
+                              CurrencyInputFormatter(locale: 'en_US'),
                             ],
                             decoration: InputDecoration(
                               labelText: grossLabel,
@@ -456,8 +456,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                 max: 100,
                                 divisions: 100,
                                 activeColor: AppTheme.primary,
-                                onChanged: (v) =>
-                                    setState(() => _contributionPct = v),
+                                onChanged: (v) {
+                                  setState(() => _contributionPct = v);
+                                  if (freemiumService.hasFullAccess) _calculate();
+                                },
                               ),
                               if (_parseGross() > 0) ...[
                                 Text(
@@ -513,8 +515,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                     child: _ToggleChip(
                                       label: es ? 'Menor de 50' : 'Under 50',
                                       selected: !_age50Plus,
-                                      onTap: () =>
-                                          setState(() => _age50Plus = false),
+                                      onTap: () { setState(() => _age50Plus = false); if (freemiumService.hasFullAccess) _calculate(); },
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -522,8 +523,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                     child: _ToggleChip(
                                       label: '50+',
                                       selected: _age50Plus,
-                                      onTap: () =>
-                                          setState(() => _age50Plus = true),
+                                      onTap: () { setState(() => _age50Plus = true); if (freemiumService.hasFullAccess) _calculate(); },
                                     ),
                                   ),
                                 ],
@@ -558,8 +558,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                       label: es ? 'Soltero' : 'Single',
                                       selected:
                                           _filingStatus == _FilingStatus.single,
-                                      onTap: () => setState(() =>
-                                          _filingStatus = _FilingStatus.single),
+                                      onTap: () { setState(() => _filingStatus = _FilingStatus.single); if (freemiumService.hasFullAccess) _calculate(); },
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -570,9 +569,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                           : 'Married (MFJ)',
                                       selected: _filingStatus ==
                                           _FilingStatus.marriedFilingJointly,
-                                      onTap: () => setState(() =>
-                                          _filingStatus = _FilingStatus
-                                              .marriedFilingJointly),
+                                      onTap: () { setState(() => _filingStatus = _FilingStatus.marriedFilingJointly); if (freemiumService.hasFullAccess) _calculate(); },
                                     ),
                                   ),
                                 ],
@@ -614,7 +611,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                                         ))
                                     .toList(),
                                 onChanged: (v) {
-                                  if (v != null) setState(() => _state = v);
+                                  if (v != null) {
+                                    setState(() => _state = v);
+                                    if (freemiumService.hasFullAccess) _calculate();
+                                  }
                                 },
                               ),
                             ],

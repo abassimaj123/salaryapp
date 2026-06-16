@@ -402,8 +402,8 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                         raisePct: _raisePct,
                         es: es,
                         fr: fr,
-                        onTypeToggle: (v) => setState(() => _isPercent = v),
-                        onSliderChanged: (v) => setState(() => _raisePct = v),
+                        onTypeToggle: (v) { setState(() => _isPercent = v); _calculate(); },
+                        onSliderChanged: (v) { setState(() => _raisePct = v); _calculate(); },
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       SizedBox(

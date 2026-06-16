@@ -23,6 +23,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseHeroCard,
         CalcwisePageEntrance,
         CalcwisePremiumGate,
+        CurrencyInputFormatter,
         PaywallSoft,
         AppDuration,
         AppSpacing,
@@ -496,8 +497,10 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                                             decimal: true),
                                     textInputAction: TextInputAction.next,
                                     inputFormatters: [
-                                      FilteringTextInputFormatter.allow(
-                                          RegExp(r'[\d.,]')),
+                                      CurrencyInputFormatter(
+                                          locale: FlavorConfig.isCA
+                                              ? 'en_CA'
+                                              : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
                                     ],
                                     decoration: InputDecoration(
                                       labelText: t('Base Annual Salary',

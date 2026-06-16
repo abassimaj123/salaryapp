@@ -22,6 +22,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseHeroCard,
         CalcwisePageEntrance,
         CalcwisePremiumGate,
+        CurrencyInputFormatter,
         PaywallSoft,
         AppSpacing,
         AppRadius,
@@ -452,8 +453,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                         decimal: true),
                                 textInputAction: TextInputAction.next,
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                      RegExp(r'[\d.,]')),
+                                  CurrencyInputFormatter(locale: 'en_CA'),
                                 ],
                                 decoration: InputDecoration(
                                   labelText: grossLabel,
@@ -472,8 +472,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                         decimal: true),
                                 textInputAction: TextInputAction.done,
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                      RegExp(r'[\d.,]')),
+                                  CurrencyInputFormatter(locale: 'en_CA'),
                                 ],
                                 decoration: InputDecoration(
                                   labelText: rrspRoomLabel,

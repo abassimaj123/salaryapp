@@ -2192,7 +2192,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
             label: widget.ficaLabel,
             value: r.ficaTax,
             color: CalcwiseTheme.of(context).warningOrange,
-            borderSide: const BorderSide(color: Colors.white, width: 2)),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.surface, width: 2)),
       if (!FlavorConfig.isUK && r.stateTax > 0)
         _Slice(
             label: widget.stateLabel,

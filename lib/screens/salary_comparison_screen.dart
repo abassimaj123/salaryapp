@@ -532,8 +532,13 @@ class _InputCard extends StatelessWidget {
           // Gross salary field
           TextField(
             controller: grossCtrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: false),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              CurrencyInputFormatter(
+                  locale: FlavorConfig.isCA
+                      ? 'en_CA'
+                      : (FlavorConfig.isUK ? 'en_GB' : 'en_US')),
+            ],
             style: const TextStyle(fontSize: AppTextSize.md),
             decoration: InputDecoration(
               labelText: fr
