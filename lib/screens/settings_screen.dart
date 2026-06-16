@@ -566,7 +566,7 @@ class _AppInfoTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Text(
-          'Salary Calculator $flavorBadge · v1.0.0',
+          'Salary Calculator $flavorBadge · v1.0.6',
           style: TextStyle(color: AppTheme.labelGray, fontSize: AppTextSize.sm),
         ),
       ),

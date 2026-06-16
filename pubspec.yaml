@@ -1,7 +1,7 @@
 name: salary_app
 description: Salary Calculator
 publish_to: 'none'
-version: 1.0.5+3
+version: 1.0.6+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -57,6 +57,7 @@ flutter_native_splash:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/images/
     - assets/branding/
