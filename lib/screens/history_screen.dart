@@ -209,6 +209,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     IconButton(
                       icon: Icon(Icons.refresh_rounded),
+                      tooltip: fr
+                          ? 'Actualiser'
+                          : (es ? 'Actualizar' : 'Refresh'),
                       onPressed: _load,
                     ),
                   ],

@@ -519,6 +519,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       analyticsService.logSave();
       analyticsService.logResultSaved();
     } catch (_) {}
+    paywallSession.recordAction().ignore();
   }
 
   /// Pin the current scenario (Save Scenario button).
@@ -556,6 +557,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     try {
       analyticsService.logResultSaved();
     } catch (_) {}
+    paywallSession.recordAction().ignore();
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────

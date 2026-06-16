@@ -52,7 +52,7 @@ android {
     defaultConfig {
         applicationId = "com.salary.us.calculator"
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

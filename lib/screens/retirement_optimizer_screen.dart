@@ -20,6 +20,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         AmountFormatter,
         CalcwiseAdFooter,
         CalcwiseHeroCard,
+        CalcwisePageEntrance,
         CalcwiseScreenScaffold,
         AppDuration,
         AppSpacing,
@@ -374,11 +375,12 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
           appBar: AppBar(
             title: Text(titleStr),
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+          body: CalcwisePageEntrance(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -651,6 +653,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
               const CalcwiseAdFooter(),
             ],
           ),
+        ),
         );
       },
     );
