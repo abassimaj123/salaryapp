@@ -747,12 +747,57 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 600),
-                        child: CalcwisePageEntrance(
-                            child: Form(
+                        child: Form(
                           key: _formKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              AnimatedSwitcher(
+                                duration: AppDuration.base,
+                                switchInCurve: Curves.easeOut,
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.04),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                                child: (_showResults && _result != null)
+                                    ? KeyedSubtree(
+                                        key: const ValueKey('results'),
+                                        child: CalcwisePageEntrance(child: Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 24),
+                                          child: _ResultsSection(
+                                            result: _result!,
+                                            localTax: _localTax,
+                                            localTaxLabel: (_usCity != null &&
+                                                    localTaxes[_usCity] != null)
+                                                ? localTaxes[_usCity]!.name
+                                                : null,
+                                            label: resultsLabel,
+                                            useAlt: useAlt,
+                                            es: es,
+                                            fr: fr,
+                                            caReverseMode: _caReverseMode,
+                                            caRequiredGross: _caRequiredGross,
+                                            ukReverseMode: _ukReverseMode,
+                                            ukRequiredGross: _ukRequiredGross,
+                                            ukTaxCode: _ukTaxCode,
+                                            ukSalarySacrifice: _salarySacrifice,
+                                            onSaveScenario: _saveScenario,
+                                          ),
+                                        )),
+                                      )
+                                    : const KeyedSubtree(
+                                        key: ValueKey('empty'),
+                                        child: SizedBox.shrink(),
+                                      ),
+                              ),
                               CalcwiseStaggerItem(
                                   index: 0,
                                   child: _SalaryInputCard(
@@ -1001,57 +1046,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                       },
                                     ),
                                   ])),
-                              SizedBox(height: AppSpacing.xl),
-                              AnimatedSwitcher(
-                                duration: AppDuration.base,
-                                switchInCurve: Curves.easeOut,
-                                transitionBuilder: (child, animation) =>
-                                    FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.04),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
-                                  ),
-                                ),
-                                child: (_showResults && _result != null)
-                                    ? KeyedSubtree(
-                                        key: const ValueKey('results'),
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 24),
-                                          child: _ResultsSection(
-                                            result: _result!,
-                                            localTax: _localTax,
-                                            localTaxLabel: (_usCity != null &&
-                                                    localTaxes[_usCity] != null)
-                                                ? localTaxes[_usCity]!.name
-                                                : null,
-                                            label: resultsLabel,
-                                            useAlt: useAlt,
-                                            es: es,
-                                            fr: fr,
-                                            caReverseMode: _caReverseMode,
-                                            caRequiredGross: _caRequiredGross,
-                                            ukReverseMode: _ukReverseMode,
-                                            ukRequiredGross: _ukRequiredGross,
-                                            ukTaxCode: _ukTaxCode,
-                                            ukSalarySacrifice: _salarySacrifice,
-                                            onSaveScenario: _saveScenario,
-                                          ),
-                                        ),
-                                      )
-                                    : const KeyedSubtree(
-                                        key: ValueKey('empty'),
-                                        child: SizedBox.shrink(),
-                                      ),
-                              ),
                               SizedBox(height: AppSpacing.md),
                             ],
                           ),
-                        )), // CalcwisePageEntrance closes
+                        ),
                       ),
                     ),
                   ),
