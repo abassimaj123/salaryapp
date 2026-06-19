@@ -497,7 +497,7 @@ class _LifetimeCard extends StatelessWidget {
                             child: const Text(
                               'BEST VALUE',
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w800,
                                 fontSize: AppTextSize.xxs,
                                 letterSpacing: 0.5,

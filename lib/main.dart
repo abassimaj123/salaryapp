@@ -100,9 +100,11 @@ void main() async {
   await IAPService.instance.initialize();
   await requestCalcwiseConsent();
   await MobileAds.instance.initialize();
-  unawaited(MobileAds.instance.updateRequestConfiguration(
-    RequestConfiguration(testDeviceIds: ['FD16D4616C3A21C3ACE5E48F8DC9C1DC']),
-  ));
+  if (kDebugMode) {
+    await MobileAds.instance.updateRequestConfiguration(
+      RequestConfiguration(testDeviceIds: ['FD16D4616C3A21C3ACE5E48F8DC9C1DC']),
+    );
+  }
   if (AdConfig.adsEnabled) await adService.initialize();
   await themeModeService.initialize();
 

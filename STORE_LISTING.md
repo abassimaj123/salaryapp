@@ -26,8 +26,8 @@ KNOW YOUR REAL TAKE-HOME PAY — INSTANTLY
 Stop guessing what your paycheck will look like. Salary Calculator USA breaks down your gross pay into every deduction so you see exactly what lands in your bank account.
 
 ── WHAT IT CALCULATES ──
-• Federal income tax (2024 brackets, single / married)
-• FICA: Social Security (6.2 % up to $168,600) + Medicare (1.45 %)
+• Federal income tax (2025/2026 brackets, single / married)
+• FICA: Social Security (6.2 % up to $176,100) + Medicare (1.45 %)
 • State income tax — all 50 states + D.C.
 • Effective tax rate
 
@@ -79,7 +79,7 @@ CALCULA TU SUELDO NETO AL INSTANTE
 Deja de adivinar cuánto recibirás en tu cheque de pago. Calculadora de Sueldo USA desglosa tu salario bruto en cada deducción para que veas exactamente lo que llega a tu cuenta bancaria.
 
 ── QUÉ CALCULA ──
-• Impuesto federal sobre la renta (tablas 2024)
+• Impuesto federal sobre la renta (tablas 2025/2026)
 • FICA: Seguro Social (6.2 %) + Medicare (1.45 %)
 • Impuesto estatal — los 50 estados + D.C.
 • Tasa impositiva efectiva
@@ -134,7 +134,7 @@ KNOW YOUR REAL TAKE-HOME PAY — INSTANTLY
 Salary Calculator Canada gives you a complete breakdown of your gross pay into every Canadian deduction so you know exactly what hits your bank account — whether you're in Ontario, Quebec, BC, or any of the 10 provinces.
 
 ── WHAT IT CALCULATES ──
-• Federal income tax (2024 brackets, Basic Personal Amount $15,705)
+• Federal income tax (2025/2026 brackets, Basic Personal Amount $15,705)
 • CPP contribution (5.95 % on earnings $3,500–$68,500)
 • EI premium (1.66 % up to $63,200)
 • Provincial income tax — all 10 provinces
@@ -189,7 +189,7 @@ CALCULEZ VOTRE SALAIRE NET EN UN INSTANT
 Calculateur Salaire Canada vous donne un aperçu complet de votre salaire brut avec toutes les déductions canadiennes — que vous soyez en Ontario, au Québec, en C.-B. ou dans l'une des 10 provinces.
 
 ── CE QUE ÇA CALCULE ──
-• Impôt fédéral sur le revenu (barèmes 2024, Montant personnel de base 15 705 $)
+• Impôt fédéral sur le revenu (barèmes 2025/2026, Montant personnel de base 15 705 $)
 • Cotisation RPC (5,95 % sur les revenus de 3 500 $ à 68 500 $)
 • Prime d'AE (1,66 % jusqu'à 63 200 $)
 • Impôt provincial — les 10 provinces
@@ -236,17 +236,17 @@ Salary Calculator UK
 
 #### Short Description (max 80 chars)
 ```
-UK take-home pay: income tax + NI bands 2024/25, PDF export
+UK take-home pay: income tax + NI bands 2025/26, PDF export
 ```
 
 #### Long Description (max 4000 chars)
 ```
 KNOW YOUR REAL TAKE-HOME PAY — INSTANTLY
 
-Salary Calculator UK gives you a precise breakdown of your gross salary into income tax and National Insurance contributions using the latest 2024/25 HMRC bands — so you always know what you'll actually take home.
+Salary Calculator UK gives you a precise breakdown of your gross salary into income tax and National Insurance contributions using the latest 2025/26 HMRC bands — so you always know what you'll actually take home.
 
 ── WHAT IT CALCULATES ──
-• Income tax (2024/25 bands: Personal Allowance £12,570 / Basic 20 % / Higher 40 % / Additional 45 %)
+• Income tax (2025/26 bands: Personal Allowance £12,570 / Basic 20 % / Higher 40 % / Additional 45 %)
 • National Insurance Class 1 (employee): 8 % on £12,570–£50,270, 2 % above
 • Total deductions and effective tax rate
 • Net annual, monthly, bi-weekly, and weekly pay
@@ -255,7 +255,7 @@ Salary Calculator UK gives you a precise breakdown of your gross salary into inc
 Enter your salary as Annual, Monthly, Bi-weekly, Weekly, or Hourly and see results in all five formats at once.
 
 ── KEY FEATURES ──
-✔ Up-to-date 2024/25 HMRC income tax bands
+✔ Up-to-date 2025/26 HMRC income tax bands
 ✔ NI Class 1 employee rates
 ✔ Five pay frequencies — switch in one tap
 ✔ PDF export — save or share your net pay summary
@@ -329,7 +329,7 @@ Show the Settings screen with a prominent "Upgrade to Premium" card (or the soft
 ```
 Salary Calculator — first release.
 • Gross-to-net calculation with full deduction breakdown
-• All 50 US states / 10 Canadian provinces / UK 2024/25 bands
+• All 50 US states / 10 Canadian provinces / UK 2025/26 bands
 • Five pay frequencies: annual, monthly, bi-weekly, weekly, hourly
 • PDF export and calculation history
 • Bilingual: EN + ES (US) / EN + FR (CA)
