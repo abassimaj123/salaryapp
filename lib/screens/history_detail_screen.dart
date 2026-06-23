@@ -10,7 +10,7 @@ import '../core/freemium/iap_service.dart';
 import '../core/salary_engine.dart';
 import '../core/services/pdf_export_service.dart' show PdfExportService;
 import '../core/theme/app_theme.dart';
-import '../main.dart' show isSpanishNotifier;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, tabSwitchNotifier;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
 
@@ -169,6 +169,34 @@ class HistoryDetailScreen extends StatelessWidget {
                         label: l.netWeekly,
                         value: fmtMoney.format(r.netWeekly)),
                     SizedBox(height: AppSpacing.lg),
+
+                    // Load into Calculator
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_rounded),
+                        label: Text(fr
+                            ? 'Charger dans la calculatrice'
+                            : (es
+                                ? 'Cargar en calculadora'
+                                : 'Load into Calculator')),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primary,
+                          side: BorderSide(color: AppTheme.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.xl)),
+                        ),
+                        onPressed: () {
+                          salaryNotifier.value = r.grossAnnual;
+                          tabSwitchNotifier.value = 0;
+                          Navigator.of(context)
+                              .popUntil((route) => route.isFirst);
+                        },
+                      ),
+                    ),
+                    SizedBox(height: AppSpacing.sm),
 
                     // PDF export button — always visible, PaywallHard-gated
                     ValueListenableBuilder<bool>(

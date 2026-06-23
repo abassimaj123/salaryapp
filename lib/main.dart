@@ -85,6 +85,9 @@ final ValueNotifier<bool> ukStudentLoanNotifier = ValueNotifier<bool>(false);
 /// UK flavor only: whether Scottish income tax rates apply.
 final ValueNotifier<bool> ukScotlandNotifier = ValueNotifier<bool>(false);
 
+/// Set to tab index to programmatically switch tabs from any screen.
+final tabSwitchNotifier = ValueNotifier<int>(-1);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting();
@@ -230,6 +233,7 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     _wasPremium = freemiumService.hasFullAccess;
     freemiumService.isPremiumNotifier.addListener(_onPremiumChange);
+    tabSwitchNotifier.addListener(_onTabSwitch);
     iapErrorNotifier.addListener(_onIapError);
     iapRestoreResultNotifier.addListener(_onRestoreResult);
     WidgetsBinding.instance.addPostFrameCallback(
@@ -240,6 +244,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     freemiumService.isPremiumNotifier.removeListener(_onPremiumChange);
+    tabSwitchNotifier.removeListener(_onTabSwitch);
     iapErrorNotifier.removeListener(_onIapError);
     iapRestoreResultNotifier.removeListener(_onRestoreResult);
     super.dispose();
@@ -275,6 +280,14 @@ class _MainShellState extends State<MainShell> {
     if (msg == null || !mounted) return;
     showIapErrorSnackBar(context, msg);
     iapErrorNotifier.value = null;
+  }
+
+  void _onTabSwitch() {
+    final idx = tabSwitchNotifier.value;
+    if (idx >= 0 && mounted) {
+      setState(() => _index = idx);
+      tabSwitchNotifier.value = -1;
+    }
   }
 
   @override
