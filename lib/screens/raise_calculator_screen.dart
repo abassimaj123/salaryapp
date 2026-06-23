@@ -208,11 +208,23 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
     }
     if (FlavorConfig.isCA) {
       // Simplified Canadian federal + provincial est. (~25–33%)
-      if (annual < 57375) return annual * 0.205;
-      if (annual < 114750) return annual * 0.260;
-      if (annual < 177882) return annual * 0.290;
-      if (annual < 253414) return annual * 0.330;
-      return annual * 0.353;
+      // Apply Basic Personal Amount (BPA = $15,705 for 2025) as a non-refundable
+      // federal tax credit at the lowest federal bracket rate (15%).
+      const double bpa = 15705.0;
+      const double bpaCredit = bpa * 0.15; // = $2,355.75
+      double grossTax;
+      if (annual < 57375) {
+        grossTax = annual * 0.205;
+      } else if (annual < 114750) {
+        grossTax = annual * 0.260;
+      } else if (annual < 177882) {
+        grossTax = annual * 0.290;
+      } else if (annual < 253414) {
+        grossTax = annual * 0.330;
+      } else {
+        grossTax = annual * 0.353;
+      }
+      return (grossTax - bpaCredit).clamp(0.0, double.infinity);
     }
     // UK — simplified basic/higher rate
     final personalAllowance = 12570.0;

@@ -31,7 +31,8 @@ class HistoryDetailScreen extends StatelessWidget {
             entry.flavor == 'uk' ? '£' : (entry.flavor == 'ca' ? 'CA\$' : '\$');
         final fmtMoney =
             NumberFormat.currency(symbol: currencySymbol, decimalDigits: 2);
-        final fmtDate = DateFormat('MMMM d, yyyy  HH:mm');
+        final fmtDate =
+            DateFormat('MMMM d, yyyy  HH:mm', fr ? 'fr' : (es ? 'es' : 'en'));
 
         final l = _Labels(fr: fr, es: es);
         final r = entry.result;

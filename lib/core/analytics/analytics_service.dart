@@ -54,8 +54,6 @@ class AnalyticsService extends CalcwiseAnalytics {
 
   // ── Universal events (Phase 2) ────────────────────────────────────────────
 
-  Future<void> logScreenView(String screenName) =>
-      log('screen_view', {'screen_name': screenName});
   Future<void> logOnboardingComplete() => log('onboarding_complete');
   Future<void> logOnboardingSkipped() => log('onboarding_skipped');
   Future<void> logFirstCalculate() => log('first_calculate');

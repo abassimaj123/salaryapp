@@ -79,12 +79,24 @@ class BonusEngine {
   static double usSupplementalFederalRate(double bonus) =>
       bonus > 1000000 ? 0.37 : 0.22;
 
+  /// Supplemental wage rates by state (published state supplemental/marginal rates).
+  /// For progressive states, use their published supplemental rate rather than
+  /// stateTax(1.0, state) which returns the lowest bracket rate (e.g. 1% for CA).
+  static const Map<String, double> _stateSupplementalRates = {
+    'CA': 0.1023, // California: 10.23% supplemental rate
+    'NY': 0.0962, // New York: 9.62% supplemental rate
+  };
+
   /// Flat-rate method: apply supplemental rate directly to bonus.
   static _UsFlatResult usFlatRate(
       double bonus, double annualSalary, String state) {
     final federalRate = usSupplementalFederalRate(bonus);
     final federalTax = bonus * federalRate;
-    final stateRate = UsSalaryEngine.stateTax(1.0, state); // rate per $1
+    // Use dedicated supplemental rate map; fall back to highest bracket rate
+    // for states not explicitly listed (avoids using lowest-bracket rate).
+    const double highIncome = 1000000.0;
+    final stateRate = _stateSupplementalRates[state] ??
+        UsSalaryEngine.stateTax(highIncome, state) / highIncome;
     final stateTax = bonus * stateRate;
     final total = federalTax + stateTax;
     return _UsFlatResult(
@@ -452,9 +464,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           payPeriods: _payPeriods,
                           es: es,
                           fr: fr,
-                          onStateChanged: (v) => setState(() => _usState = v!),
-                          onProvinceChanged: (v) =>
-                              setState(() => _caProvince = v!),
+                          onStateChanged: (v) { setState(() => _usState = v!); if (mounted) _calculate(); },
+                          onProvinceChanged: (v) { setState(() => _caProvince = v!); if (mounted) _calculate(); },
                           onPayPeriodsChanged: (v) =>
                               setState(() => _payPeriods = v),
                         ),

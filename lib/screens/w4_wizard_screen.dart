@@ -1421,6 +1421,10 @@ class _Step3Results extends StatelessWidget {
   }
 
   Future<void> _sharePdf(BuildContext context, _W4Result r) async {
+    // Format date on the MAIN isolate — worker isolates don't inherit
+    // initializeDateFormatting(), so formatting 'es' there would throw.
+    final dateStr =
+        DateFormat('MMMM d, yyyy', es ? 'es' : 'en').format(DateTime.now());
     final bytes = await Isolate.run(() => _buildW4PdfBytes(
           _W4PdfParams(
             step3DependentCredit: r.step3DependentCredit,
@@ -1429,7 +1433,7 @@ class _Step3Results extends StatelessWidget {
             estimatedAnnualTax: r.estimatedAnnualTax,
             estimatedWithholding: r.estimatedWithholding,
             refundOrOwed: r.refundOrOwed,
-            dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+            dateStr: dateStr,
             es: es,
           ),
         ));
