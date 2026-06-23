@@ -2237,7 +2237,9 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                   titleStyle: TextStyle(
                     fontSize: isTouched ? 12 : 11,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: s.color.computeLuminance() > 0.35
+                        ? Colors.black87
+                        : Colors.white,
                   ),
                   borderSide: s.borderSide,
                 );
