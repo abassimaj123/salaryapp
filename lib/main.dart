@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:calcwise_core/calcwise_core.dart'
     show
@@ -85,6 +87,7 @@ final ValueNotifier<bool> ukScotlandNotifier = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   unawaited(CalcwiseRemoteConfig.initialize());
@@ -161,6 +164,7 @@ class SalaryApp extends StatelessWidget {
       valueListenable: themeModeService.notifier,
       builder: (_, themeMode, __) => MaterialApp(
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)],
         builder: (context, child) {
           if (!MediaQuery.of(context).disableAnimations) return child!;
           return Theme(
