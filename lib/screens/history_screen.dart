@@ -128,6 +128,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
+    controller.dispose();
     if (newLabel != null && newLabel.trim().isNotEmpty && e.id != null) {
       await historyService.rename(e.id!, newLabel.trim());
       _load();

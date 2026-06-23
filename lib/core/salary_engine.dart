@@ -251,11 +251,11 @@ class UsSalaryEngine {
       case 'AL':
         return grossAnnual * 0.05;
       case 'SC':
-        return grossAnnual * 0.07;
+        return grossAnnual * 0.064; // 6.4% flat (2024, stepped down from 7%)
       case 'LA':
-        return grossAnnual * 0.0425;
+        return grossAnnual * 0.030; // 3.0% flat (HB 10, eff. Jan 1 2025)
       case 'AR':
-        return grossAnnual * 0.059;
+        return grossAnnual * 0.044; // 4.4% flat (Act 1 of 2024 session)
       case 'MS':
         return grossAnnual * 0.05;
       case 'ID':
@@ -263,7 +263,7 @@ class UsSalaryEngine {
       case 'NM':
         return grossAnnual * 0.059;
       case 'MT':
-        return grossAnnual * 0.0675;
+        return grossAnnual * 0.059; // 5.9% flat (HB 192, eff. Jan 1 2024)
       case 'UT':
         return grossAnnual * 0.0465;
       case 'ND':
@@ -283,13 +283,13 @@ class UsSalaryEngine {
       case 'DC':
         return grossAnnual * 0.0895;
       case 'WV':
-        return grossAnnual * 0.065;
+        return grossAnnual * 0.0512; // 5.12% top rate (SB 2, 2023)
       case 'KS':
         return grossAnnual * 0.057;
       case 'NE':
-        return grossAnnual * 0.0664;
+        return grossAnnual * 0.0584; // 5.84% flat (LB 754, eff. Jan 1 2024)
       case 'IA':
-        return grossAnnual * 0.038; // 3.8% flat (depuis jan. 2025)
+        return grossAnnual * 0.038; // 3.8% flat (eff. Jan 2025)
       case 'OK':
         return grossAnnual * 0.0475;
       default:
