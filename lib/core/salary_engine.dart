@@ -792,14 +792,18 @@ class CaSalaryEngine {
   //    rate as a portfolio-wide simplification (see TODO in calculate()).
   //  - EI 2026: canada.ca/.../employment-insurance-ei/ei-premium-rates-maximums.html
   //    MIE 2026 = $68,900 · employee rate (rest of Canada) = 1.63%
-  //    (Quebec employee rate is 1.30% due to QPIP — not modelled separately).
+  //    QC employee rate = 1.30% (reduced because QC operates QPIP separately).
+  //  - QPP 2026 (Revenu Québec): base employee rate 5.40% (vs CPP 5.95%).
+  //    QPP2 second ceiling 4.00% = same as CPP2. Modelled separately from CPP.
   static const double _cpp1BasicExemption = 3500;
   static const double _ympe2026 = 74600; // CPP1 / QPP1 first ceiling (YMPE)
   static const double _yampe2026 = 85000; // CPP2 / QPP2 second ceiling (YAMPE)
   static const double _cpp1Rate = 0.0595;
+  static const double _qpp1Rate = 0.0540; // QPP employee rate 2026 (QC only)
   static const double _cpp2Rate = 0.04;
   static const double _eiInsurableMax2026 = 68900;
   static const double _eiRate2026 = 0.0163; // employee rate (rest of Canada)
+  static const double _eiRateQc2026 = 0.0130; // QC employee rate (QPIP offset)
 
   /// CPP1 2026: 5.95% on earnings $3,500–$74,600 (YMPE).
   static double cpp1(double grossAnnual) {
@@ -820,9 +824,25 @@ class CaSalaryEngine {
   static double cpp(double grossAnnual) =>
       cpp1(grossAnnual) + cpp2(grossAnnual);
 
+  /// QPP1 2026: 5.40% on earnings $3,500–$74,600 (Quebec employees only).
+  static double qpp1(double grossAnnual) {
+    final pensionable =
+        grossAnnual.clamp(_cpp1BasicExemption, _ympe2026) - _cpp1BasicExemption;
+    return pensionable * _qpp1Rate;
+  }
+
+  /// Combined QPP (QPP1 + QPP2) 2026. QPP2 rate/ceiling = CPP2 (identical).
+  static double qpp(double grossAnnual) =>
+      qpp1(grossAnnual) + cpp2(grossAnnual);
+
   /// EI 2026: 1.63% (rest of Canada) up to insurable max $68,900.
   static double ei(double grossAnnual) {
     return grossAnnual.clamp(0, _eiInsurableMax2026) * _eiRate2026;
+  }
+
+  /// EI 2026 Quebec: 1.30% up to insurable max $68,900 (QPIP offset).
+  static double eiQc(double grossAnnual) {
+    return grossAnnual.clamp(0, _eiInsurableMax2026) * _eiRateQc2026;
   }
 
   /// Applies progressive brackets to [income].
@@ -919,22 +939,17 @@ class CaSalaryEngine {
     final fed = federalTax(grossAnnual);
     // Quebec residents receive a 16.5% abatement on their federal tax
     // (QC runs its own equivalent social programs).
-    final fedAbatement =
-        province == 'QC' ? quebecFederalAbatement(grossAnnual) : 0.0;
-    // TODO(qc): Quebec uses QPP (base employee rate 5.4%) and a lower EI rate
-    // (1.30% vs 1.63%) because of the Quebec Parental Insurance Plan. We model
-    // both QC and the rest of Canada with the single CPP rate (5.95%) and the
-    // rest-of-Canada EI rate (1.63%) — a small over-estimate of QC deductions.
-    // The CPP2/QPP2 second-ceiling logic ($74,600→$85,000 @ 4%) is identical.
-    final cppAmt = cpp(grossAnnual);
-    final eiAmt = ei(grossAnnual);
+    final isQc = province == 'QC';
+    final fedAbatement = isQc ? quebecFederalAbatement(grossAnnual) : 0.0;
+    final cppAmt = isQc ? qpp(grossAnnual) : cpp(grossAnnual);
+    final eiAmt = isQc ? eiQc(grossAnnual) : ei(grossAnnual);
     final prov = provincialTax(grossAnnual, province);
     final total = (fed - fedAbatement) + cppAmt + eiAmt + prov;
     final net = grossAnnual - total;
     return SalaryResult(
       grossAnnual: grossAnnual,
       federalTax: fed - fedAbatement, // effective federal after QC abatement
-      ficaTax: cppAmt + eiAmt, // CPP + EI lumped together (CPP1+CPP2+EI)
+      ficaTax: cppAmt + eiAmt, // CPP/QPP + EI lumped together
       stateTax: prov,
       totalTax: total,
       netAnnual: net,
