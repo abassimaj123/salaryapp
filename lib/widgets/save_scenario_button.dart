@@ -67,7 +67,7 @@ class _SaveScenarioButtonState extends State<SaveScenarioButton> {
         : (_es ? 'Nombre del escenario (opcional)' : 'Scenario name (optional)');
     final cancel = _fr ? 'Annuler' : (_es ? 'Cancelar' : 'Cancel');
     final save = _fr ? 'Enregistrer' : (_es ? 'Guardar' : 'Save');
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(title),
@@ -90,6 +90,8 @@ class _SaveScenarioButtonState extends State<SaveScenarioButton> {
         ],
       ),
     );
+    controller.dispose();
+    return result;
   }
 
   @override
