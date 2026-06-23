@@ -24,6 +24,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwisePageEntrance,
         CalcwisePremiumGate,
         CurrencyInputFormatter,
+        PaywallHard,
         PaywallSoft,
         AppDuration,
         AppSpacing,
@@ -328,7 +329,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                 ? 'Fija tus cálculos para consultarlos más tarde'
                 : 'Pin your calculations to revisit them later'),
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -392,6 +393,10 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
   Future<void> _sharePdf(BuildContext context, _BenefitsResult r, bool fr,
       bool es) async {
     final retLabel = _retirementLabel(fr, es);
+    // Format date on the MAIN isolate — worker isolates don't inherit
+    // initializeDateFormatting(), so formatting 'fr'/'es' there would throw.
+    final dateStr = DateFormat('MMMM d, yyyy', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(DateTime.now());
     final bytes = await Isolate.run(() => _buildBenefitsPdfBytes(
           _BenefitsPdfParams(
             baseSalary: r.baseSalary,
@@ -404,7 +409,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
             totalCompensation: r.totalCompensation,
             currencySymbol: FlavorConfig.currencySymbol,
             retirementLabel: retLabel,
-            dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+            dateStr: dateStr,
             fr: fr,
             es: es,
             isUK: FlavorConfig.isUK,
@@ -739,7 +744,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                                   'Desglose detallado, exportación PDF y beneficios como % del salario.',
                                   'Détail complet, export PDF et avantages en % du salaire.',
                                 ),
-                                onUnlock: () => IAPService.instance.buy(),
+                                onUnlock: () => PaywallHard.show(context),
                                 price: IAPService.instance.localizedPrice,
                               ),
                             ],

@@ -23,6 +23,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwisePageEntrance,
         CalcwisePremiumGate,
         CurrencyInputFormatter,
+        PaywallHard,
         PaywallSoft,
         AppSpacing,
         AppRadius,
@@ -328,7 +329,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
             ? 'Épinglez vos calculs pour les retrouver plus tard'
             : 'Pin your calculations to revisit them later',
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -660,7 +661,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                             description: fr
                                 ? 'Remboursement fiscal, coût net, taux marginal et droits restants.'
                                 : 'Tax refund, net cost, marginal rate and remaining room.',
-                            onUnlock: () => IAPService.instance.buy(),
+                            onUnlock: () => PaywallHard.show(context),
                             price: IAPService.instance.localizedPrice,
                           ),
                         ],

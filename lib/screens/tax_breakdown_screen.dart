@@ -17,6 +17,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseAdFooter,
         CalcwisePageEntrance,
         CalcwisePremiumGate,
+        PaywallHard,
         PaywallSoft,
         AppSpacing,
         AppRadius,
@@ -272,7 +273,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                 ? 'Fija tus cálculos para consultarlos más tarde'
                 : 'Pin your calculations to revisit them later'),
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -701,7 +702,7 @@ class _TaxBreakdownSection extends StatelessWidget {
                         : (es
                             ? 'Compara TX, FL, CA, NY, WA para tu salario.'
                             : 'See how TX, FL, CA, NY & WA compare for your salary.'),
-                    onUnlock: () => IAPService.instance.buy(),
+                    onUnlock: () => PaywallHard.show(context),
                     price: IAPService.instance.localizedPrice,
                   ),
           ),

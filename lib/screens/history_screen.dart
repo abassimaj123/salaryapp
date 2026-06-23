@@ -327,7 +327,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     : (es
                         ? 'Guarda todos tus cálculos sin límite'
                         : 'Save all your calculations with no limit'),
-                onUnlock: () => IAPService.instance.buy(),
+                onUnlock: () => PaywallHard.show(context),
                 price: IAPService.instance.localizedPrice,
               ),
             ],
@@ -398,7 +398,8 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMM d, yyyy  HH:mm').format(entry.timestamp);
+    final dateStr = DateFormat('MMM d, yyyy  HH:mm', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(entry.timestamp);
     final grossLabel = fr ? 'Brut' : (es ? 'Bruto' : 'Gross');
     final netLabel = fr ? 'Net' : (es ? 'Neto' : 'Net');
     final rateLabel = fr ? 'Taux' : (es ? 'Tasa' : 'Rate');

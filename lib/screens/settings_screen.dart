@@ -157,7 +157,7 @@ class _PremiumSection extends StatelessWidget {
                     label: getPremium,
                     subtitle: premiumDesc,
                     trailing: _price(),
-                    onTap: () => IAPService.instance.buy(),
+                    onTap: () => PaywallHard.show(context),
                   ),
                   CalcwiseSettingsTile(
                     icon: Icons.restore,

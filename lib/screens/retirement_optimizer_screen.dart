@@ -27,6 +27,8 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppSpacing,
         AppRadius,
         AppTextSize,
+        CalcwisePremiumGate,
+        PaywallHard,
         PaywallSoft,
         PaywallSessionService,
         ResultHasher;
@@ -257,7 +259,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
             ? 'Fija tus cálculos para consultarlos más tarde'
             : 'Pin your calculations to revisit them later',
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -332,7 +334,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
           ? 'Desbloquea proyecciones y análisis completo'
           : 'Unlock projections and full tax analysis',
       priceLabel: IAPService.instance.localizedPrice.value,
-      onUnlock: () => IAPService.instance.buy(),
+      onUnlock: () => PaywallHard.show(context),
     );
     if (mounted) {
       setState(() {});
@@ -371,9 +373,6 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
         final filingLabel = es ? 'Estado civil' : 'Filing Status';
         final stateLabel = es ? 'Estado' : 'State';
         final calcLabel = es ? 'Calcular' : 'Calculate';
-
-        // Hard gate: immediately for non-premium users
-        final shouldGate = !freemiumService.hasFullAccess;
 
         return Scaffold(
           appBar: AppBar(
@@ -639,13 +638,41 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                       // ── Results ──────────────────────────────────────────────
                       if (_hasCalculated && _result != null) ...[
                         const SizedBox(height: 24),
-                        if (shouldGate)
-                          _GateCard(
-                            es: es,
+                        if (freemiumService.hasFullAccess)
+                          _buildResults(context, _result!, es)
+                        else ...[
+                          // Hero always visible for free users
+                          CalcwiseHeroCard(
+                            label: es
+                                ? 'Aportación 401(k) anual'
+                                : '401(k) Annual Contribution',
+                            value: _fmt(_result!.contribution),
+                            secondary: _result!.isMaxed
+                                ? (es ? 'Máximo IRS alcanzado' : 'IRS max reached')
+                                : null,
+                            rawValue: _result!.contribution,
+                            valueFormatter: (v) => AmountFormatter.ui(v, 'USD'),
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.primary,
+                                AppTheme.primary.withValues(alpha: 0.75),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          CalcwisePremiumGate(
+                            title: es
+                                ? 'Análisis 401(k) completo'
+                                : 'Full 401(k) Analysis',
+                            description: es
+                                ? 'Desglose de contribuciones, proyecciones y comparativa empleador.'
+                                : 'Contribution breakdown, projections and employer match detail.',
                             onUnlock: () => _showPaywall(es),
-                          )
-                        else
-                          _buildResults(context, _result!, es),
+                            price: IAPService.instance.localizedPrice,
+                          ),
+                        ],
                       ],
 
                       const SizedBox(height: 16),
@@ -896,59 +923,6 @@ class _ToggleChip extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _GateCard extends StatelessWidget {
-  final bool es;
-  final VoidCallback onUnlock;
-
-  const _GateCard({required this.es, required this.onUnlock});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.lock_rounded, color: AppTheme.primary, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            es ? 'Resultados completos' : 'Full 401(k) Analysis',
-            style: TextStyle(
-                fontSize: AppTextSize.bodyLg,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.primary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            es
-                ? 'Desbloquea proyecciones, ahorro fiscal y análisis detallado.'
-                : 'Unlock projections, tax savings, and detailed analysis.',
-            textAlign: TextAlign.center,
-            style:
-                TextStyle(fontSize: AppTextSize.sm, color: AppTheme.labelGray),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onUnlock,
-              child: Text(
-                es ? 'Pasar a Premium' : 'Go Premium',
-                style: const TextStyle(
-                    fontSize: AppTextSize.body, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

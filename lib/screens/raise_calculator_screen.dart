@@ -164,7 +164,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                 ? 'Fija tus cálculos para consultarlos más tarde'
                 : 'Pin your calculations to revisit them later'),
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -1039,7 +1039,7 @@ class _MarginalTakeHomeCardState extends State<_MarginalTakeHomeCard> {
                       _GateOverlay(
                         es: widget.es,
                         fr: widget.fr,
-                        onUnlock: () => IAPService.instance.buy(),
+                        onUnlock: () => PaywallHard.show(context),
                       ),
                     const SizedBox(height: AppSpacing.md),
                   ]);

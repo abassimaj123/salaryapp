@@ -343,7 +343,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                 ? 'Fija tus cálculos para consultarlos más tarde'
                 : 'Pin your calculations to revisit them later'),
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -11,6 +12,7 @@ import '../flavor_config.dart';
 import '../freemium/iap_service.dart';
 import '../theme/app_theme.dart';
 import '../../main.dart';
+import '../../widgets/paywall_hard.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 
 const _navy = PdfColor(0.043, 0.275, 0.490); // SalaryApp deep blue
@@ -185,6 +187,7 @@ class _SalaryComparisonPdfParams {
 // FlavorConfig uses const String.fromEnvironment so it is safe here.
 
 Future<Uint8List> _buildSalaryPdfBytes(_SalaryPdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -210,6 +213,7 @@ Future<Uint8List> _buildSalaryPdfBytes(_SalaryPdfParams p) async {
 }
 
 Future<Uint8List> _buildBonusPdfBytes(_BonusPdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -240,6 +244,7 @@ Future<Uint8List> _buildBonusPdfBytes(_BonusPdfParams p) async {
 }
 
 Future<Uint8List> _buildTaxBreakdownPdfBytes(_TaxBreakdownPdfParams p) async {
+  await initializeDateFormatting();
   // Reconstruct named-record list from parallel arrays
   final brackets = List.generate(p.bMin.length, (i) => (
     min: p.bMin[i],
@@ -263,6 +268,7 @@ Future<Uint8List> _buildTaxBreakdownPdfBytes(_TaxBreakdownPdfParams p) async {
 }
 
 Future<Uint8List> _buildRaisePdfBytes(_RaisePdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -286,6 +292,7 @@ Future<Uint8List> _buildRaisePdfBytes(_RaisePdfParams p) async {
 }
 
 Future<Uint8List> _buildRetirementPdfBytes(_RetirementPdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -308,6 +315,7 @@ Future<Uint8List> _buildRetirementPdfBytes(_RetirementPdfParams p) async {
 }
 
 Future<Uint8List> _buildRrspPdfBytes(_RrspPdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -330,6 +338,7 @@ Future<Uint8List> _buildRrspPdfBytes(_RrspPdfParams p) async {
 
 Future<Uint8List> _buildSalaryComparisonPdfBytes(
     _SalaryComparisonPdfParams p) async {
+  await initializeDateFormatting();
   final pdf = pw.Document();
   pdf.addPage(pw.Page(
     pageFormat: PdfPageFormat.a4,
@@ -369,7 +378,8 @@ class PdfExportService {
       locale: FlavorConfig.locale,
       symbol: FlavorConfig.currencySymbol,
       decimalDigits: 0);
-  static final _date = DateFormat('MMMM d, yyyy');
+  static String _dateStr(DateTime now, bool fr, bool es) =>
+      DateFormat('MMMM d, yyyy', fr ? 'fr' : (es ? 'es' : 'en')).format(now);
 
   // ── Public entry point ────────────────────────────────────────────────────
 
@@ -504,7 +514,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, es),
                 style:
                     const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
@@ -828,7 +838,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, es),
                 style:
                     const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
@@ -1002,7 +1012,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, es),
                 style:
                     const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
@@ -1250,7 +1260,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, es),
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
         ),
@@ -1435,7 +1445,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, false, es),
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
         ),
@@ -1612,7 +1622,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, false),
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
         ),
@@ -1900,7 +1910,7 @@ class PdfExportService {
                       style: const pw.TextStyle(
                           fontSize: AppTextSize.xs, color: PdfColors.grey700)),
                 ]),
-            pw.Text(_date.format(now),
+            pw.Text(_dateStr(now, fr, es),
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
           ],
         ),
@@ -2161,9 +2171,10 @@ class _PdfUnlockSheetState extends State<_PdfUnlockSheet> {
         SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                IAPService.instance.buy();
+                await PaywallHard.show(context,
+                    isSpanish: isSpanishNotifier.value);
               },
               icon: const Icon(Icons.workspace_premium, size: 18),
               label: Text(premiumLabel,

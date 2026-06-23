@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:calcwise_core/calcwise_core.dart' hide PaywallHard;
+import 'package:calcwise_core/calcwise_core.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -540,7 +540,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                 ? 'Fija tus cálculos para consultarlos más tarde'
                 : 'Pin your calculations to revisit them later'),
         priceLabel: IAPService.instance.localizedPrice.value,
-        onUnlock: () => IAPService.instance.buy(),
+        onUnlock: () => PaywallHard.show(context),
       );
       return;
     }
@@ -1713,7 +1713,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                       : (es
                           ? 'Guarda tus cálculos y exporta en PDF.'
                           : 'Save your calculations and export to PDF.'),
-                  onUnlock: () => IAPService.instance.buy(),
+                  onUnlock: () => PaywallHard.show(context),
                   price: IAPService.instance.localizedPrice,
                 ),
         ),
@@ -2375,6 +2375,11 @@ class _PdfExportButton extends StatelessWidget {
         ? (es ? 'Impuesto estatal' : 'State Tax')
         : (fr ? 'Impôt provincial' : 'Provincial Tax');
 
+    // Format date on the MAIN isolate — worker isolates don't inherit
+    // initializeDateFormatting(), so formatting 'fr'/'es' there would throw.
+    final dateStr = DateFormat('MMMM d, yyyy', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(DateTime.now());
+
     try {
       final bytes = await Isolate.run(() => _buildSalaryAnalysisPdfBytes(
             _SalaryAnalysisPdfParams(
@@ -2387,7 +2392,7 @@ class _PdfExportButton extends StatelessWidget {
               netMonthly: result.netMonthly,
               effectiveRate: result.effectiveRate,
               currencySymbol: FlavorConfig.currencySymbol,
-              dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              dateStr: dateStr,
               federalLabel: federalLabel,
               ficaLabel: ficaLabel,
               stateLabel: stateLabel,
@@ -2545,6 +2550,11 @@ class _TotalCompReportButton extends StatelessWidget {
         ? (es ? 'Impuesto estatal' : 'State Tax')
         : (fr ? 'Impôt provincial' : 'Provincial Tax');
 
+    // Format date on the MAIN isolate — worker isolates don't inherit
+    // initializeDateFormatting(), so formatting 'fr'/'es' there would throw.
+    final dateStr = DateFormat('MMMM d, yyyy', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(DateTime.now());
+
     try {
       final bytes = await Isolate.run(() => _buildTotalCompPdfBytes(
             _TotalCompPdfParams(
@@ -2560,7 +2570,7 @@ class _TotalCompReportButton extends StatelessWidget {
               totalBenefits: totalBenefits,
               totalComp: totalComp,
               currencySymbol: FlavorConfig.currencySymbol,
-              dateStr: DateFormat('MMMM d, yyyy').format(DateTime.now()),
+              dateStr: dateStr,
               federalLabel: federalLabel,
               ficaLabel: ficaLabel,
               stateLabel: stateLabel,
