@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
@@ -113,6 +114,7 @@ class _SalaryAnalysisPdfParams {
 
 Future<Uint8List> _buildSalaryAnalysisPdfBytes(
     _SalaryAnalysisPdfParams p) async {
+  await initializeDateFormatting();
   final fmtCurrency =
       NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 2);
   String fmtPct(double v) => '${v.toStringAsFixed(1)}%';
@@ -192,6 +194,7 @@ class _TotalCompPdfParams {
 }
 
 Future<Uint8List> _buildTotalCompPdfBytes(_TotalCompPdfParams p) async {
+  await initializeDateFormatting();
   final fmtCur = NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 0);
   final fmtCur2 = NumberFormat.currency(symbol: p.currencySymbol, decimalDigits: 2);
 

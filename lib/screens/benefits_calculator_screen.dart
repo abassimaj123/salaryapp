@@ -1,6 +1,7 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/material.dart';
 import 'history_screen.dart' show HistoryScreen;
 import 'package:flutter/services.dart';
@@ -58,6 +59,7 @@ class _BenefitsPdfParams {
 }
 
 Future<Uint8List> _buildBenefitsPdfBytes(_BenefitsPdfParams p) async {
+  await initializeDateFormatting();
   final symbol = p.currencySymbol;
   final fmtCur = NumberFormat.currency(symbol: symbol, decimalDigits: 0);
 
