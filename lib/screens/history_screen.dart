@@ -94,12 +94,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _delete(int id) async {
     HapticFeedback.mediumImpact();
     await historyService.delete(id);
+    if (!mounted) return;
     _load();
   }
 
   Future<void> _unpin(int id) async {
     HapticFeedback.mediumImpact();
     await historyService.unpin(id);
+    if (!mounted) return;
     _load();
   }
 
