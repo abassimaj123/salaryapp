@@ -505,7 +505,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       };
 
   /// Debounced ring-buffer auto-save via SmartHistoryService.
-  void _scheduleAutoSave(SalaryResult res) {
+  Future<void> _scheduleAutoSave(SalaryResult res) async {
     historyService.scheduleAutoSave(
       appKey: 'salaryapp',
       screenId: 'calculator',
@@ -522,7 +522,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       analyticsService.logSave();
       analyticsService.logResultSaved();
     } catch (_) {}
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   /// Pin the current scenario (Save Scenario button).
@@ -562,7 +565,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     try {
       analyticsService.logResultSaved();
     } catch (_) {}
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────

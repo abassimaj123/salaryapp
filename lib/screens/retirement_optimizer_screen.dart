@@ -31,6 +31,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         PaywallHard,
         PaywallSoft,
         PaywallSessionService,
+        PaywallTrigger,
         ResultHasher;
 
 // ─── 401(k) Optimizer (US flavor only) ───────────────────────────────────────
@@ -229,7 +230,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
     };
   }
 
-  void _scheduleAutoSave() {
+  Future<void> _scheduleAutoSave() async {
     if (_result == null) return;
     historyService.scheduleAutoSave(
       appKey: 'salaryapp',
@@ -245,7 +246,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
     try { AnalyticsService.instance.logSave(); } catch (_) {}
     try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   Future<void> _saveScenario(String? label) async {
@@ -274,7 +278,10 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
     );
     HistoryScreen.refreshNotifier.value++;
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   double _parseGross() {

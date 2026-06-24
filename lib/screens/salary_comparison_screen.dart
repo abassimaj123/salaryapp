@@ -151,7 +151,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     };
   }
 
-  void _scheduleAutoSave() {
+  Future<void> _scheduleAutoSave() async {
     if (_resultA == null || _resultB == null) return;
     historyService.scheduleAutoSave(
       appKey: 'salaryapp',
@@ -167,7 +167,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     try { AnalyticsService.instance.logSave(); } catch (_) {}
     try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   Future<void> _saveScenario(String? label) async {
@@ -202,7 +205,10 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
     );
     HistoryScreen.refreshNotifier.value++;
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   void _calculate() {

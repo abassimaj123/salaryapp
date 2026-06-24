@@ -25,6 +25,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CurrencyInputFormatter,
         PaywallHard,
         PaywallSoft,
+        PaywallTrigger,
         AppSpacing,
         AppRadius,
         AppTextSize,
@@ -299,7 +300,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     };
   }
 
-  void _scheduleAutoSave() {
+  Future<void> _scheduleAutoSave() async {
     if (_result == null) return;
     historyService.scheduleAutoSave(
       appKey: 'salaryapp',
@@ -315,7 +316,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     try { AnalyticsService.instance.logSave(); } catch (_) {}
     try { AnalyticsService.instance.logResultSaved(); } catch (_) {}
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   Future<void> _saveScenario(String? label) async {
@@ -344,7 +348,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     );
     HistoryScreen.refreshNotifier.value++;
     adService.onSave();
-    paywallSession.recordAction().ignore();
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   Future<void> _exportPdf(bool fr) async {
