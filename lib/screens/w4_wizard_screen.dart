@@ -506,7 +506,6 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
     analyticsService.logCalculationCompleted();
     _nextStep(); // advances _step to 2 — _scheduleAutoSave checks _step == 2
     _scheduleAutoSave();
-    paywallSession.recordAction();
   }
 
   @override

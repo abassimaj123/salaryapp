@@ -331,8 +331,6 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
             v, _bracketsForFlavor(), _deductionForFlavor());
       });
       _scheduleAutoSave();
-      paywallSession.recordAction();
-      adService.onAction();
     }
   }
 

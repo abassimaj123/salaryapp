@@ -75,8 +75,10 @@ class ToolsScreen extends StatelessWidget {
                         'Calculer l\'impact d\'une augmentation sur votre salaire.',
                       ),
                       onTap: () async {
-                        await paywallSession.recordAction();
+                        final trigger = await paywallSession.recordAction();
                         if (!context.mounted) return;
+                        if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+                        if (trigger == PaywallTrigger.hard) { PaywallHard.show(context); return; }
                         await push(const RaiseCalculatorScreen());
                       },
                     ),
@@ -93,8 +95,10 @@ class ToolsScreen extends StatelessWidget {
                         'Estimer les impôts et gains nets sur les primes.',
                       ),
                       onTap: () async {
-                        await paywallSession.recordAction();
+                        final trigger = await paywallSession.recordAction();
                         if (!context.mounted) return;
+                        if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+                        if (trigger == PaywallTrigger.hard) { PaywallHard.show(context); return; }
                         await push(const BonusCalculatorScreen());
                       },
                     ),
@@ -116,8 +120,10 @@ class ToolsScreen extends StatelessWidget {
                       onTap: () async {
                         analyticsService.logCalculationCompleted(
                             params: {'action': 'benefits_calculator_tapped'});
-                        await paywallSession.recordAction();
+                        final trigger = await paywallSession.recordAction();
                         if (!context.mounted) return;
+                        if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+                        if (trigger == PaywallTrigger.hard) { PaywallHard.show(context); return; }
                         await push(const BenefitsCalculatorScreen());
                       },
                     ),
