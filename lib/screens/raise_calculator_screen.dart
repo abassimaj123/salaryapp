@@ -68,6 +68,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       AnalyticsService.instance.logScreenView('raise_calculator');
       _calculate();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
     _salaryCtrl.addListener(() { if (mounted) _calculate(); });
     _flatCtrl.addListener(() { if (mounted) _calculate(); });
   }
@@ -323,13 +324,19 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       );
     });
     _scheduleAutoSave();
-    paywallSession.recordAction();
 
     AnalyticsService.instance.logCalculation(
       grossSalary: newAnnual,
       netSalary: newTakeHome,
       frequency: 'annual',
     );
+  }
+
+  Future<void> _checkPaywall() async {
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   double _parse(String text) {

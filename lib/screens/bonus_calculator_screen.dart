@@ -240,6 +240,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     });
     _salaryCtrl.addListener(() { if (mounted) _calculate(); });
     _bonusCtrl.addListener(() { if (mounted) _calculate(); });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
   }
 
   @override
@@ -426,7 +427,13 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     setState(() => _result = res);
     analyticsService.logBonusCalculated();
     _scheduleAutoSave();
-    paywallSession.recordAction();
+  }
+
+  Future<void> _checkPaywall() async {
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   @override

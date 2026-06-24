@@ -31,6 +31,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppSpacing,
         AppRadius,
         AppTextSize,
+        PaywallTrigger,
         ResultHasher;
 
 // ─── Isolate param + top-level function ──────────────────────────────────────
@@ -227,6 +228,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     for (final c in [_salaryCtrl, _healthCtrl, _retirementPctCtrl, _ptoDaysCtrl, _remoteCtrl, _otherCtrl]) {
       c.addListener(() { if (mounted) _calculate(); });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
   }
 
   @override
@@ -389,7 +391,13 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     });
     analyticsService.logCalculationCompleted();
     _scheduleAutoSave();
-    paywallSession.recordAction();
+  }
+
+  Future<void> _checkPaywall() async {
+    final trigger = await paywallSession.recordAction();
+    if (!mounted) return;
+    if (trigger == PaywallTrigger.soft) PaywallSoft.show(context);
+    if (trigger == PaywallTrigger.hard) PaywallHard.show(context);
   }
 
   Future<void> _sharePdf(BuildContext context, _BenefitsResult r, bool fr,
