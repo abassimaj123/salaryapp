@@ -347,7 +347,6 @@ class _MainShellState extends State<MainShell> {
                 ),
                 onRewardAd: () => CalcwiseRewardAdSheet.show(context),
                 onPremium: () {
-                  AnalyticsService.instance.logPaywallShown('hard');
                   PaywallHard.show(context,
                       isSpanish: es,
                       isFrench: fr,
@@ -377,7 +376,6 @@ class _MainShellState extends State<MainShell> {
               if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
               if (trigger == PaywallTrigger.hard) {
                 analyticsService.logPaywallViewed('session_hard');
-                AnalyticsService.instance.logPaywallShown('hard');
                 PaywallHard.show(context,
                     isSpanish: es,
                     isFrench: fr,
@@ -385,7 +383,6 @@ class _MainShellState extends State<MainShell> {
                     onPurchase: IAPService.instance.buy);
               } else if (trigger == PaywallTrigger.soft) {
                 analyticsService.logPaywallViewed('session_soft');
-                AnalyticsService.instance.logPaywallShown('soft');
                 PaywallSoft.show(context,
                     isSpanish: es,
                     isFrench: fr,
