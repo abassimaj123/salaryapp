@@ -15,13 +15,15 @@ import '../main.dart' show isSpanishNotifier, salaryNotifier, tabSwitchNotifier;
 import 'package:calcwise_core/calcwise_core.dart' show CalcwiseAdFooter;
 import 'package:calcwise_core/calcwise_core.dart' hide HistoryEntry;
 
-class HistoryDetailScreen extends StatelessWidget {
+class HistoryDetailScreen extends StatefulWidget {
   final HistoryEntry entry;
 
   const HistoryDetailScreen({super.key, required this.entry});
 
   @override
-  Widget build(BuildContext context) {
+  State<HistoryDetailScreen> createState() => _HistoryDetailScreenState();
+
+  Widget _build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: isSpanishNotifier,
       builder: (context, useAlt, _) {
@@ -309,6 +311,17 @@ class HistoryDetailScreen extends StatelessWidget {
         : (es ? 'Resumen de salario' : 'Salary Summary');
     Share.share(buf.toString(), subject: subject);
   }
+}
+
+class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    analyticsService.logScreenView('history_detail');
+  }
+
+  @override
+  Widget build(BuildContext context) => widget._build(context);
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
