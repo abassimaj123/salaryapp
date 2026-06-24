@@ -20,9 +20,20 @@ import '../l10n/strings_en.dart';
 import '../l10n/strings_es.dart';
 import '../l10n/strings_fr.dart';
 import '../main.dart' show isSpanishNotifier;
+import '../core/analytics/analytics_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    analyticsService.logScreenView('settings');
+  }
 
   @override
   Widget build(BuildContext context) {
