@@ -368,6 +368,8 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
 
     if (salary <= 0) return;
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     final healthAnnual = healthMonthly * 12;
     final retirementAnnual = salary * retirementPct / 100;
     // PTO value = salary / 260 * number of PTO days

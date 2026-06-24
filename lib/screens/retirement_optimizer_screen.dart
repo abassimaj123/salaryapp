@@ -287,6 +287,8 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
     final gross = _parseGross();
     if (gross <= 0) return;
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
 

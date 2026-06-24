@@ -215,6 +215,8 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       return;
     }
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     HapticFeedback.mediumImpact();
     setState(() {
       _resultA = _calcOne(grossA, _regionA);

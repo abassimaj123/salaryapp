@@ -287,6 +287,8 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
     final current = _parse(_salaryCtrl.text);
     if (current <= 0) return;
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     final double raisePct;
     final double newAnnual;
     if (_isPercent) {

@@ -487,6 +487,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
   void _calculate() {
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
+    AnalyticsService.instance.maybeLogFirstCalculate();
     final result = _W4Engine.calculate(
       grossAnnual: _parse(_salaryCtrl),
       spouseAnnual: _parse(_spouseCtrl),

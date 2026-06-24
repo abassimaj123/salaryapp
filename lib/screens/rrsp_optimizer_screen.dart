@@ -375,6 +375,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     final room = _parse(_rrspRoomCtrl);
     if (gross <= 0) return;
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     HapticFeedback.mediumImpact();
     FocusScope.of(context).unfocus();
 

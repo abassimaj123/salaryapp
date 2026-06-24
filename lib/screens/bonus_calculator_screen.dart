@@ -417,6 +417,8 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     final bonus = _parse(_bonusCtrl);
     if (salary <= 0 || bonus <= 0) return;
 
+    AnalyticsService.instance.maybeLogFirstCalculate();
+
     BonusResult res;
     if (FlavorConfig.isUS) {
       res = BonusEngine.calculateUS(bonus, salary, _usState, _payPeriods);

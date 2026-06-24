@@ -319,6 +319,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
         _salaryCtrl.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     final v = double.tryParse(raw) ?? 0;
     if (v > 0) {
+      AnalyticsService.instance.maybeLogFirstCalculate();
       setState(() {
         _grossAnnual = v;
         _brackets = _computeBrackets(
