@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../core/analytics/analytics_service.dart';
@@ -35,6 +36,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    analyticsService.logScreenView('history');
     analyticsService.logHistoryViewed();
     _load();
     HistoryScreen.refreshNotifier.addListener(_load);
@@ -90,11 +92,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _delete(int id) async {
+    HapticFeedback.mediumImpact();
     await historyService.delete(id);
     _load();
   }
 
   Future<void> _unpin(int id) async {
+    HapticFeedback.mediumImpact();
     await historyService.unpin(id);
     _load();
   }
@@ -123,7 +127,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextButton(
               onPressed: () => Navigator.pop(context), child: Text(cancel)),
           FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Navigator.pop(context, controller.text);
+              },
               child: Text(save)),
         ],
       ),
@@ -164,6 +171,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
     if (confirmed == true) {
+      HapticFeedback.mediumImpact();
       await DatabaseService.instance.clearAll();
       _load();
     }

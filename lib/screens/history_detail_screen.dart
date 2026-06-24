@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -69,6 +70,7 @@ class HistoryDetailScreen extends StatelessWidget {
                 icon: Icon(Icons.share_rounded),
                 tooltip: l.share,
                 onPressed: () {
+                  HapticFeedback.mediumImpact();
                   analyticsService.logShareResult();
                   _shareText(context, r, fmtMoney, fmtDate, l, fr, es);
                 },
@@ -189,6 +191,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                   BorderRadius.circular(AppRadius.xl)),
                         ),
                         onPressed: () {
+                          HapticFeedback.mediumImpact();
                           salaryNotifier.value = r.grossAnnual;
                           tabSwitchNotifier.value = 0;
                           Navigator.of(context)
@@ -239,6 +242,7 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Future<void> _exportPdf(
       BuildContext context, SalaryResult r, bool fr, bool es) async {
+    HapticFeedback.mediumImpact();
     if (!freemiumService.hasFullAccess) {
       await PdfExportService.showUnlockOrPay(
         context,
