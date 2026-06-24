@@ -155,6 +155,8 @@ void main() async {
     isSpanishNotifier: FlavorConfig.isUS ? isSpanishNotifier : null,
     isFrenchNotifier: FlavorConfig.isCA ? isSpanishNotifier : null,
   );
+  PaywallHard.setAnalytics(AnalyticsService.instance);
+  PaywallSoft.setAnalytics(AnalyticsService.instance);
   runApp(const SalaryApp());
 }
 
