@@ -23,8 +23,18 @@ import 'package:calcwise_core/calcwise_core.dart'
 import '../widgets/paywall_hard.dart';
 
 /// Tools screen — hub for salary calculators and utilities
-class ToolsScreen extends StatelessWidget {
+class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
+  @override
+  State<ToolsScreen> createState() => _ToolsScreenState();
+}
+
+class _ToolsScreenState extends State<ToolsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    analyticsService.logScreenView('tools');
+  }
 
   @override
   Widget build(BuildContext context) {
