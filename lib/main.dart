@@ -90,7 +90,10 @@ final tabSwitchNotifier = ValueNotifier<int>(-1);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting();
+  await initializeDateFormatting('en_US', null);
+  await initializeDateFormatting('en_CA', null);
+  await initializeDateFormatting('es_US', null);
+  await initializeDateFormatting('fr_CA', null);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   unawaited(CalcwiseRemoteConfig.initialize());
