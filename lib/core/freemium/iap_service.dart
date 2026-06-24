@@ -12,8 +12,6 @@ class IAPService {
 
   static const productId = 'premium_upgrade';
 
-  // TODO(play-console): Create 'premium_lifetime_uk' as a non-consumable
-  // one-time product in Play Console before releasing the UK flavor.
   static const _lifetimeProductIdUK = 'premium_lifetime_uk';
 
   CalcwiseIAP? _iap;

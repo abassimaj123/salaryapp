@@ -438,8 +438,6 @@ class _LinksSection extends StatelessWidget {
 
 /// "Best Value — Lifetime" purchase card shown only in the UK flavor.
 ///
-/// TODO(play-console): The product 'premium_lifetime_uk' must be created as a
-/// non-consumable one-time product in Play Console before publishing the UK AAB.
 class _LifetimeCard extends StatelessWidget {
   final String premiumDesc;
   const _LifetimeCard({required this.premiumDesc});

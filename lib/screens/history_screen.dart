@@ -32,6 +32,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<HistoryEntry> _pinned = [];
   List<HistoryEntry> _recent = [];
   bool _loading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -261,6 +262,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? _recent
             : _recent.take(MonetizationConfig.freeRingBufferSize).toList();
 
+        // Apply search filter.
+        bool matchesQuery(HistoryEntry e) {
+          if (_searchQuery.isEmpty) return true;
+          final q = _searchQuery.toLowerCase();
+          final label = (e.pinLabel ?? '').toLowerCase();
+          final gross = e.result.grossAnnual.toStringAsFixed(0).toLowerCase();
+          final region = e.region.toLowerCase();
+          return label.contains(q) ||
+              gross.contains(q) ||
+              region.contains(q);
+        }
+
+        final filteredPinned = _pinned.where(matchesQuery).toList();
+        final filteredRecent = recentVisible.where(matchesQuery).toList();
+        final noResults = _searchQuery.isNotEmpty &&
+            filteredPinned.isEmpty &&
+            filteredRecent.isEmpty;
+
         final savedHeader = fr
             ? 'Scénarios enregistrés'
             : (es ? 'Escenarios guardados' : 'Saved Scenarios');
@@ -271,6 +290,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
+            CalcwiseSearchBar(
+              onChanged: (q) => setState(() => _searchQuery = q),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (noResults)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxxl),
+                child: CalcwiseEmptyState(
+                  icon: Icons.search_off_rounded,
+                  title: fr
+                      ? 'Aucun résultat'
+                      : (es ? 'Sin resultados' : 'No results found'),
+                ),
+              )
+            else ...[
             if (!isPremium) ...[
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -297,10 +331,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
 
             // ── Saved Scenarios (pinned) ────────────────────────────────────
-            if (_pinned.isNotEmpty) ...[
+            if (filteredPinned.isNotEmpty) ...[
               _SectionHeader(label: savedHeader, icon: Icons.bookmark_rounded),
               SizedBox(height: AppSpacing.sm),
-              ..._pinned.map((e) => _HistoryCard(
+              ...filteredPinned.map((e) => _HistoryCard(
                     entry: e,
                     fr: fr,
                     es: es,
@@ -314,10 +348,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
 
             // ── Recent Calculations (auto-saved) ────────────────────────────
-            if (recentVisible.isNotEmpty) ...[
+            if (filteredRecent.isNotEmpty) ...[
               _SectionHeader(label: recentHeader, icon: Icons.schedule_rounded),
               SizedBox(height: AppSpacing.sm),
-              ...recentVisible.map((e) => _HistoryCard(
+              ...filteredRecent.map((e) => _HistoryCard(
                     entry: e,
                     fr: fr,
                     es: es,
@@ -344,6 +378,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 price: IAPService.instance.localizedPrice,
               ),
             ],
+            ], // end else (noResults)
           ],
         );
       },
