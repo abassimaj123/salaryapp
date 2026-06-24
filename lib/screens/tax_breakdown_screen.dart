@@ -286,6 +286,8 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
       l2: _buildL2(),
       label: label,
     );
+    HistoryScreen.refreshNotifier.value++;
+    adService.onSave();
   }
 
   Future<void> _exportPdf(BuildContext context) async {

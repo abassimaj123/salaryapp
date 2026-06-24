@@ -453,6 +453,8 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       l2: _buildL2(),
       label: label,
     );
+    HistoryScreen.refreshNotifier.value++;
+    adService.onSave();
   }
 
   double _parse(TextEditingController c) {

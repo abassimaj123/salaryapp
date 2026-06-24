@@ -178,6 +178,8 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       l2: _buildL2(),
       label: label,
     );
+    HistoryScreen.refreshNotifier.value++;
+    adService.onSave();
   }
 
   // ── Tax engine ──────────────────────────────────────────────────────────────

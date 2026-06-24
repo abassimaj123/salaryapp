@@ -342,6 +342,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       l2: _buildL2(),
       label: label,
     );
+    HistoryScreen.refreshNotifier.value++;
+    adService.onSave();
     paywallSession.recordAction().ignore();
   }
 

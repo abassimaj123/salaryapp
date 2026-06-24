@@ -557,6 +557,8 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       l2: _buildL2(res),
       label: label,
     );
+    HistoryScreen.refreshNotifier.value++;
+    adService.onSave();
     try {
       analyticsService.logResultSaved();
     } catch (_) {}
