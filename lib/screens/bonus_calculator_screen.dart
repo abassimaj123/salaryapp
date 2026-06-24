@@ -425,6 +425,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     }
 
     setState(() => _result = res);
+    adService.onAction();
     analyticsService.logBonusCalculated();
     _scheduleAutoSave();
   }

@@ -323,6 +323,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
         marginalRate: marginalRate,
       );
     });
+    adService.onAction();
     _scheduleAutoSave();
 
     AnalyticsService.instance.logCalculation(
