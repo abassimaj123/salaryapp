@@ -328,6 +328,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
       });
       _scheduleAutoSave();
       paywallSession.recordAction();
+      adService.onAction();
     }
   }
 

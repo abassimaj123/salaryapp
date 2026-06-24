@@ -305,6 +305,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
       _hasCalculated = true;
     });
     _scheduleAutoSave();
+    adService.onAction();
 
     analyticsService.logCalculationCompleted(
         params: {'screen': '401k_optimizer', 'pct': _contributionPct.round()});

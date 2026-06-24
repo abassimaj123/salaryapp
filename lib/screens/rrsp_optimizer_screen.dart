@@ -393,6 +393,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       _hasCalculated = true;
     });
     _scheduleAutoSave();
+    adService.onAction();
 
     analyticsService.logRrspImpactCalculated();
   }

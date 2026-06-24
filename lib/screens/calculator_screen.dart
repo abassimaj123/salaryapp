@@ -676,6 +676,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       'frequency': _frequency.name,
     });
     analyticsService.maybeLogFirstCalculate();
+    adService.onAction();
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.

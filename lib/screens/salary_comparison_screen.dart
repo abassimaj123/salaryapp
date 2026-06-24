@@ -224,6 +224,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       _hasCalculated = true;
     });
     _scheduleAutoSave();
+    adService.onAction();
     analyticsService.logCalculationCompleted(params: {
       'gross_a': grossA.round(),
       'gross_b': grossB.round(),
