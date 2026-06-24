@@ -176,6 +176,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (confirmed == true) {
       HapticFeedback.mediumImpact();
       await DatabaseService.instance.clearAll();
+      if (!mounted) return;
       _load();
     }
   }
