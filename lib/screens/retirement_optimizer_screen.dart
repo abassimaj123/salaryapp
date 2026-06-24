@@ -327,6 +327,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
       age50Plus: r.age50Plus,
       es: es,
     );
+    analyticsService.logPdfExported();
   }
 
   Future<void> _showPaywall(bool es) async {

@@ -372,6 +372,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       fr: fr,
       es: es,
     );
+    analyticsService.logPdfExported();
   }
 
   // ── Share ────────────────────────────────────────────────────────────────────

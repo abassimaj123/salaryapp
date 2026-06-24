@@ -309,6 +309,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
       fr: fr,
       es: es,
     );
+    analyticsService.logPdfExported();
   }
 
   void _calculate() {

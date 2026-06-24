@@ -259,6 +259,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
       fr: fr,
       es: es,
     );
+    analyticsService.logPdfExported();
   }
 
   /// Hard paywall for the cost-of-living comparison (US value feature).

@@ -400,6 +400,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
       fr: fr,
       es: es,
     );
+    analyticsService.logPdfExported();
   }
 
   double _parse(TextEditingController c) {

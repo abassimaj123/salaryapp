@@ -363,6 +363,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       province: _province,
       fr: fr,
     );
+    analyticsService.logPdfExported();
   }
 
   double _parse(TextEditingController c) {
