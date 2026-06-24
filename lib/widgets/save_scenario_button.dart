@@ -35,6 +35,7 @@ class _SaveScenarioButtonState extends State<SaveScenarioButton> {
       if (label.trim().isEmpty) label = null;
     }
 
+    if (!mounted) return;
     setState(() => _saving = true);
     try {
       await widget.onSave(label);
