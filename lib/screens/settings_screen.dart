@@ -525,8 +525,7 @@ class _LifetimeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        // TODO: replace placeholder once product is in Play Console
-                        price ?? '£X.XX',
+                        price ?? 'Unlock',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
