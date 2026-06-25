@@ -88,11 +88,14 @@ class _SankeyPainter extends CustomPainter {
     final totalOut = flows.fold<double>(0, (s, f) => s + f.value);
     if (totalOut <= 0) return;
 
+    // Measure the gross label first so topPad can accommodate it.
+    final grossLabelPainter = _buildGrossLabel(_formatAmount(gross));
+    final double topPad = grossLabelPainter.height + 4;
+
     // Layout constants
     const double leftX = 20;
     const double barW = 28;
     const double rightLabelW = 110;
-    const double topPad = 8;
     const double bottomPad = 8;
     const double rightGap = 2; // vertical gap between right bars
 
@@ -243,20 +246,22 @@ class _SankeyPainter extends CustomPainter {
       labels[i].paint(canvas, Offset(rightX + barW + 6, resolvedYs[i]));
     }
 
-    // 6) "Gross" label above the left bar
-    final grossLabelPainter = TextPainter(
+    // 6) "Gross" label above the left bar — clamped so it never bleeds left.
+    final gx = (leftX + barW / 2 - grossLabelPainter.width / 2)
+        .clamp(0.0, (size.width - grossLabelPainter.width).clamp(0.0, size.width));
+    grossLabelPainter.paint(canvas, Offset(gx, 0));
+  }
+
+  TextPainter _buildGrossLabel(String amount) {
+    return TextPainter(
       text: TextSpan(
         children: [
           TextSpan(
             text: '$grossLabel\n',
-            style: TextStyle(
-              fontSize: AppTextSize.xs,
-              fontWeight: FontWeight.w700,
-              color: textColor,
-            ),
+            style: TextStyle(fontSize: AppTextSize.xs, fontWeight: FontWeight.w700, color: textColor),
           ),
           TextSpan(
-            text: _formatAmount(gross),
+            text: amount,
             style: TextStyle(fontSize: AppTextSize.xs, color: mutedColor),
           ),
         ],
@@ -264,10 +269,6 @@ class _SankeyPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     )..layout(maxWidth: 80);
-    grossLabelPainter.paint(
-      canvas,
-      Offset(leftX + barW / 2 - grossLabelPainter.width / 2, 0),
-    );
   }
 
   String _formatAmount(double v) {

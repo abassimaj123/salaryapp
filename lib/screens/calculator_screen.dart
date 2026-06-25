@@ -2244,9 +2244,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 return PieChartSectionData(
                   color: s.color,
                   value: s.value,
-                  title: isTouched
-                      ? '$money\n${pct.toStringAsFixed(1)}%'
-                      : (pct < 5.0 ? '' : '${pct.toStringAsFixed(1)}%'),
+                  title: isTouched ? '${pct.toStringAsFixed(1)}%' : '',
                   radius: isTouched ? CalcwiseChartTokens.donutSectionR + 10 : CalcwiseChartTokens.donutSectionR,
                   titleStyle: TextStyle(
                     fontSize: isTouched ? 12 : 11,
