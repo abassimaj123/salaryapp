@@ -267,7 +267,6 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   int _targetBracketIndex = 0; // 15% default — shows non-zero contribution for most salaries
 
   _RrspResult? _result;
-  bool _hasCalculated = false;
 
   @override
   void initState() {
@@ -443,10 +442,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
       province: _province,
     );
 
-    setState(() {
-      _result = result;
-      _hasCalculated = true;
-    });
+    setState(() => _result = result);
     _scheduleAutoSave();
     adService.onAction();
 
@@ -493,8 +489,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                     children: [
                       // ── Hero result (top) ────────────────────────────────────
                       if (_result != null) ...[
-                        if (freemiumService.hasFullAccess || true)
-                          CalcwiseHeroCard(
+                        CalcwiseHeroCard(
                             label: fr
                                 ? 'Cotisation REER recommandée'
                                 : 'Recommended RRSP Contribution',
@@ -518,10 +513,30 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                               end: Alignment.bottomRight,
                             ),
                           ),
+                        const SizedBox(height: 8),
+                        Text(
+                          fr
+                              ? 'Calculez la cotisation REER idéale pour descendre dans une tranche d\'imposition inférieure.'
+                              : 'Find the ideal RRSP contribution to drop into a lower federal tax bracket.',
+                          style: TextStyle(
+                            fontSize: AppTextSize.sm,
+                            color: AppTheme.labelGray,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                       ],
 
                       // ── Inputs ──────────────────────────────────────────────
+                      Text(
+                        fr ? 'Paramètres' : 'Parameters',
+                        style: TextStyle(
+                          fontSize: AppTextSize.sm,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.labelGray,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -540,19 +555,19 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 decoration: InputDecoration(
                                   labelText: grossLabel,
                                   prefixText: '${FlavorConfig.currencySymbol} ',
-                                  hintText: '85000',
+                                  hintText: '98000',
                                 ),
                                 style: const TextStyle(
                                     fontSize: AppTextSize.bodyLg,
                                     fontWeight: FontWeight.w600),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppSpacing.md),
                               TextFormField(
                                 controller: _rrspRoomCtrl,
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
-                                textInputAction: TextInputAction.done,
+                                textInputAction: TextInputAction.next,
                                 inputFormatters: [
                                   CurrencyInputFormatter(locale: 'en_CA'),
                                 ],
@@ -568,33 +583,14 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                     fontSize: AppTextSize.bodyLg,
                                     fontWeight: FontWeight.w600),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ── Province selector ────────────────────────────────────
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                provinceLabel,
-                                style: TextStyle(
-                                    fontSize: AppTextSize.md,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.labelGray),
-                              ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.md),
                               DropdownButtonFormField<String>(
                                 value: _province,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
+                                  labelText: provinceLabel,
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
                                 ),
                                 items: _provinces
                                     .map((p) => DropdownMenuItem(
@@ -615,7 +611,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
 
                       // ── Target bracket ───────────────────────────────────────
                       Card(
@@ -662,10 +658,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                         label: Text(_brackets[i].label),
                                         selected: isSelected,
                                         selectedColor: AppTheme.primary,
-                                        disabledColor: Colors.grey.shade200,
+                                        disabledColor: Theme.of(context).disabledColor.withValues(alpha: 0.08),
                                         labelStyle: TextStyle(
                                           color: isDisabled
-                                              ? Colors.grey.shade400
+                                              ? Theme.of(context).disabledColor
                                               : isSelected
                                                   ? Colors.white
                                                   : AppTheme.labelGray,
@@ -693,7 +689,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       const SizedBox(height: 24),
 
                       // ── Details (premium gated) ──────────────────────────────
-                      if (_hasCalculated && _result != null) ...[
+                      if (_result != null) ...[
                         const SizedBox(height: 8),
                         if (freemiumService.hasFullAccess)
                           _buildDetails(context, _result!, fr)
