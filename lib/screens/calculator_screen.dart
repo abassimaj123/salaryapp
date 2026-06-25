@@ -732,6 +732,203 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                 ? (fr ? 'Calculateur de salaire CA' : 'CA Salary Calculator')
                 : (es ? 'Calculadora US' : 'US Salary Calculator'));
 
+        // All non-salary inputs grouped together so they appear directly
+        // below the salary field in both the empty and results states.
+        final extraInputs = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FrequencyChips(
+              selected: _frequency,
+              useAlt: useAlt,
+              onChanged: (f) {
+                HapticFeedback.selectionClick();
+                setState(() => _frequency = f);
+                _scheduleCalcAndSave();
+              },
+            ),
+            if (FlavorConfig.isUS) ...[
+              SizedBox(height: AppSpacing.md),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _StateDropdown(
+                      value: _usState,
+                      useAlt: useAlt,
+                      onChanged: (v) {
+                        setState(() {
+                          _usState = v!;
+                          _usCity = null;
+                        });
+                        _scheduleCalcAndSave();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: stateHasLocalTax(_usState)
+                        ? _CityDropdown(
+                            state: _usState,
+                            value: _usCity,
+                            useAlt: useAlt,
+                            onChanged: (v) {
+                              setState(() => _usCity = v);
+                              _scheduleCalcAndSave();
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ],
+            if (FlavorConfig.isCA) ...[
+              SizedBox(height: AppSpacing.md),
+              _ProvinceDropdown(
+                value: _caProvince,
+                useAlt: useAlt,
+                onChanged: (v) {
+                  setState(() => _caProvince = v!);
+                  _saveProvince(v!);
+                  _scheduleCalcAndSave();
+                },
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _CaReverseModeToggle(
+                reverseMode: _caReverseMode,
+                onChanged: (v) {
+                  setState(() {
+                    _caReverseMode = v;
+                    _caRequiredGross = null;
+                    _showResults = false;
+                  });
+                  _scheduleCalcAndSave();
+                },
+              ),
+            ],
+            if (FlavorConfig.isUK) ...[
+              SizedBox(height: AppSpacing.sm),
+              _UkReverseModeToggle(
+                reverseMode: _ukReverseMode,
+                onChanged: (v) {
+                  setState(() {
+                    _ukReverseMode = v;
+                    _ukRequiredGross = null;
+                    _showResults = false;
+                  });
+                  _scheduleCalcAndSave();
+                },
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _UkTaxCodeField(
+                controller: _ukTaxCodeCtrl,
+                onChanged: () => _scheduleCalcAndSave(),
+              ),
+              SizedBox(height: AppSpacing.sm),
+              ValueListenableBuilder<bool>(
+                valueListenable: ukScotlandNotifier,
+                builder: (context, isScotland, _) =>
+                    SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text('Scotland',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                  subtitle: Text('Scottish income tax rates 2026/27',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  value: isScotland,
+                  activeColor: AppTheme.primary,
+                  onChanged: (v) {
+                    ukScotlandNotifier.value = v;
+                    _scheduleCalcAndSave();
+                  },
+                ),
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _UkLoanPlanDropdown(
+                plan: ukStudentLoanNotifier.value ? _ukLoanPlan : 0,
+                onChanged: (plan) {
+                  setState(() {
+                    if (plan == 0) {
+                      ukStudentLoanNotifier.value = false;
+                    } else {
+                      ukStudentLoanNotifier.value = true;
+                      _ukLoanPlan = plan;
+                    }
+                  });
+                  _scheduleCalcAndSave();
+                },
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text('Postgraduate Loan (Plan 3)',
+                    style: Theme.of(context).textTheme.bodyMedium),
+                subtitle: Text('£21,000 threshold — 6% (cumulable)',
+                    style: Theme.of(context).textTheme.bodySmall),
+                value: _ukPostgrad,
+                activeColor: AppTheme.primary,
+                onChanged: (v) {
+                  setState(() => _ukPostgrad = v);
+                  _scheduleCalcAndSave();
+                },
+              ),
+              SizedBox(height: AppSpacing.sm),
+              _SalarySacrificeField(
+                controller: _salarySacrificeCtrl,
+                onChanged: (v) {
+                  setState(() => _salarySacrifice = v);
+                  _scheduleCalcAndSave();
+                },
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text('Auto-enrolment pension',
+                    style: Theme.of(context).textTheme.bodyMedium),
+                subtitle: Text(
+                    'Qualifying earnings £6,240–£50,270, 5% employee',
+                    style: Theme.of(context).textTheme.bodySmall),
+                value: _ukAutoEnrolment,
+                activeColor: AppTheme.primary,
+                onChanged: (v) {
+                  setState(() => _ukAutoEnrolment = v);
+                  _scheduleCalcAndSave();
+                },
+              ),
+            ],
+            SizedBox(height: AppSpacing.sm),
+            _SecondIncomeSection(
+              enabled: _addSecondIncome,
+              controller: _secondIncomeCtrl,
+              es: es,
+              fr: fr,
+              onToggle: (on) {
+                if (on && !freemiumService.hasFullAccess) {
+                  PaywallHard.show(
+                    context,
+                    isSpanish: es,
+                    isFrench: fr,
+                    priceLabel: IAPService.instance.localizedPrice.value,
+                    onPurchase: IAPService.instance.buy,
+                  );
+                  return;
+                }
+                setState(() {
+                  _addSecondIncome = on;
+                  if (!on) {
+                    _secondIncome = 0;
+                    _secondIncomeCtrl.text = '0';
+                  }
+                });
+                _scheduleCalcAndSave();
+              },
+              onAmountChanged: (v) {
+                setState(() => _secondIncome = v);
+                _scheduleCalcAndSave();
+              },
+            ),
+          ],
+        );
+
         return Scaffold(
           appBar: AppBar(
             title: Text(appBarTitle),
@@ -777,8 +974,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                     ? KeyedSubtree(
                                         key: const ValueKey('results'),
                                         child: CalcwisePageEntrance(child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 24),
+                                          padding: const EdgeInsets.only(top: 24),
                                           child: _ResultsSection(
                                             result: _result!,
                                             localTax: _localTax,
@@ -804,6 +1000,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                               es: es,
                                               fr: fr,
                                             ),
+                                            extraInputsWidget: extraInputs,
                                           ),
                                         )),
                                       )
@@ -811,255 +1008,24 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                         key: const ValueKey('empty'),
                                         child: CalcwiseStaggerItem(
                                           index: 0,
-                                          child: _SalaryInputCard(
-                                            controller: _salaryCtrl,
-                                            frequency: _frequency,
-                                            useAlt: useAlt,
-                                            es: es,
-                                            fr: fr,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              _SalaryInputCard(
+                                                controller: _salaryCtrl,
+                                                frequency: _frequency,
+                                                useAlt: useAlt,
+                                                es: es,
+                                                fr: fr,
+                                              ),
+                                              const SizedBox(height: AppSpacing.sm),
+                                              extraInputs,
+                                            ],
                                           ),
                                         ),
                                       ),
                               ),
-                              SizedBox(height: AppSpacing.md),
-                              CalcwiseStaggerItem(
-                                  index: 1,
-                                  child: Column(children: [
-                                    _FrequencyChips(
-                                      selected: _frequency,
-                                      useAlt: useAlt,
-                                      onChanged: (f) {
-                                        HapticFeedback.selectionClick();
-                                        setState(() => _frequency = f);
-                                        _scheduleCalcAndSave();
-                                      },
-                                    ),
-                                    if (FlavorConfig.isUS) ...[
-                                      SizedBox(height: AppSpacing.md),
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: _StateDropdown(
-                                              value: _usState,
-                                              useAlt: useAlt,
-                                              onChanged: (v) {
-                                                setState(() {
-                                                  _usState = v!;
-                                                  // Reset city when state changes; new
-                                                  // state may not have the previously-
-                                                  // selected city.
-                                                  _usCity = null;
-                                                });
-                                                _scheduleCalcAndSave();
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: stateHasLocalTax(_usState)
-                                                ? _CityDropdown(
-                                                    state: _usState,
-                                                    value: _usCity,
-                                                    useAlt: useAlt,
-                                                    onChanged: (v) {
-                                                      setState(
-                                                          () => _usCity = v);
-                                                      _scheduleCalcAndSave();
-                                                    },
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                    if (FlavorConfig.isCA) ...[
-                                      SizedBox(height: AppSpacing.md),
-                                      _ProvinceDropdown(
-                                        value: _caProvince,
-                                        useAlt: useAlt,
-                                        onChanged: (v) {
-                                          setState(() => _caProvince = v!);
-                                          _saveProvince(v!);
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                      SizedBox(height: AppSpacing.sm),
-                                      // Reverse-calculation toggle (net → gross)
-                                      _CaReverseModeToggle(
-                                        reverseMode: _caReverseMode,
-                                        onChanged: (v) {
-                                          setState(() {
-                                            _caReverseMode = v;
-                                            _caRequiredGross = null;
-                                            _showResults = false;
-                                          });
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                    ],
-                                    if (FlavorConfig.isUK) ...[
-                                      SizedBox(height: AppSpacing.sm),
-                                      // Reverse-calculation toggle (net → gross)
-                                      _UkReverseModeToggle(
-                                        reverseMode: _ukReverseMode,
-                                        onChanged: (v) {
-                                          setState(() {
-                                            _ukReverseMode = v;
-                                            _ukRequiredGross = null;
-                                            _showResults = false;
-                                          });
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                      // HMRC tax code field (default 1257L)
-                                      SizedBox(height: AppSpacing.sm),
-                                      _UkTaxCodeField(
-                                        controller: _ukTaxCodeCtrl,
-                                        onChanged: () => _scheduleCalcAndSave(),
-                                      ),
-                                      SizedBox(height: AppSpacing.sm),
-                                      // Scotland toggle
-                                      ValueListenableBuilder<bool>(
-                                        valueListenable: ukScotlandNotifier,
-                                        builder: (context, isScotland, _) =>
-                                            SwitchListTile.adaptive(
-                                          contentPadding: EdgeInsets.zero,
-                                          dense: true,
-                                          title: Text(
-                                            'Scotland',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium,
-                                          ),
-                                          subtitle: Text(
-                                            'Scottish income tax rates 2026/27',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall,
-                                          ),
-                                          value: isScotland,
-                                          activeColor: AppTheme.primary,
-                                          onChanged: (v) {
-                                            ukScotlandNotifier.value = v;
-                                            _scheduleCalcAndSave();
-                                          },
-                                        ),
-                                      ),
-                                      // Student loan plan selector
-                                      // None / Plan 1 / 2 / 4 / 5 — drives the
-                                      // ukStudentLoanNotifier (on when not None).
-                                      SizedBox(height: AppSpacing.sm),
-                                      _UkLoanPlanDropdown(
-                                        plan: ukStudentLoanNotifier.value
-                                            ? _ukLoanPlan
-                                            : 0,
-                                        onChanged: (plan) {
-                                          setState(() {
-                                            if (plan == 0) {
-                                              ukStudentLoanNotifier.value =
-                                                  false;
-                                            } else {
-                                              ukStudentLoanNotifier.value = true;
-                                              _ukLoanPlan = plan;
-                                            }
-                                          });
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                      // Postgraduate (Plan 3) loan toggle — 6%
-                                      SwitchListTile.adaptive(
-                                        contentPadding: EdgeInsets.zero,
-                                        dense: true,
-                                        title: Text(
-                                          'Postgraduate Loan (Plan 3)',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium,
-                                        ),
-                                        subtitle: Text(
-                                          '£21,000 threshold — 6% (cumulable)',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                        value: _ukPostgrad,
-                                        activeColor: AppTheme.primary,
-                                        onChanged: (v) {
-                                          setState(() => _ukPostgrad = v);
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                      // Salary sacrifice / SMART pension field
-                                      SizedBox(height: AppSpacing.sm),
-                                      _SalarySacrificeField(
-                                        controller: _salarySacrificeCtrl,
-                                        onChanged: (v) {
-                                          setState(() => _salarySacrifice = v);
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                      // Auto-enrolment (qualifying earnings)
-                                      SwitchListTile.adaptive(
-                                        contentPadding: EdgeInsets.zero,
-                                        dense: true,
-                                        title: Text(
-                                          'Auto-enrolment pension',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium,
-                                        ),
-                                        subtitle: Text(
-                                          'Qualifying earnings £6,240–£50,270, 5% employee',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                        value: _ukAutoEnrolment,
-                                        activeColor: AppTheme.primary,
-                                        onChanged: (v) {
-                                          setState(
-                                              () => _ukAutoEnrolment = v);
-                                          _scheduleCalcAndSave();
-                                        },
-                                      ),
-                                    ],
-                                    // ── Second income (all flavors) ────────
-                                    SizedBox(height: AppSpacing.sm),
-                                    _SecondIncomeSection(
-                                      enabled: _addSecondIncome,
-                                      controller: _secondIncomeCtrl,
-                                      es: es,
-                                      fr: fr,
-                                      onToggle: (on) {
-                                        if (on &&
-                                            !freemiumService.hasFullAccess) {
-                                          PaywallHard.show(
-                                            context,
-                                            isSpanish: es,
-                                            isFrench: fr,
-                                            priceLabel: IAPService
-                                                .instance.localizedPrice.value,
-                                            onPurchase: IAPService.instance.buy,
-                                          );
-                                          return;
-                                        }
-                                        setState(() {
-                                          _addSecondIncome = on;
-                                          if (!on) {
-                                            _secondIncome = 0;
-                                            _secondIncomeCtrl.text = '0';
-                                          }
-                                        });
-                                        _scheduleCalcAndSave();
-                                      },
-                                      onAmountChanged: (v) {
-                                        setState(() => _secondIncome = v);
-                                        _scheduleCalcAndSave();
-                                      },
-                                    ),
-                                  ])),
                               SizedBox(height: AppSpacing.md),
                             ],
                           ),
@@ -1366,6 +1332,7 @@ class _ResultsSection extends StatefulWidget {
   final double ukSalarySacrifice;
   final Future<void> Function(String? label) onSaveScenario;
   final Widget salaryInputWidget;
+  final Widget extraInputsWidget;
 
   const _ResultsSection({
     required this.result,
@@ -1377,6 +1344,7 @@ class _ResultsSection extends StatefulWidget {
     required this.fr,
     required this.onSaveScenario,
     required this.salaryInputWidget,
+    required this.extraInputsWidget,
     this.caReverseMode = false,
     this.caRequiredGross,
     this.ukReverseMode = false,
@@ -1486,8 +1454,10 @@ class _ResultsSectionState extends State<_ResultsSection> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Salary input — anchored just below the result card
+        // Salary input + all other inputs grouped together
         widget.salaryInputWidget,
+        const SizedBox(height: AppSpacing.sm),
+        widget.extraInputsWidget,
         const SizedBox(height: AppSpacing.md),
 
         // CA reverse-mode: show required gross to achieve the target net
@@ -2534,13 +2504,11 @@ class _ExportTile extends StatelessWidget {
 class _PdfExportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
-  final bool iconOnly;
 
   const _PdfExportButton({
     required this.result,
     required this.fr,
     required this.es,
-    this.iconOnly = false,
   });
 
   String get _label =>
@@ -2561,18 +2529,6 @@ class _PdfExportButton extends StatelessWidget {
             return;
           }
           await _exportPdf(context);
-        }
-        if (iconOnly) {
-          return Tooltip(
-            message: _label,
-            child: IconButton(
-              icon: Icon(isPremium
-                  ? Icons.picture_as_pdf_rounded
-                  : Icons.lock_outline_rounded),
-              color: AppTheme.primary,
-              onPressed: onPressed,
-            ),
-          );
         }
         return SizedBox(
           width: double.infinity,
@@ -2700,13 +2656,11 @@ class _PdfExportButton extends StatelessWidget {
 class _TotalCompReportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
-  final bool iconOnly;
 
   const _TotalCompReportButton({
     required this.result,
     required this.fr,
     required this.es,
-    this.iconOnly = false,
   });
 
   String get _label => fr
@@ -2731,18 +2685,6 @@ class _TotalCompReportButton extends StatelessWidget {
             return;
           }
           await _exportTotalCompPdf(context);
-        }
-        if (iconOnly) {
-          return Tooltip(
-            message: _label,
-            child: IconButton(
-              icon: Icon(isPremium
-                  ? Icons.volunteer_activism_rounded
-                  : Icons.lock_outline_rounded),
-              color: AppTheme.primary,
-              onPressed: onPressed,
-            ),
-          );
         }
         return SizedBox(
           width: double.infinity,
@@ -2888,13 +2830,11 @@ class _TotalCompReportButton extends StatelessWidget {
 class _CsvExportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
-  final bool iconOnly;
 
   const _CsvExportButton({
     required this.result,
     required this.fr,
     required this.es,
-    this.iconOnly = false,
   });
 
   String get _label =>
@@ -2915,18 +2855,6 @@ class _CsvExportButton extends StatelessWidget {
             return;
           }
           await _exportCsv(context);
-        }
-        if (iconOnly) {
-          return Tooltip(
-            message: _label,
-            child: IconButton(
-              icon: Icon(isPremium
-                  ? Icons.table_chart_outlined
-                  : Icons.lock_outline_rounded),
-              color: AppTheme.primary,
-              onPressed: onPressed,
-            ),
-          );
         }
         return SizedBox(
           width: double.infinity,
