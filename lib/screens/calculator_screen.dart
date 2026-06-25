@@ -496,20 +496,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         'results': res.toMap(),
       };
 
-  /// Debounced ring-buffer auto-save via SmartHistoryService.
-  Future<void> _scheduleAutoSave(SalaryResult res) async {
-    historyService.scheduleAutoSave(
-      appKey: 'salaryapp',
-      screenId: 'calculator',
-      inputHash: _scenarioHash(res),
-      l1: _buildL1(res),
-      l2: _buildL2(res),
-      onSaved: () {
-        if (mounted) setState(() {});
-        HistoryScreen.refreshNotifier.value++;
-      },
-    );
-    adService.onSave();
+  Future<void> _triggerSavePaywall() async {
     try {
       analyticsService.logSave();
       analyticsService.logResultSaved();
@@ -676,8 +663,21 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     analyticsService.maybeLogFirstCalculate();
     adService.onAction();
 
-    // Auto-save after user interaction — skipped on cold start to avoid paywall.
-    if (_hasUserInteracted && mounted) _scheduleAutoSave(res);
+    // Always save to history ring buffer (cold start + user interaction).
+    historyService.scheduleAutoSave(
+      appKey: 'salaryapp',
+      screenId: 'calculator',
+      inputHash: _scenarioHash(res),
+      l1: _buildL1(res),
+      l2: _buildL2(res),
+      onSaved: () {
+        if (mounted) setState(() {});
+        HistoryScreen.refreshNotifier.value++;
+      },
+    );
+    adService.onSave();
+    // Paywall + analytics only on explicit user interaction, not cold-start.
+    if (_hasUserInteracted && mounted) _triggerSavePaywall();
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.

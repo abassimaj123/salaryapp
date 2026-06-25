@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' show min, pow;
 
 import 'package:flutter/material.dart';
@@ -267,6 +268,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   int _targetBracketIndex = 0; // 15% default — shows non-zero contribution for most salaries
 
   _RrspResult? _result;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -275,14 +277,20 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     final salary = salaryNotifier.value;
     _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '98000';
 
-    // Auto-calculate on load for all users (free users see gated results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _calculate();
     });
-    _grossCtrl.addListener(() { if (mounted) _calculate(); });
-    _rrspRoomCtrl.addListener(() { if (mounted) _calculate(); });
+    _grossCtrl.addListener(_onInputChanged);
+    _rrspRoomCtrl.addListener(_onInputChanged);
     salaryNotifier.addListener(_onMainSalaryChanged);
+  }
+
+  void _onInputChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) _calculate();
+    });
   }
 
   void _onMainSalaryChanged() {
@@ -294,6 +302,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     salaryNotifier.removeListener(_onMainSalaryChanged);
     historyService.cancelPendingSave('salaryapp', 'rrsp_optimizer');
     _grossCtrl.dispose();
