@@ -412,7 +412,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   }
 
   String _fmt(double v) =>
-      NumberFormat.currency(symbol: 'CA\$', decimalDigits: 0).format(v);
+      NumberFormat.currency(symbol: FlavorConfig.currencySymbol, decimalDigits: 0).format(v);
 
   String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 
@@ -449,16 +449,35 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        fr
-                            ? 'Combien cotiser au REER pour réduire votre tranche d\'imposition ?'
-                            : 'How much to contribute to RRSP to drop to your target tax bracket?',
-                        style: TextStyle(
-                          fontSize: AppTextSize.md,
-                          color: AppTheme.labelGray,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      // ── Hero result (top) ────────────────────────────────────
+                      if (_result != null) ...[
+                        if (freemiumService.hasFullAccess || true)
+                          CalcwiseHeroCard(
+                            label: fr
+                                ? 'Cotisation REER recommandée'
+                                : 'Recommended RRSP Contribution',
+                            value: _fmt(_result!.contribution),
+                            secondary: _result!.contribution == 0
+                                ? (fr
+                                    ? 'Vous êtes déjà dans la tranche cible'
+                                    : 'You\'re already in the target bracket')
+                                : null,
+                            rawValue: _result!.contribution,
+                            valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
+                            rawStats: freemiumService.hasFullAccess
+                                ? [
+                                    (label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund', value: _result!.taxSaving, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+                                    (label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund', value: _result!.netCost, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+                                  ]
+                                : null,
+                            gradient: LinearGradient(
+                              colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.75)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── Inputs ──────────────────────────────────────────────
                       Card(
@@ -478,7 +497,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 ],
                                 decoration: InputDecoration(
                                   labelText: grossLabel,
-                                  prefixText: 'CA\$ ',
+                                  prefixText: '${FlavorConfig.currencySymbol} ',
                                   hintText: '85000',
                                 ),
                                 style: const TextStyle(
@@ -497,7 +516,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 ],
                                 decoration: InputDecoration(
                                   labelText: rrspRoomLabel,
-                                  prefixText: 'CA\$ ',
+                                  prefixText: '${FlavorConfig.currencySymbol} ',
                                   hintText: '32490',
                                   helperText: fr
                                       ? 'Max 2025 : 32 490 \$ (18% du revenu gagné)'
@@ -631,47 +650,20 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // ── Results ──────────────────────────────────────────────
+                      // ── Details (premium gated) ──────────────────────────────
                       if (_hasCalculated && _result != null) ...[
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
                         if (freemiumService.hasFullAccess)
-                          _buildResults(context, _result!, fr)
-                        else ...[
-                          // Show hero card as preview
-                          CalcwiseHeroCard(
-                            label: fr
-                                ? 'Cotisation REER recommandée'
-                                : 'Recommended RRSP Contribution',
-                            value: _fmt(_result!.contribution),
-                            secondary: _result!.contribution == 0
-                                ? (fr
-                                    ? 'Vous êtes déjà dans la tranche cible'
-                                    : 'You\'re already in the target bracket')
-                                : null,
-                            rawValue: _result!.contribution,
-                            valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.primary,
-                                AppTheme.primary
-                                    .withValues(alpha: 0.75),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+                          _buildDetails(context, _result!, fr)
+                        else
                           CalcwisePremiumGate(
-                            title: fr
-                                ? 'Analyse REER complète'
-                                : 'Full RRSP Analysis',
+                            title: fr ? 'Analyse REER complète' : 'Full RRSP Analysis',
                             description: fr
                                 ? 'Remboursement fiscal, coût net, taux marginal et droits restants.'
                                 : 'Tax refund, net cost, marginal rate and remaining room.',
                             onUnlock: () => PaywallHard.show(context),
                             price: IAPService.instance.localizedPrice,
                           ),
-                        ],
                       ],
 
                       const SizedBox(height: 16),
@@ -688,40 +680,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     );
   }
 
-  Widget _buildResults(BuildContext context, _RrspResult r, bool fr) {
-    final heroLabel =
-        fr ? 'Cotisation REER recommandée' : 'Recommended RRSP Contribution';
-    final heroValue = _fmt(r.contribution);
-
+  Widget _buildDetails(BuildContext context, _RrspResult r, bool fr) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Hero card
-        CalcwiseHeroCard(
-          label: heroLabel,
-          value: heroValue,
-          secondary: r.contribution == 0
-              ? (fr
-                  ? 'Vous êtes déjà dans la tranche cible'
-                  : 'You\'re already in the target bracket')
-              : null,
-          rawValue: r.contribution,
-          valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
-          rawStats: [
-            (label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund', value: r.taxSaving, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
-            (label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund', value: r.netCost, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
-          ],
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.primary,
-              AppTheme.primary.withValues(alpha: 0.75)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        const SizedBox(height: 12),
-
         Card(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
