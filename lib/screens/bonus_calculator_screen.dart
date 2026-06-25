@@ -488,8 +488,10 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           fr: fr,
                           onStateChanged: (v) { setState(() => _usState = v!); if (mounted) _calculate(); },
                           onProvinceChanged: (v) { setState(() => _caProvince = v!); if (mounted) _calculate(); },
-                          onPayPeriodsChanged: (v) =>
-                              setState(() => _payPeriods = v),
+                          onPayPeriodsChanged: (v) {
+                            setState(() => _payPeriods = v);
+                            _calculate();
+                          },
                         ),
                         if (_result != null) ...[
                           const SizedBox(height: AppSpacing.xxlPlus),
