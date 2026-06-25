@@ -501,12 +501,10 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                 : null,
                             rawValue: _result!.contribution,
                             valueFormatter: (v) => AmountFormatter.ui(v, 'CAD'),
-                            rawStats: freemiumService.hasFullAccess
-                                ? [
-                                    (label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund', value: _result!.taxSaving, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
-                                    (label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund', value: _result!.netCost, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
-                                  ]
-                                : null,
+                            rawStats: [
+                              (label: fr ? 'Remboursement fiscal estimé' : 'Estimated Tax Refund', value: _result!.taxSaving, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+                              (label: fr ? 'Coût net après remboursement' : 'Net Cost After Refund', value: _result!.netCost, formatter: (v) => AmountFormatter.ui(v, 'CAD')),
+                            ],
                             gradient: LinearGradient(
                               colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.75)],
                               begin: Alignment.topLeft,
@@ -628,60 +626,34 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                                     color: AppTheme.labelGray),
                               ),
                               const SizedBox(height: 8),
-                              Builder(builder: (context) {
-                                final gross = _parse(_grossCtrl);
-                                final taxable = (gross - _RrspEngine._bpa2025)
-                                    .clamp(0.0, double.infinity);
-                                // Index of the bracket the user is currently in
-                                int currentBracket = 0;
-                                for (int k = 0; k < _brackets.length; k++) {
-                                  if (taxable > _brackets[k].taxableMax) {
-                                    currentBracket = k + 1;
-                                  }
-                                }
-                                return Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: List.generate(
-                                    _brackets.length,
-                                    (i) {
-                                      final isSelected =
-                                          i == _targetBracketIndex;
-                                      // Only grey out brackets at/above current
-                                      // when there IS a lower bracket to target.
-                                      // If already in 15% (currentBracket==0),
-                                      // don't disable anything — all will show $0
-                                      // with the "already in bracket" message.
-                                      final isDisabled =
-                                          currentBracket > 0 && i >= currentBracket;
-                                      return ChoiceChip(
-                                        label: Text(_brackets[i].label),
-                                        selected: isSelected,
-                                        selectedColor: AppTheme.primary,
-                                        disabledColor: Theme.of(context).disabledColor.withValues(alpha: 0.08),
-                                        labelStyle: TextStyle(
-                                          color: isDisabled
-                                              ? Theme.of(context).disabledColor
-                                              : isSelected
-                                                  ? Colors.white
-                                                  : AppTheme.labelGray,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                          fontSize: AppTextSize.md,
-                                        ),
-                                        onSelected: isDisabled
-                                            ? null
-                                            : (_) {
-                                                setState(() =>
-                                                    _targetBracketIndex = i);
-                                                _calculate();
-                                              },
-                                      );
-                                    },
-                                  ),
-                                );
-                              }),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: List.generate(
+                                  _brackets.length,
+                                  (i) {
+                                    final isSelected = i == _targetBracketIndex;
+                                    return ChoiceChip(
+                                      label: Text(_brackets[i].label),
+                                      selected: isSelected,
+                                      selectedColor: AppTheme.primary,
+                                      labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppTheme.labelGray,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        fontSize: AppTextSize.md,
+                                      ),
+                                      onSelected: (_) {
+                                        setState(() => _targetBracketIndex = i);
+                                        _calculate();
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
