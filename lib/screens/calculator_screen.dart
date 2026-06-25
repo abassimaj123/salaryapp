@@ -1738,15 +1738,8 @@ class _ResultsSectionState extends State<_ResultsSection> {
 
         const SizedBox(height: AppSpacing.md),
 
-        // Secondary export actions — compact icon row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _PdfExportButton(result: result, fr: fr, es: es, iconOnly: true),
-            _TotalCompReportButton(result: result, fr: fr, es: es, iconOnly: true),
-            _CsvExportButton(result: result, fr: fr, es: es, iconOnly: true),
-          ],
-        ),
+        // Export & Share — single button opens bottom sheet with labeled options
+        _ExportShareButton(result: result, fr: fr, es: es),
 
         const SizedBox(height: AppSpacing.sm),
 
@@ -2308,6 +2301,236 @@ class _Slice {
 
 // ─── PDF Export Button ────────────────────────────────────────────────────────
 
+// ─── Export & Share ───────────────────────────────────────────────────────────
+
+class _ExportShareButton extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _ExportShareButton({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = fr
+        ? 'Exporter / Partager'
+        : (es ? 'Exportar / Compartir' : 'Export & Share');
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.ios_share_rounded),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.primary,
+          side: BorderSide(color: AppTheme.primary),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.xl)),
+        ),
+        onPressed: () => _ExportBottomSheet.show(context, result, fr, es),
+      ),
+    );
+  }
+}
+
+class _ExportBottomSheet extends StatelessWidget {
+  final SalaryResult result;
+  final bool fr, es;
+
+  const _ExportBottomSheet({
+    required this.result,
+    required this.fr,
+    required this.es,
+  });
+
+  static Future<void> show(
+      BuildContext context, SalaryResult result, bool fr, bool es) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (_) => _ExportBottomSheet(result: result, fr: fr, es: es),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title =
+        fr ? 'Exporter / Partager' : (es ? 'Exportar / Compartir' : 'Export & Share');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxxl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppTheme.divider,
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+            ),
+          ),
+          Text(title,
+              style: TextStyle(
+                  fontSize: AppTextSize.bodyMd, fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.md),
+
+          _ExportTile(
+            icon: Icons.picture_as_pdf_rounded,
+            title: fr ? 'Rapport PDF' : (es ? 'Informe PDF' : 'PDF Report'),
+            subtitle: fr
+                ? 'Résumé complet de votre salaire et impôts'
+                : (es
+                    ? 'Resumen completo de salario e impuestos'
+                    : 'Full salary & tax breakdown, shareable'),
+            onTap: (ctx) async {
+              Navigator.pop(ctx);
+              await _PdfExportButton(result: result, fr: fr, es: es)._tap(ctx);
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          _ExportTile(
+            icon: Icons.summarize_rounded,
+            title: fr
+                ? 'Rapport rémunération globale'
+                : (es ? 'Compensación total' : 'Total Compensation Report'),
+            subtitle: fr
+                ? 'Salaire + avantages sociaux estimés en PDF'
+                : (es
+                    ? 'Salario + beneficios estimados en PDF'
+                    : 'Salary + estimated benefits as PDF'),
+            onTap: (ctx) async {
+              Navigator.pop(ctx);
+              await _TotalCompReportButton(result: result, fr: fr, es: es)
+                  ._tap(ctx);
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          _ExportTile(
+            icon: Icons.table_chart_rounded,
+            title: fr ? 'Exporter CSV' : (es ? 'Exportar CSV' : 'Export CSV'),
+            subtitle: fr
+                ? 'Données brutes pour Excel ou Google Sheets'
+                : (es
+                    ? 'Datos para Excel o Google Sheets'
+                    : 'Raw data for Excel or Google Sheets'),
+            onTap: (ctx) async {
+              Navigator.pop(ctx);
+              await _CsvExportButton(result: result, fr: fr, es: es)._tap(ctx);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Future<void> Function(BuildContext)? onTap;
+
+  const _ExportTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: freemiumService.hasFullAccessNotifier,
+      builder: (context, isPremium, _) {
+        final locked = !isPremium;
+        return InkWell(
+          onTap: onTap != null ? () => onTap!(context) : null,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm, horizontal: AppSpacing.xs),
+            child: Row(children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon,
+                    color: locked ? AppTheme.labelGray : AppTheme.primary,
+                    size: 22),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Text(title,
+                            style: TextStyle(
+                                fontSize: AppTextSize.body,
+                                fontWeight: FontWeight.w600,
+                                color: locked
+                                    ? AppTheme.labelGray
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color)),
+                        if (locked) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.full),
+                            ),
+                            child: Text('Premium',
+                                style: TextStyle(
+                                    fontSize: AppTextSize.xs,
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ]),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: TextStyle(
+                              fontSize: AppTextSize.sm,
+                              color: AppTheme.labelGray)),
+                    ]),
+              ),
+              Icon(
+                locked
+                    ? Icons.lock_outline_rounded
+                    : Icons.chevron_right_rounded,
+                color: AppTheme.labelGray,
+                size: 20,
+              ),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _PdfExportButton extends StatelessWidget {
   final SalaryResult result;
   final bool fr, es;
@@ -2370,6 +2593,16 @@ class _PdfExportButton extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _tap(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    final isPremium = freemiumService.hasFullAccess;
+    if (!isPremium) {
+      await PdfExportService.showUnlockOrPay(context, () => _exportPdf(context));
+      return;
+    }
+    await _exportPdf(context);
   }
 
   Future<void> _exportPdf(BuildContext context) async {
@@ -2530,6 +2763,22 @@ class _TotalCompReportButton extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _tap(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    final isPremium = freemiumService.hasFullAccess;
+    if (!isPremium) {
+      PaywallHard.show(
+        context,
+        isSpanish: es,
+        isFrench: fr,
+        priceLabel: IAPService.instance.localizedPrice.value,
+        onPurchase: IAPService.instance.buy,
+      );
+      return;
+    }
+    await _exportTotalCompPdf(context);
   }
 
   Future<void> _exportTotalCompPdf(BuildContext context) async {
@@ -2698,6 +2947,16 @@ class _CsvExportButton extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _tap(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    final isPremium = freemiumService.hasFullAccess;
+    if (!isPremium) {
+      await PdfExportService.showUnlockOrPay(context, () => _exportCsv(context));
+      return;
+    }
+    await _exportCsv(context);
   }
 
   Future<void> _exportCsv(BuildContext context) async {
