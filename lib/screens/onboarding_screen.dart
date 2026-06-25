@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:calcwise_core/calcwise_core.dart';
 import '../core/flavor_config.dart';
-import '../main.dart' show paywallSession;
+import '../main.dart' show paywallSession, isSpanishNotifier;
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => CalcwiseOnboarding(
-        appKey: 'salaryapp',
-        onDone: () async {
-          Navigator.of(context).pushReplacementNamed('/home');
-          await paywallSession.recordSession();
-        },
-        pages: _pages,
-      );
+  Widget build(BuildContext context) {
+    final isFr = FlavorConfig.isCA && isSpanishNotifier.value;
+    final isEs = FlavorConfig.isUS && isSpanishNotifier.value;
+    return CalcwiseOnboarding(
+      appKey: 'salaryapp',
+      langOverride: isFr ? 'fr' : (isEs ? 'es' : null),
+      onDone: () async {
+        Navigator.of(context).pushReplacementNamed('/home');
+        await paywallSession.recordSession();
+      },
+      pages: _pages,
+    );
+  }
 
   /// Flavor-specific onboarding pages. Each flavor shows only its own market.
   static List<OnboardingPage> get _pages {

@@ -222,7 +222,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
   final _rrspRoomCtrl = TextEditingController(text: '32490');
 
   String _province = 'ON';
-  int _targetBracketIndex = 1; // 20.5% default
+  int _targetBracketIndex = 0; // 15% default — shows non-zero contribution for most salaries
 
   _RrspResult? _result;
   bool _hasCalculated = false;
@@ -232,7 +232,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     super.initState();
     analyticsService.logScreenView('rrsp_optimizer');
     final salary = salaryNotifier.value;
-    _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '75000';
+    _grossCtrl.text = salary > 0 ? salary.toStringAsFixed(0) : '98000';
 
     // Auto-calculate on load for all users (free users see gated results)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -241,10 +241,19 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
     });
     _grossCtrl.addListener(() { if (mounted) _calculate(); });
     _rrspRoomCtrl.addListener(() { if (mounted) _calculate(); });
+    salaryNotifier.addListener(_onMainSalaryChanged);
+  }
+
+  void _onMainSalaryChanged() {
+    final salary = salaryNotifier.value;
+    if (salary > 0 && mounted) {
+      _grossCtrl.text = salary.toStringAsFixed(0);
+    }
   }
 
   @override
   void dispose() {
+    salaryNotifier.removeListener(_onMainSalaryChanged);
     historyService.cancelPendingSave('salaryapp', 'rrsp_optimizer');
     _grossCtrl.dispose();
     _rrspRoomCtrl.dispose();

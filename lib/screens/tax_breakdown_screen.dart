@@ -9,7 +9,7 @@ import '../core/freemium/freemium_service.dart';
 import '../core/freemium/iap_service.dart';
 import '../core/analytics/analytics_service.dart';
 import '../core/services/pdf_export_service.dart';
-import '../main.dart' show isSpanishNotifier, historyService, paywallSession, adService;
+import '../main.dart' show isSpanishNotifier, salaryNotifier, historyService, paywallSession, adService;
 import '../widgets/result_card.dart';
 import '../widgets/save_scenario_button.dart';
 import 'package:calcwise_core/calcwise_core.dart'
@@ -191,10 +191,20 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
     _salaryCtrl.addListener(() {
       if (mounted) _calculate();
     });
+    // Sync salary when main calculator (Tab 1) updates salaryNotifier.
+    salaryNotifier.addListener(_onMainSalaryChanged);
+  }
+
+  void _onMainSalaryChanged() {
+    final salary = salaryNotifier.value;
+    if (salary > 0 && mounted) {
+      _salaryCtrl.text = salary.toStringAsFixed(0);
+    }
   }
 
   @override
   void dispose() {
+    salaryNotifier.removeListener(_onMainSalaryChanged);
     historyService.cancelPendingSave('salaryapp', 'tax_breakdown');
     _salaryCtrl.dispose();
     super.dispose();

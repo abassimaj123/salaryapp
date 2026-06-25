@@ -240,11 +240,20 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     });
     _salaryCtrl.addListener(() { if (mounted) _calculate(); });
     _bonusCtrl.addListener(() { if (mounted) _calculate(); });
+    salaryNotifier.addListener(_onMainSalaryChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
+  }
+
+  void _onMainSalaryChanged() {
+    final salary = salaryNotifier.value;
+    if (salary > 0 && mounted) {
+      _salaryCtrl.text = NumberFormat('#,###').format(salary.round());
+    }
   }
 
   @override
   void dispose() {
+    salaryNotifier.removeListener(_onMainSalaryChanged);
     historyService.cancelPendingSave('salaryapp', 'bonus');
     _salaryCtrl.dispose();
     _bonusCtrl.dispose();
@@ -413,8 +422,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
   }
 
   void _calculate() {
-    if (!_formKey.currentState!.validate()) return;
-
     final salary = _parse(_salaryCtrl);
     final bonus = _parse(_bonusCtrl);
     if (salary <= 0 || bonus <= 0) return;
