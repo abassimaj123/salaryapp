@@ -386,7 +386,6 @@ class _MainShellState extends State<MainShell> {
               analyticsService.logTabSwitch(i);
               setState(() => _index = i);
               if (i == 0) return;
-              adService.onAction();
               final trigger = await paywallSession.recordAction();
               if (!mounted) return;
               if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
