@@ -147,18 +147,22 @@ class SalaryDatabaseAdapter implements DatabaseAdapter {
 
   String _buildL2Json(Map<String, dynamic> row) {
     return jsonEncode({
-      'flavor': row['flavor'],
-      'region': row['region'],
-      'grossAnnual': row['grossAnnual'],
-      'federalTax': row['federalTax'],
-      'ficaTax': row['ficaTax'],
-      'stateTax': row['stateTax'],
-      'totalTax': row['totalTax'],
-      'netAnnual': row['netAnnual'],
-      'netMonthly': row['netMonthly'],
-      'netBiWeekly': row['netBiWeekly'],
-      'netWeekly': row['netWeekly'],
-      'effectiveRate': row['effectiveRate'],
+      'inputs': {
+        'flavor': row['flavor'],
+        'region': row['region'],
+      },
+      'results': {
+        'grossAnnual': row['grossAnnual'],
+        'federalTax': row['federalTax'],
+        'ficaTax': row['ficaTax'],
+        'stateTax': row['stateTax'],
+        'totalTax': row['totalTax'],
+        'netAnnual': row['netAnnual'],
+        'netMonthly': row['netMonthly'],
+        'netBiWeekly': row['netBiWeekly'],
+        'netWeekly': row['netWeekly'],
+        'effectiveRate': row['effectiveRate'],
+      },
     });
   }
 }
