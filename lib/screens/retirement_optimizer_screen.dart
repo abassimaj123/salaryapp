@@ -296,9 +296,6 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
 
     AnalyticsService.instance.maybeLogFirstCalculate();
 
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
-
     final result = _K401Engine.calculate(
       grossIncome: gross,
       contributionPct: _contributionPct,
@@ -385,13 +382,14 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
         final ageLabel = es ? 'Edad' : 'Age';
         final filingLabel = es ? 'Estado civil' : 'Filing Status';
         final stateLabel = es ? 'Estado' : 'State';
-        final calcLabel = es ? 'Calcular' : 'Calculate';
 
         return Scaffold(
           appBar: AppBar(
             title: Text(titleStr),
           ),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
             child: Column(
               children: [
                 Expanded(
@@ -635,19 +633,6 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _calculate,
-                          child: Text(
-                            calcLabel,
-                            style: const TextStyle(
-                                fontSize: AppTextSize.bodyLg,
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-
                       // ── Results ──────────────────────────────────────────────
                       if (_hasCalculated && _result != null) ...[
                         const SizedBox(height: 24),
@@ -696,6 +681,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
               const CalcwiseAdFooter(),
             ],
           ),
+        ),
         ),
         );
       },

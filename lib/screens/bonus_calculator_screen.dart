@@ -414,8 +414,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
 
   void _calculate() {
     if (!_formKey.currentState!.validate()) return;
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
 
     final salary = _parse(_salaryCtrl);
     final bonus = _parse(_bonusCtrl);
@@ -456,11 +454,12 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
         final title = fr
             ? 'Calculateur de prime'
             : (es ? 'Calculadora de bonificación' : 'Bonus Calculator');
-        final calcLabel = fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(
             children: [
               Expanded(
@@ -484,14 +483,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
                           onProvinceChanged: (v) { setState(() => _caProvince = v!); if (mounted) _calculate(); },
                           onPayPeriodsChanged: (v) =>
                               setState(() => _payPeriods = v),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        ElevatedButton(
-                          onPressed: _calculate,
-                          child: Text(calcLabel,
-                              style: const TextStyle(
-                                  fontSize: AppTextSize.bodyLg,
-                                  fontWeight: FontWeight.w700)),
                         ),
                         if (_result != null) ...[
                           const SizedBox(height: AppSpacing.xxlPlus),
@@ -548,6 +539,7 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
               const CalcwiseAdFooter(),
             ],
           )),
+          ),
         );
       },
     );

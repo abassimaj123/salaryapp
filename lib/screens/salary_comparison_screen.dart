@@ -223,7 +223,6 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
 
     AnalyticsService.instance.maybeLogFirstCalculate();
 
-    HapticFeedback.mediumImpact();
     setState(() {
       _resultA = _calcOne(grossA, _regionA);
       _resultB = _calcOne(grossB, _regionB);
@@ -296,7 +295,9 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
             leading: const BackButton(),
             actions: const [AppBarActions()],
           ),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(
             children: [
               Expanded(
@@ -319,11 +320,15 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                               color: AppTheme.primary,
                               grossCtrl: _grossACtrl,
                               selectedState: _regionA,
-                              onStateChanged: (v) =>
-                                  setState(() => _regionA = v),
+                              onStateChanged: (v) {
+                                setState(() => _regionA = v);
+                                _calculate();
+                              },
                               selectedCity: _cityA,
-                              onCityChanged: (v) =>
-                                  setState(() => _cityA = v),
+                              onCityChanged: (v) {
+                                setState(() => _cityA = v);
+                                _calculate();
+                              },
                               useAlt: useAlt,
                             ),
                           ),
@@ -336,11 +341,15 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                               color: AppTheme.accent,
                               grossCtrl: _grossBCtrl,
                               selectedState: _regionB,
-                              onStateChanged: (v) =>
-                                  setState(() => _regionB = v),
+                              onStateChanged: (v) {
+                                setState(() => _regionB = v);
+                                _calculate();
+                              },
                               selectedCity: _cityB,
-                              onCityChanged: (v) =>
-                                  setState(() => _cityB = v),
+                              onCityChanged: (v) {
+                                setState(() => _cityB = v);
+                                _calculate();
+                              },
                               useAlt: useAlt,
                             ),
                           ),
@@ -348,28 +357,6 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
                       ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-
-                      // ── Compare button ───────────────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _calculate,
-                          icon: const Icon(Icons.compare_arrows_rounded),
-                          label: Text(
-                            fr ? 'Comparer' : (es ? 'Comparar' : 'Compare'),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.mdPlus),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                            ),
-                          ),
-                        ),
-                      ),
 
                       // ── Results ──────────────────────────────────────────
                       if (_hasCalculated &&
@@ -478,6 +465,7 @@ class _SalaryComparisonScreenState extends State<SalaryComparisonScreen> {
               const CalcwiseAdFooter(),
             ],
           )),
+          ),
         );
       },
     );

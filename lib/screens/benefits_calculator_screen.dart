@@ -359,9 +359,6 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
   }
 
   void _calculate() {
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
-
     final salary = _parse(_salaryCtrl);
     final healthMonthly = _parse(_healthCtrl);
     final retirementPct = _parse(_retirementPctCtrl);
@@ -467,7 +464,9 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
               'Calculateur d\'avantages',
             )),
           ),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(
             children: [
               Expanded(
@@ -688,21 +687,6 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.lg),
-
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _calculate,
-                              child: Text(
-                                t('Calculate', 'Calcular', 'Calculer'),
-                                style: const TextStyle(
-                                    fontSize: AppTextSize.bodyLg,
-                                    fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ),
-
                           // ── Results ────────────────────────────────────────
                           if (_hasCalculated && _result != null) ...[
                             const SizedBox(height: AppSpacing.xl),
@@ -776,6 +760,7 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
               const CalcwiseAdFooter(),
             ],
           )),
+          ),
         );
       },
     );

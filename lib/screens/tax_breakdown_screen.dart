@@ -16,6 +16,7 @@ import 'package:calcwise_core/calcwise_core.dart'
     show
         CalcwiseAdFooter,
         CalcwisePageEntrance,
+        CalcwiseStaggerItem,
         CalcwisePremiumGate,
         PaywallHard,
         PaywallSoft,
@@ -186,6 +187,10 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
       analyticsService.logScreenView('tax_breakdown');
       _calculate();
     });
+    // Live auto-calc: recompute as the user edits the salary (no button needed).
+    _salaryCtrl.addListener(() {
+      if (mounted) _calculate();
+    });
   }
 
   @override
@@ -318,8 +323,6 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
 
   void _calculate() {
     if (!_formKey.currentState!.validate()) return;
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
     final raw =
         _salaryCtrl.text.replaceAll(',', '').replaceAll(RegExp(r'[^\d.]'), '');
     final v = double.tryParse(raw) ?? 0;
@@ -352,11 +355,12 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                 : (es
                     ? 'Tramos del impuesto $year'
                     : 'Tax Bracket Breakdown $year');
-        final calcLabel = fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate');
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(
             children: [
               Expanded(
@@ -369,25 +373,17 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
                       children: [
                         _SalaryInput(
                             controller: _salaryCtrl, es: es, fr: fr),
-                        const SizedBox(height: AppSpacing.lg),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _calculate,
-                            child: Text(calcLabel,
-                                style: const TextStyle(
-                                    fontSize: AppTextSize.bodyLg,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
                         if (_grossAnnual != null &&
                             _brackets.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xxlPlus),
-                          _TaxBreakdownSection(
-                            grossAnnual: _grossAnnual!,
-                            brackets: _brackets,
-                            es: es,
-                            fr: fr,
+                          CalcwiseStaggerItem(
+                            index: 0,
+                            child: _TaxBreakdownSection(
+                              grossAnnual: _grossAnnual!,
+                              brackets: _brackets,
+                              es: es,
+                              fr: fr,
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SaveScenarioButton(onSave: _saveScenario),
@@ -441,6 +437,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
               const CalcwiseAdFooter(),
             ],
           )),
+          ),
         );
       },
     );

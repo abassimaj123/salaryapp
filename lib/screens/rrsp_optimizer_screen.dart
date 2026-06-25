@@ -385,9 +385,6 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
 
     AnalyticsService.instance.maybeLogFirstCalculate();
 
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
-
     final result = _RrspEngine.calculate(
       grossIncome: gross,
       rrspRoom: room.clamp(0, 32490),
@@ -427,13 +424,14 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
             fr ? 'Droits REER disponibles' : 'RRSP Contribution Room';
         final bracketLabel = fr ? 'Tranche cible' : 'Target Federal Bracket';
         final provinceLabel = fr ? 'Province' : 'Province';
-        final calcLabel = fr ? 'Calculer' : 'Calculate';
 
         return Scaffold(
           appBar: AppBar(
             title: Text(titleStr),
           ),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(
             children: [
               Expanded(
@@ -624,19 +622,6 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _calculate,
-                          child: Text(
-                            calcLabel,
-                            style: const TextStyle(
-                                fontSize: AppTextSize.bodyLg,
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-
                       // ── Results ──────────────────────────────────────────────
                       if (_hasCalculated && _result != null) ...[
                         const SizedBox(height: 24),
@@ -688,6 +673,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
               const CalcwiseAdFooter(),
             ],
           )),
+          ),
         );
       },
     );

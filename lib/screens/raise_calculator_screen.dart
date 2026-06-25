@@ -284,8 +284,6 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
   void _calculate() {
     if (!_formKey.currentState!.validate()) return;
-    HapticFeedback.mediumImpact();
-    FocusScope.of(context).unfocus();
 
     final current = _parse(_salaryCtrl.text);
     if (current <= 0) return;
@@ -413,7 +411,9 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
 
         return Scaffold(
           appBar: AppBar(title: Text(titleText)),
-          body: CalcwisePageEntrance(
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: CalcwisePageEntrance(
               child: Column(children: [
             Expanded(
               child: SingleChildScrollView(
@@ -432,19 +432,6 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
                         fr: fr,
                         onTypeToggle: (v) { setState(() => _isPercent = v); _calculate(); },
                         onSliderChanged: (v) { setState(() => _raisePct = v); _calculate(); },
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _calculate,
-                          child: Text(
-                            fr ? 'Calculer' : (es ? 'Calcular' : 'Calculate'),
-                            style: const TextStyle(
-                                fontSize: AppTextSize.bodyLg,
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ),
                       ),
                       if (_result != null) ...[
                         const SizedBox(height: AppSpacing.xxlPlus),
@@ -519,6 +506,7 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
             ),
             const CalcwiseAdFooter(),
           ])),
+          ),
         );
       },
     );
