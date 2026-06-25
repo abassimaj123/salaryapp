@@ -1626,6 +1626,7 @@ class _ResultsSectionState extends State<_ResultsSection> {
                     federalLabel: federalLabel,
                     ficaLabel: ficaLabel,
                     stateLabel: stateLabel,
+                    netPayLabel: fr ? 'Salaire net' : (es ? 'Salario neto' : 'Net pay'),
                   ),
                 ),
                 SizedBox(height: AppSpacing.md),
@@ -2170,13 +2171,14 @@ class _BenefitRow extends StatelessWidget {
 
 class _TaxPieChart extends StatefulWidget {
   final SalaryResult result;
-  final String federalLabel, ficaLabel, stateLabel;
+  final String federalLabel, ficaLabel, stateLabel, netPayLabel;
 
   const _TaxPieChart({
     required this.result,
     required this.federalLabel,
     required this.ficaLabel,
     required this.stateLabel,
+    required this.netPayLabel,
   });
 
   @override
@@ -2208,7 +2210,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
             label: widget.stateLabel,
             value: r.stateTax,
             color: cs.tertiary),
-      _Slice(label: 'Net pay', value: r.netAnnual, color: AppTheme.success),
+      _Slice(label: widget.netPayLabel, value: r.netAnnual, color: AppTheme.success),
     ];
 
     return Row(
