@@ -2213,10 +2213,10 @@ class _TaxPieChartState extends State<_TaxPieChart> {
       _Slice(label: widget.netPayLabel, value: r.netAnnual, color: AppTheme.success),
     ];
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          flex: 5,
+        SizedBox(
+          height: 180,
           child: PieChart(
             PieChartData(
               pieTouchData: PieTouchData(
@@ -2237,10 +2237,6 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 final s = e.value;
                 final pct = s.value / gross * 100;
                 final isTouched = idx == _touched;
-                final money = NumberFormat.currency(
-                  symbol: FlavorConfig.currencySymbol,
-                  decimalDigits: 0,
-                ).format(s.value);
                 return PieChartSectionData(
                   color: s.color,
                   value: s.value,
@@ -2262,35 +2258,27 @@ class _TaxPieChartState extends State<_TaxPieChart> {
             swapAnimationDuration: CalcwiseChartTokens.swapDuration,
           ),
         ),
-        SizedBox(width: 12),
-        Expanded(
-          flex: 4,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: sections.map((s) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration:
-                        BoxDecoration(color: s.color, shape: BoxShape.circle),
-                  ),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      s.label,
-                      style: TextStyle(
-                          fontSize: AppTextSize.xs, color: AppTheme.labelGray),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ]),
-              );
-            }).toList(),
-          ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 6,
+          children: sections.map((s) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: s.color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  s.label,
+                  style: TextStyle(fontSize: AppTextSize.xs, color: AppTheme.labelGray),
+                ),
+              ],
+            );
+          }).toList(),
         ),
       ],
     );
