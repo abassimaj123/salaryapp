@@ -40,11 +40,11 @@ import 'package:calcwise_core/calcwise_core.dart'
 
 // ─── Federal bracket ceilings 2025 (post-BPA taxable income) ─────────────────
 // These are the tops of each bracket applied to (grossIncome - BPA).
-// 15%  → up to $57,375 taxable    (ceiling relative to BPA-adjusted income)
+// 15%  → up to $57,375 taxable
 // 20.5%→ up to $114,750 taxable
-// 26%  → up to $158,519 taxable
-// 29%  → up to $220,000 taxable
-// 33%  → above $220,000
+// 26%  → up to $177,882 taxable
+// 29%  → up to $253,414 taxable
+// 33%  → above $253,414
 
 class _Bracket {
   final String label;
@@ -182,26 +182,68 @@ class _RrspEngine {
 
   static double _estimateProvincialMarginalRate(
       double grossIncome, String province) {
-    // Approximate provincial marginal rate at this income level
+    // 2025 provincial marginal rates
     switch (province) {
       case 'QC':
-        if (grossIncome > 126000) return 0.2575;
-        if (grossIncome > 103545) return 0.24;
-        if (grossIncome > 51780) return 0.19;
+        if (grossIncome > 129590) return 0.2575;
+        if (grossIncome > 106495) return 0.24;
+        if (grossIncome > 53255) return 0.19;
         return 0.14;
       case 'ON':
         if (grossIncome > 220000) return 0.1316;
         if (grossIncome > 150000) return 0.1216;
-        if (grossIncome > 102894) return 0.1116;
-        if (grossIncome > 51446) return 0.0915;
+        if (grossIncome > 105775) return 0.1116;
+        if (grossIncome > 52886) return 0.0915;
         return 0.0505;
       case 'BC':
-        if (grossIncome > 172602) return 0.1680;
-        if (grossIncome > 127299) return 0.1470;
-        if (grossIncome > 104835) return 0.1229;
-        if (grossIncome > 91310) return 0.1050;
-        if (grossIncome > 45654) return 0.0770;
+        if (grossIncome > 259829) return 0.2050;
+        if (grossIncome > 186306) return 0.1680;
+        if (grossIncome > 137407) return 0.1470;
+        if (grossIncome > 113158) return 0.1229;
+        if (grossIncome > 98560) return 0.1050;
+        if (grossIncome > 49279) return 0.0770;
         return 0.0506;
+      case 'AB':
+        if (grossIncome > 362961) return 0.15;
+        if (grossIncome > 241974) return 0.14;
+        if (grossIncome > 181481) return 0.13;
+        if (grossIncome > 151234) return 0.12;
+        if (grossIncome > 60000) return 0.10;
+        return 0.08;
+      case 'MB':
+        if (grossIncome > 100000) return 0.1740;
+        if (grossIncome > 47000) return 0.1275;
+        return 0.1080;
+      case 'NB':
+        if (grossIncome > 190060) return 0.195;
+        if (grossIncome > 102614) return 0.16;
+        if (grossIncome > 51306) return 0.14;
+        return 0.094;
+      case 'NL':
+        if (grossIncome > 1103478) return 0.218;
+        if (grossIncome > 552455) return 0.215;
+        if (grossIncome > 250000) return 0.211;
+        if (grossIncome > 135973) return 0.184;
+        if (grossIncome > 101198) return 0.158;
+        if (grossIncome > 76145) return 0.131;
+        if (grossIncome > 44192) return 0.104;
+        return 0.087;
+      case 'NS':
+        if (grossIncome > 154650) return 0.21;
+        if (grossIncome > 95883) return 0.175;
+        if (grossIncome > 61015) return 0.1667;
+        if (grossIncome > 30507) return 0.1495;
+        return 0.0879;
+      case 'PE':
+        if (grossIncome > 140000) return 0.19;
+        if (grossIncome > 105000) return 0.1762;
+        if (grossIncome > 64656) return 0.166;
+        if (grossIncome > 33328) return 0.1347;
+        return 0.095;
+      case 'SK':
+        if (grossIncome > 152750) return 0.145;
+        if (grossIncome > 53463) return 0.125;
+        return 0.105;
       default:
         return 0.10;
     }
