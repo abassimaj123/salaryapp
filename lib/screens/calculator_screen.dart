@@ -1470,13 +1470,13 @@ class _ResultsSectionState extends State<_ResultsSection> {
           rawValue: adjustedNetAnnual,
           valueFormatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode),
           rawStats: [
-            (label: monthlyLabel, value: adjustedNetMonthly, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
-            (label: totalTaxLabel, value: adjustedTotalTax, formatter: (v) => AmountFormatter.ui(v, FlavorConfig.currencyCode)),
+            (label: monthlyLabel, value: adjustedNetMonthly, formatter: (v) => _currencyFmt0.format(v)),
+            (label: totalTaxLabel, value: adjustedTotalTax, formatter: (v) => _currencyFmt0.format(v)),
             (label: effectiveLabel, value: adjustedEffectiveRate, formatter: (v) => '${v.toStringAsFixed(1)}%'),
           ],
           stats: [
-            (label: monthlyLabel, value: _fmt(adjustedNetMonthly)),
-            (label: totalTaxLabel, value: _fmt(adjustedTotalTax)),
+            (label: monthlyLabel, value: _currencyFmt0.format(adjustedNetMonthly)),
+            (label: totalTaxLabel, value: _currencyFmt0.format(adjustedTotalTax)),
             (label: effectiveLabel, value: _pct(adjustedEffectiveRate)),
           ],
         ),
@@ -2237,11 +2237,12 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 return PieChartSectionData(
                   color: s.color,
                   value: s.value,
-                  title: pct >= 3.0 ? '${pct.toStringAsFixed(1)}%' : '',
-                  titlePositionPercentageOffset: 0.5,
+                  title: isTouched
+                      ? '${pct.toStringAsFixed(1)}%'
+                      : (pct >= 20.0 ? '${pct.toStringAsFixed(1)}%' : ''),
                   radius: isTouched ? CalcwiseChartTokens.donutSectionR + 10 : CalcwiseChartTokens.donutSectionR,
                   titleStyle: TextStyle(
-                    fontSize: isTouched ? 12 : (pct >= 20.0 ? 11 : 9),
+                    fontSize: isTouched ? 12 : 11,
                     fontWeight: FontWeight.w700,
                     color: s.color.computeLuminance() > 0.35
                         ? Colors.black87
@@ -2259,6 +2260,7 @@ class _TaxPieChartState extends State<_TaxPieChart> {
           spacing: 16,
           runSpacing: 6,
           children: sections.map((s) {
+            final pct = (s.value / gross * 100).toStringAsFixed(1);
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -2271,6 +2273,11 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 Text(
                   s.label,
                   style: TextStyle(fontSize: AppTextSize.xs, color: AppTheme.labelGray),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$pct%',
+                  style: TextStyle(fontSize: AppTextSize.xs, color: s.color, fontWeight: FontWeight.w700),
                 ),
               ],
             );
