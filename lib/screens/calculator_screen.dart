@@ -1619,15 +1619,12 @@ class _ResultsSectionState extends State<_ResultsSection> {
                         .titleMedium
                         ?.copyWith(fontSize: AppTextSize.bodyMd)),
                 SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  height: 200,
-                  child: _TaxPieChart(
-                    result: result,
-                    federalLabel: federalLabel,
-                    ficaLabel: ficaLabel,
-                    stateLabel: stateLabel,
-                    netPayLabel: fr ? 'Salaire net' : (es ? 'Salario neto' : 'Net pay'),
-                  ),
+                _TaxPieChart(
+                  result: result,
+                  federalLabel: federalLabel,
+                  ficaLabel: ficaLabel,
+                  stateLabel: stateLabel,
+                  netPayLabel: fr ? 'Salaire net' : (es ? 'Salario neto' : 'Net pay'),
                 ),
                 SizedBox(height: AppSpacing.md),
                 Divider(color: AppTheme.divider),
