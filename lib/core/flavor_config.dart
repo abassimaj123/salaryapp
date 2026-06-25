@@ -8,7 +8,7 @@ class FlavorConfig {
   static bool get isUK => flavor == 'uk';
   static bool get isCA => flavor == 'ca';
 
-  static String get currencySymbol => isUK ? '£' : (isCA ? 'CA\$' : '\$');
+  static String get currencySymbol => isUK ? '£' : '\$';
   static String get currencyCode => isUK ? 'GBP' : (isCA ? 'CAD' : 'USD');
   static String get locale => isUK ? 'en_GB' : (isCA ? 'en_CA' : 'en_US');
 
