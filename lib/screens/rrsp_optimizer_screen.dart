@@ -453,8 +453,6 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
 
     setState(() => _result = result);
     _scheduleAutoSave();
-    adService.onAction();
-
     analyticsService.logRrspImpactCalculated();
   }
 

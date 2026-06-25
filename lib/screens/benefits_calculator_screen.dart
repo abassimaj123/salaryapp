@@ -392,7 +392,6 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
       );
       _hasCalculated = true;
     });
-    adService.onAction();
     analyticsService.logCalculationCompleted();
     _scheduleAutoSave();
   }

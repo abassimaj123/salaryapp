@@ -661,8 +661,6 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       'frequency': _frequency.name,
     });
     analyticsService.maybeLogFirstCalculate();
-    adService.onAction();
-
     // Always save to history ring buffer (cold start + user interaction).
     historyService.scheduleAutoSave(
       appKey: 'salaryapp',
@@ -675,9 +673,11 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         HistoryScreen.refreshNotifier.value++;
       },
     );
-    adService.onSave();
-    // Paywall + analytics only on explicit user interaction, not cold-start.
-    if (_hasUserInteracted && mounted) _triggerSavePaywall();
+    // adService.onAction() + paywall only on explicit user interaction, not cold-start.
+    if (_hasUserInteracted && mounted) {
+      adService.onSave();
+      _triggerSavePaywall();
+    }
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.
