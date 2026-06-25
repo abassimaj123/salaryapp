@@ -68,7 +68,6 @@ class _RaiseCalculatorScreenState extends State<RaiseCalculatorScreen> {
       AnalyticsService.instance.logScreenView('raise_calculator');
       _calculate();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
     _salaryCtrl.addListener(() { if (mounted) _calculate(); });
     _flatCtrl.addListener(() { if (mounted) _calculate(); });
   }

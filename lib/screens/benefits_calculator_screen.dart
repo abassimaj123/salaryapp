@@ -228,7 +228,6 @@ class _BenefitsCalculatorScreenState extends State<BenefitsCalculatorScreen> {
     for (final c in [_salaryCtrl, _healthCtrl, _retirementPctCtrl, _ptoDaysCtrl, _remoteCtrl, _otherCtrl]) {
       c.addListener(() { if (mounted) _calculate(); });
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
   }
 
   @override

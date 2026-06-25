@@ -241,7 +241,6 @@ class _BonusCalculatorScreenState extends State<BonusCalculatorScreen> {
     _salaryCtrl.addListener(() { if (mounted) _calculate(); });
     _bonusCtrl.addListener(() { if (mounted) _calculate(); });
     salaryNotifier.addListener(_onMainSalaryChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPaywall());
   }
 
   void _onMainSalaryChanged() {
