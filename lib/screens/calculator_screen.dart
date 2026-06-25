@@ -797,23 +797,30 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                                             ukTaxCode: _ukTaxCode,
                                             ukSalarySacrifice: _salarySacrifice,
                                             onSaveScenario: _saveScenario,
+                                            salaryInputWidget: _SalaryInputCard(
+                                              controller: _salaryCtrl,
+                                              frequency: _frequency,
+                                              useAlt: useAlt,
+                                              es: es,
+                                              fr: fr,
+                                            ),
                                           ),
                                         )),
                                       )
-                                    : const KeyedSubtree(
-                                        key: ValueKey('empty'),
-                                        child: SizedBox.shrink(),
+                                    : KeyedSubtree(
+                                        key: const ValueKey('empty'),
+                                        child: CalcwiseStaggerItem(
+                                          index: 0,
+                                          child: _SalaryInputCard(
+                                            controller: _salaryCtrl,
+                                            frequency: _frequency,
+                                            useAlt: useAlt,
+                                            es: es,
+                                            fr: fr,
+                                          ),
+                                        ),
                                       ),
                               ),
-                              CalcwiseStaggerItem(
-                                  index: 0,
-                                  child: _SalaryInputCard(
-                                    controller: _salaryCtrl,
-                                    frequency: _frequency,
-                                    useAlt: useAlt,
-                                    es: es,
-                                    fr: fr,
-                                  )),
                               SizedBox(height: AppSpacing.md),
                               CalcwiseStaggerItem(
                                   index: 1,
@@ -1358,6 +1365,7 @@ class _ResultsSection extends StatefulWidget {
   final UkTaxCode ukTaxCode;
   final double ukSalarySacrifice;
   final Future<void> Function(String? label) onSaveScenario;
+  final Widget salaryInputWidget;
 
   const _ResultsSection({
     required this.result,
@@ -1368,6 +1376,7 @@ class _ResultsSection extends StatefulWidget {
     required this.es,
     required this.fr,
     required this.onSaveScenario,
+    required this.salaryInputWidget,
     this.caReverseMode = false,
     this.caRequiredGross,
     this.ukReverseMode = false,
@@ -1475,6 +1484,10 @@ class _ResultsSectionState extends State<_ResultsSection> {
             (label: effectiveLabel, value: _pct(adjustedEffectiveRate)),
           ],
         ),
+        const SizedBox(height: AppSpacing.md),
+
+        // Salary input — anchored just below the result card
+        widget.salaryInputWidget,
         const SizedBox(height: AppSpacing.md),
 
         // CA reverse-mode: show required gross to achieve the target net
