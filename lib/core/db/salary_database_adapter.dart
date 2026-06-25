@@ -24,11 +24,15 @@ class SalaryDatabaseAdapter implements DatabaseAdapter {
     final l2 = jsonDecode(row['l2_json'] as String) as Map<String, dynamic>;
     final savedAt = DateTime.fromMillisecondsSinceEpoch(row['saved_at'] as int);
 
-    double d(String k) => (l2[k] as num?)?.toDouble() ?? 0.0;
+    // _buildL2() nests salary fields under 'results' and meta under 'inputs'
+    final inputs = (l2['inputs'] as Map<String, dynamic>?) ?? {};
+    final results = (l2['results'] as Map<String, dynamic>?) ?? l2;
+
+    double d(String k) => (results[k] as num?)?.toDouble() ?? 0.0;
 
     return DatabaseService.instance.insert(HistoryEntry(
-      flavor: (l2['flavor'] as String?) ?? '',
-      region: (l2['region'] as String?) ?? '',
+      flavor: (inputs['flavor'] as String?) ?? (l2['flavor'] as String?) ?? '',
+      region: (inputs['region'] as String?) ?? (l2['region'] as String?) ?? '',
       timestamp: savedAt,
       result: SalaryResult(
         grossAnnual: d('grossAnnual'),

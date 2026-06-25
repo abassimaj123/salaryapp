@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:intl/date_symbol_data_local.dart';
@@ -391,7 +390,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   bool _addSecondIncome = false;
   double _secondIncome = 0; // annual gross of the additional job
 
-  Timer? _saveDebounce;
+  bool _hasUserInteracted = false;
 
   @override
   void initState() {
@@ -432,22 +431,15 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     await prefs.setString(_kProvinceKey, province);
   }
 
-  /// Schedule calc (via mixin) + SmartHistory auto-save (debounced internally).
+  /// Schedule calc (via mixin) + SmartHistory auto-save.
   /// Called from user interactions (listener, chips, toggles) — never from initState.
   void _scheduleCalcAndSave() {
+    _hasUserInteracted = true;
     scheduleCalc(_calculate);
-    // SmartHistory debounces the auto-save itself (ring buffer). We just need
-    // the latest result available — _calculate() runs synchronously above so
-    // schedule the auto-save after a short delay using the freshest _result.
-    _saveDebounce?.cancel();
-    _saveDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted && _result != null) _scheduleAutoSave(_result!);
-    });
   }
 
   @override
   void dispose() {
-    _saveDebounce?.cancel();
     historyService.cancelPendingSave('salaryapp', 'calculator');
     _salaryCtrl.removeListener(() => _scheduleCalcAndSave());
     _salaryCtrl.dispose();
@@ -683,6 +675,9 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     });
     analyticsService.maybeLogFirstCalculate();
     adService.onAction();
+
+    // Auto-save after user interaction — skipped on cold start to avoid paywall.
+    if (_hasUserInteracted && mounted) _scheduleAutoSave(res);
 
     // No auto-scroll: the results section appears below the input card;
     // the user scrolls manually. Auto-scrolling caused results to go off-screen.
