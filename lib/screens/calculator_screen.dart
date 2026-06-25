@@ -2237,16 +2237,12 @@ class _TaxPieChartState extends State<_TaxPieChart> {
                 return PieChartSectionData(
                   color: s.color,
                   value: s.value,
-                  title: isTouched
-                      ? '${pct.toStringAsFixed(1)}%'
-                      : (pct >= 20.0 ? '${pct.toStringAsFixed(1)}%' : ''),
+                  title: isTouched ? '${pct.toStringAsFixed(1)}%' : '',
                   radius: isTouched ? CalcwiseChartTokens.donutSectionR + 10 : CalcwiseChartTokens.donutSectionR,
-                  titleStyle: TextStyle(
-                    fontSize: isTouched ? 12 : 11,
+                  titleStyle: const TextStyle(
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: s.color.computeLuminance() > 0.35
-                        ? Colors.black87
-                        : Colors.white,
+                    color: Colors.black87,
                   ),
                   borderSide: s.borderSide,
                 );
