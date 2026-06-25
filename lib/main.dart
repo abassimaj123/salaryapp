@@ -379,8 +379,7 @@ class _MainShellState extends State<MainShell> {
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-            height: 56,
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
             onDestinationSelected: (i) async {
               analyticsService.logTabSwitch(i);
               setState(() => _index = i);

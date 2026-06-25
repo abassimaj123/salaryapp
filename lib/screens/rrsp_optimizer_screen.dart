@@ -663,17 +663,7 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
                       // ── Details (premium gated) ──────────────────────────────
                       if (_result != null) ...[
                         const SizedBox(height: 8),
-                        if (freemiumService.hasFullAccess)
-                          _buildDetails(context, _result!, fr)
-                        else
-                          CalcwisePremiumGate(
-                            title: fr ? 'Analyse REER complète' : 'Full RRSP Analysis',
-                            description: fr
-                                ? 'Remboursement fiscal, coût net, taux marginal et droits restants.'
-                                : 'Tax refund, net cost, marginal rate and remaining room.',
-                            onUnlock: () => PaywallHard.show(context),
-                            price: IAPService.instance.localizedPrice,
-                          ),
+                        _buildDetails(context, _result!, fr),
                       ],
 
                       const SizedBox(height: 16),

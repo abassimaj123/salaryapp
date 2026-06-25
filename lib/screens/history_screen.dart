@@ -51,7 +51,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final data = await historyService.getHistory('salaryapp');
+    final data = await historyService.getHistory('salaryapp', screenId: 'calculator');
     if (!mounted) return;
     // Convert calcwise_core HistoryEntry → local HistoryEntry via l2 snapshot.
     final local = data.map(_coreToLocal).toList();
