@@ -311,11 +311,18 @@ class _MainShellState extends State<MainShell> {
         final s = _strings(useAlt);
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
-        final appTitle = FlavorConfig.isUK
-            ? 'UK Salary Calculator'
-            : (FlavorConfig.isCA
-                ? (fr ? 'Calculateur de salaire' : 'CA Salary Calculator')
-                : (es ? 'Calculadora de Salario' : 'US Salary Calculator'));
+        final tabTitles = [
+          fr ? 'Calculateur' : (es ? 'Calculadora' : 'Calculator'),
+          fr ? 'Rapports' : (es ? 'Reportes' : 'Reports'),
+          fr ? 'Outils' : (es ? 'Herramientas' : 'Tools'),
+          fr ? 'Historique' : (es ? 'Historial' : 'History'),
+        ];
+        final tabIcons = [
+          Icons.calculate_rounded,
+          Icons.bar_chart_rounded,
+          Icons.build_rounded,
+          Icons.history_rounded,
+        ];
         return Scaffold(
           appBar: AppBar(
             flexibleSpace: Container(
@@ -324,12 +331,11 @@ class _MainShellState extends State<MainShell> {
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.calculate_rounded,
-                    color: Colors.white, size: 22),
+                Icon(tabIcons[_index], color: Colors.white, size: 22),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    appTitle,
+                    tabTitles[_index],
                     style: const TextStyle(color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -373,6 +379,8 @@ class _MainShellState extends State<MainShell> {
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+            height: 56,
             onDestinationSelected: (i) async {
               analyticsService.logTabSwitch(i);
               setState(() => _index = i);
