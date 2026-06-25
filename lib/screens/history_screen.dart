@@ -54,7 +54,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final data = await historyService.getHistory('salaryapp', screenId: 'calculator');
     if (!mounted) return;
     // Convert calcwise_core HistoryEntry → local HistoryEntry via l2 snapshot.
-    final local = data.map(_coreToLocal).toList();
+    // Filter out stale entries saved before the l2 schema was in place (grossAnnual=0).
+    final local = data.map(_coreToLocal).where((e) => e.result.grossAnnual > 0).toList();
     setState(() {
       _pinned = local.where((e) => e.isPinned).toList();
       _recent = local.where((e) => !e.isPinned).toList();

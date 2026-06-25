@@ -46,10 +46,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         String t(String en, String esStr) => es ? esStr : en;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(t('Reports', 'Reportes')),
-            elevation: 0,
-          ),
           body: CalcwisePageEntrance(
               child: Column(
             children: [

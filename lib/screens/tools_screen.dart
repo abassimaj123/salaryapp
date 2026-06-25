@@ -61,10 +61,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(t('Tools', 'Herramientas', 'Outils')),
-            elevation: 0,
-          ),
           body: Column(
             children: [
               Expanded(
