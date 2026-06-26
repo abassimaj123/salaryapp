@@ -1338,9 +1338,9 @@ class _Step3Results extends StatelessWidget {
                               color: Colors.white70, fontSize: AppTextSize.md)),
                       Text(
                         _fmt(r.refundOrOwed.abs()),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold),
                       ),
                     ],

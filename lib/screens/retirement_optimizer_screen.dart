@@ -820,7 +820,7 @@ class _RetirementOptimizerScreenState extends State<RetirementOptimizerScreen> {
               Text(
                 _fmtLarge(r.projectedValue30yr),
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primary,
                 ),
