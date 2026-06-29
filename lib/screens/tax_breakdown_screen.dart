@@ -18,6 +18,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwisePageEntrance,
         CalcwiseStaggerItem,
         CalcwisePremiumGate,
+        CalcwiseTax,
         PaywallHard,
         PaywallSoft,
         PaywallTrigger,
@@ -26,6 +27,14 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppTextSize,
         CalcwiseSemanticColors,
         ResultHasher;
+
+// ─── Tax year ────────────────────────────────────────────────────────────────
+// Federal/income-tax brackets and the tax-free allowance (standard deduction /
+// basic personal amount / personal allowance) are sourced from the shared
+// CalcwiseTax registry at this year — no longer hardcoded here — so this
+// display can never diverge from the salary engine.
+
+const int _kTaxYear = 2026;
 
 // ─── Bracket model ───────────────────────────────────────────────────────────
 
@@ -47,41 +56,36 @@ class _BracketResult {
   });
 }
 
-// ─── US 2025 Federal Tax Brackets (single filer) ────────────────────────────
+/// The registry jurisdiction code whose income-tax bands drive the breakdown
+/// for the active flavor.
+String _jurisdictionForFlavor() {
+  if (FlavorConfig.isCA) return 'ca_federal';
+  if (FlavorConfig.isUK) return 'uk';
+  return 'us_federal';
+}
 
-const _kUSStandardDeduction = 15000.0;
+/// Income-tax brackets for the active flavor, derived from the CalcwiseTax
+/// registry (2026). The registry's `bands[i].upTo` are cumulative taxable
+/// ceilings (after the tax-free allowance); we expand them into [_Bracket]
+/// `min`/`max` pairs to feed the existing breakdown widgets unchanged.
+List<_Bracket> _bracketsForFlavor() {
+  final set = CalcwiseTax.registry.annual(_jurisdictionForFlavor(), _kTaxYear);
+  if (set == null) return const [];
+  final out = <_Bracket>[];
+  var lower = 0.0;
+  for (final b in set.bands) {
+    out.add(_Bracket(min: lower, max: b.upTo, rate: b.rate));
+    lower = b.upTo;
+  }
+  return out;
+}
 
-const _kUSBrackets = <_Bracket>[
-  _Bracket(min: 0, max: 11925, rate: 0.10),
-  _Bracket(min: 11925, max: 48475, rate: 0.12),
-  _Bracket(min: 48475, max: 103350, rate: 0.22),
-  _Bracket(min: 103350, max: 197300, rate: 0.24),
-  _Bracket(min: 197300, max: 250525, rate: 0.32),
-  _Bracket(min: 250525, max: 626350, rate: 0.35),
-  _Bracket(min: 626350, max: double.infinity, rate: 0.37),
-];
-
-// ─── CA 2025 Federal Tax Brackets ───────────────────────────────────────────
-
-const _kCABPA = 16129.0;
-
-const _kCABrackets = <_Bracket>[
-  _Bracket(min: 0, max: 57375, rate: 0.145),
-  _Bracket(min: 57375, max: 114750, rate: 0.205),
-  _Bracket(min: 114750, max: 177882, rate: 0.26),
-  _Bracket(min: 177882, max: 253414, rate: 0.29),
-  _Bracket(min: 253414, max: double.infinity, rate: 0.33),
-];
-
-// ─── UK 2025-26 Income Tax Brackets ─────────────────────────────────────────
-
-const _kUKPersonalAllowance = 12570.0;
-
-const _kUKBrackets = <_Bracket>[
-  _Bracket(min: 0, max: 37700, rate: 0.20),
-  _Bracket(min: 37700, max: 125140, rate: 0.40),
-  _Bracket(min: 125140, max: double.infinity, rate: 0.45),
-];
+/// The tax-free allowance (US standard deduction / CA basic personal amount /
+/// UK personal allowance) for the active flavor, from the registry (2026).
+double _deductionForFlavor() {
+  final set = CalcwiseTax.registry.annual(_jurisdictionForFlavor(), _kTaxYear);
+  return set?.basicPersonalAmount ?? 0;
+}
 
 // ─── Province / State data ──────────────────────────────────────────────────
 
@@ -131,18 +135,6 @@ List<_BracketResult> _computeBrackets(
 }
 
 // ─── Flavor helpers ─────────────────────────────────────────────────────────
-
-List<_Bracket> _bracketsForFlavor() {
-  if (FlavorConfig.isCA) return _kCABrackets;
-  if (FlavorConfig.isUK) return _kUKBrackets;
-  return _kUSBrackets;
-}
-
-double _deductionForFlavor() {
-  if (FlavorConfig.isCA) return _kCABPA;
-  if (FlavorConfig.isUK) return _kUKPersonalAllowance;
-  return _kUSStandardDeduction;
-}
 
 String _currencySymbol() {
   if (FlavorConfig.isCA) return 'CA\$';
@@ -355,7 +347,7 @@ class _TaxBreakdownScreenState extends State<TaxBreakdownScreen> {
         final es = FlavorConfig.isUS && useAlt;
         final fr = FlavorConfig.isCA && useAlt;
 
-        final year = '2025';
+        final year = '$_kTaxYear';
         final title = FlavorConfig.isCA
             ? (fr
                 ? 'Tranches d\'imposition fédérale $year'
@@ -573,7 +565,7 @@ class _TaxBreakdownSection extends StatelessWidget {
         ? (fr ? 'Tranche par tranche' : 'Bracket by Bracket')
         : FlavorConfig.isUK
             ? 'Tax Bands'
-            : (es ? 'Tramo por tramo' : '2025 Federal Tax Brackets');
+            : (es ? 'Tramo por tramo' : '$_kTaxYear Federal Tax Brackets');
     final bracketLabel = fr ? 'Tranche' : (es ? 'Tramo' : 'Bracket');
     final rateLabel = fr ? 'Taux' : (es ? 'Tasa' : 'Rate');
     final inBracketLabel =

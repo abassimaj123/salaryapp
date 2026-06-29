@@ -23,6 +23,7 @@ import 'package:calcwise_core/calcwise_core.dart'
         CalcwiseHeroCard,
         CalcwisePageEntrance,
         CalcwisePremiumGate,
+        CalcwiseTax,
         CurrencyInputFormatter,
         PaywallHard,
         PaywallSoft,
@@ -30,22 +31,24 @@ import 'package:calcwise_core/calcwise_core.dart'
         AppSpacing,
         AppRadius,
         AppTextSize,
-        ResultHasher;
+        ResultHasher,
+        TaxBand;
 
 // ─── RRSP Optimizer (CA flavor only) ────────────────────────────────────────
 //
 // How much RRSP contribution minimizes tax to reach a target federal bracket.
 // 2025 RRSP hard cap: $32,490 (18% of prior year earned income, max $32,490).
-// Basic Personal Amount 2025: $16,129.
+//
+// Federal brackets, Basic Personal Amount and provincial marginal rates are
+// sourced from the shared CalcwiseTax registry (2026) — no longer hardcoded
+// here — so this display can never diverge from the salary engine.
 
+const int _kTaxYear = 2026;
 
-// ─── Federal bracket ceilings 2025 (post-BPA taxable income) ─────────────────
-// These are the tops of each bracket applied to (grossIncome - BPA).
-// 15%  → up to $57,375 taxable
-// 20.5%→ up to $114,750 taxable
-// 26%  → up to $177,882 taxable
-// 29%  → up to $253,414 taxable
-// 33%  → above $253,414
+// ─── Federal display bracket ─────────────────────────────────────────────────
+// A purely-presentational row derived from the registry's federal bands. The
+// registry's `bands[i].upTo` is already the top of the bracket expressed in
+// BPA-adjusted *taxable* income, which is exactly what [taxableMax] means here.
 
 class _Bracket {
   final String label;
@@ -55,13 +58,21 @@ class _Bracket {
   const _Bracket(this.label, this.rate, this.taxableMax);
 }
 
-const _brackets = [
-  _Bracket('15%', 0.15, 57375),
-  _Bracket('20.5%', 0.205, 114750),
-  _Bracket('26%', 0.26, 177882),
-  _Bracket('29%', 0.29, 253414),
-  _Bracket('33%', 0.33, double.infinity),
-];
+String _trimPct(double pct) => pct == pct.roundToDouble()
+    ? pct.toStringAsFixed(0)
+    : pct.toStringAsFixed(1);
+
+/// Federal display brackets, derived from the CalcwiseTax registry (2026).
+List<_Bracket> _buildFederalBrackets() {
+  final set = CalcwiseTax.registry.annual('ca_federal', _kTaxYear);
+  if (set == null) return const [];
+  return [
+    for (final b in set.bands)
+      _Bracket('${_trimPct(b.rate * 100)}%', b.rate, b.upTo),
+  ];
+}
+
+final List<_Bracket> _brackets = _buildFederalBrackets();
 
 const _provinces = [
   'AB',
@@ -116,23 +127,50 @@ class _RrspResult {
 class _RrspEngine {
   _RrspEngine._();
 
-  static const double _bpa2025 = 16129;
+  /// Maps a two-letter province postal code to its registry jurisdiction code.
+  static const Map<String, String> _provinceJurisdiction = {
+    'ON': 'ca_on',
+    'QC': 'ca_qc',
+    'BC': 'ca_bc',
+    'AB': 'ca_ab',
+    'MB': 'ca_mb',
+    'SK': 'ca_sk',
+    'NS': 'ca_ns',
+    'NB': 'ca_nb',
+    'NL': 'ca_nl',
+    'PE': 'ca_pe',
+  };
+
+  /// Federal Basic Personal Amount, sourced from the registry (2026).
+  static double get _bpa {
+    final set = CalcwiseTax.registry.annual('ca_federal', _kTaxYear);
+    return set?.basicPersonalAmount ?? 0;
+  }
+
+  /// The marginal rate of [bands] at a given (already-allowance-adjusted)
+  /// [taxable] income. Returns the top band's rate above the last ceiling.
+  static double _marginalForTaxable(List<TaxBand> bands, double taxable) {
+    if (bands.isEmpty) return 0;
+    for (final b in bands) {
+      if (taxable <= b.upTo) return b.rate;
+    }
+    return bands.last.rate;
+  }
 
   static double calcRrspToReachBracket(
       double grossIncome, double targetBracketCeiling, double rrspRoom) {
-    final taxableAfterBPA = grossIncome - _bpa2025;
+    final taxableAfterBPA = grossIncome - _bpa;
     if (taxableAfterBPA <= targetBracketCeiling) return 0;
     return min(taxableAfterBPA - targetBracketCeiling, rrspRoom);
   }
 
-  static double _marginalRate(double grossIncome, [String province = '']) {
-    // Federal marginal rate on gross - BPA
-    final taxable = (grossIncome - _bpa2025).clamp(0.0, double.infinity);
-    if (taxable <= 57375) return 0.15;
-    if (taxable <= 114750) return 0.205;
-    if (taxable <= 177882) return 0.26;
-    if (taxable <= 253414) return 0.29;
-    return 0.33;
+  /// Federal marginal rate on (gross − federal BPA), from the registry bands.
+  static double _marginalRate(double grossIncome) {
+    final set = CalcwiseTax.registry.annual('ca_federal', _kTaxYear);
+    if (set == null) return 0;
+    final taxable = (grossIncome - (set.basicPersonalAmount ?? 0))
+        .clamp(0.0, double.infinity);
+    return _marginalForTaxable(set.bands, taxable);
   }
 
   static _RrspResult calculate({
@@ -141,12 +179,14 @@ class _RrspEngine {
     required int targetBracketIndex,
     required String province,
   }) {
+    final fedSet = CalcwiseTax.registry.annual('ca_federal', _kTaxYear);
+    final bpa = fedSet?.basicPersonalAmount ?? 0;
     final bracket = _brackets[targetBracketIndex];
     final contribution =
         calcRrspToReachBracket(grossIncome, bracket.taxableMax, rrspRoom);
 
-    final marginalRate = _marginalRate(grossIncome, province);
-    // Also fold in approximate provincial rate
+    final marginalRate = _marginalRate(grossIncome);
+    // Also fold in the provincial marginal rate (registry-derived).
     final provRate = _estimateProvincialMarginalRate(grossIncome, province);
     final effectiveMarginal = marginalRate + provRate;
 
@@ -154,18 +194,16 @@ class _RrspEngine {
     final netCost = contribution - taxSaving;
     final remainingRoom = (rrspRoom - contribution).clamp(0.0, double.infinity);
     final taxableAfterRrsp =
-        ((grossIncome - _bpa2025 - contribution).clamp(0.0, double.infinity));
+        ((grossIncome - bpa - contribution).clamp(0.0, double.infinity));
 
-    // Determine actual bracket after RRSP
-    String finalBracket = '33%';
-    if (taxableAfterRrsp <= 57375) {
-      finalBracket = '15%';
-    } else if (taxableAfterRrsp <= 114750) {
-      finalBracket = '20.5%';
-    } else if (taxableAfterRrsp <= 177882) {
-      finalBracket = '26%';
-    } else if (taxableAfterRrsp <= 253414) {
-      finalBracket = '29%';
+    // Determine actual federal bracket after RRSP, from the registry bands.
+    final bands = fedSet?.bands ?? const [];
+    String finalBracket = _brackets.isNotEmpty ? _brackets.last.label : '';
+    for (final b in bands) {
+      if (taxableAfterRrsp <= b.upTo) {
+        finalBracket = '${_trimPct(b.rate * 100)}%';
+        break;
+      }
     }
 
     return _RrspResult(
@@ -181,73 +219,20 @@ class _RrspEngine {
     );
   }
 
+  /// Provincial marginal rate, derived from the registry's provincial bands
+  /// (2026). The registry bands' `upTo` are expressed in *taxable* income
+  /// (after the provincial BPA), so we apply the provincial BPA before the
+  /// lookup. Unknown codes fall back to a 10% flat approximation.
   static double _estimateProvincialMarginalRate(
       double grossIncome, String province) {
-    // 2025 provincial marginal rates
-    switch (province) {
-      case 'QC':
-        if (grossIncome > 129590) return 0.2575;
-        if (grossIncome > 106495) return 0.24;
-        if (grossIncome > 53255) return 0.19;
-        return 0.14;
-      case 'ON':
-        if (grossIncome > 220000) return 0.1316;
-        if (grossIncome > 150000) return 0.1216;
-        if (grossIncome > 105775) return 0.1116;
-        if (grossIncome > 52886) return 0.0915;
-        return 0.0505;
-      case 'BC':
-        if (grossIncome > 259829) return 0.2050;
-        if (grossIncome > 186306) return 0.1680;
-        if (grossIncome > 137407) return 0.1470;
-        if (grossIncome > 113158) return 0.1229;
-        if (grossIncome > 98560) return 0.1050;
-        if (grossIncome > 49279) return 0.0770;
-        return 0.0506;
-      case 'AB':
-        if (grossIncome > 362961) return 0.15;
-        if (grossIncome > 241974) return 0.14;
-        if (grossIncome > 181481) return 0.13;
-        if (grossIncome > 151234) return 0.12;
-        if (grossIncome > 60000) return 0.10;
-        return 0.08;
-      case 'MB':
-        if (grossIncome > 100000) return 0.1740;
-        if (grossIncome > 47000) return 0.1275;
-        return 0.1080;
-      case 'NB':
-        if (grossIncome > 190060) return 0.195;
-        if (grossIncome > 102614) return 0.16;
-        if (grossIncome > 51306) return 0.14;
-        return 0.094;
-      case 'NL':
-        if (grossIncome > 1103478) return 0.218;
-        if (grossIncome > 552455) return 0.215;
-        if (grossIncome > 250000) return 0.211;
-        if (grossIncome > 135973) return 0.184;
-        if (grossIncome > 101198) return 0.158;
-        if (grossIncome > 76145) return 0.131;
-        if (grossIncome > 44192) return 0.104;
-        return 0.087;
-      case 'NS':
-        if (grossIncome > 154650) return 0.21;
-        if (grossIncome > 95883) return 0.175;
-        if (grossIncome > 61015) return 0.1667;
-        if (grossIncome > 30507) return 0.1495;
-        return 0.0879;
-      case 'PE':
-        if (grossIncome > 140000) return 0.19;
-        if (grossIncome > 105000) return 0.1762;
-        if (grossIncome > 64656) return 0.166;
-        if (grossIncome > 33328) return 0.1347;
-        return 0.095;
-      case 'SK':
-        if (grossIncome > 152750) return 0.145;
-        if (grossIncome > 53463) return 0.125;
-        return 0.105;
-      default:
-        return 0.10;
-    }
+    final code = _provinceJurisdiction[province];
+    final set = code == null
+        ? null
+        : CalcwiseTax.registry.annual(code, _kTaxYear);
+    if (set == null) return 0.10;
+    final taxable = (grossIncome - (set.basicPersonalAmount ?? 0))
+        .clamp(0.0, double.infinity);
+    return _marginalForTaxable(set.bands, taxable);
   }
 }
 
@@ -735,8 +720,8 @@ class _RrspOptimizerScreenState extends State<RrspOptimizerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             fr
-                ? '* Estimations basées sur les taux fédéraux 2025 et les taux provinciaux approximatifs. Consultez un conseiller fiscal pour un avis personnalisé.'
-                : '* Estimates based on 2025 federal rates and approximate provincial rates. Consult a tax advisor for personalized advice.',
+                ? '* Estimations basées sur les taux fédéraux et provinciaux 2026. Consultez un conseiller fiscal pour un avis personnalisé.'
+                : '* Estimates based on 2026 federal and provincial rates. Consult a tax advisor for personalized advice.',
             style: TextStyle(
               fontSize: AppTextSize.xs,
               color: AppTheme.labelGray,
