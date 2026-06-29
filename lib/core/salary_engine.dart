@@ -101,200 +101,31 @@ class UsSalaryEngine {
     return ss + medicare + additionalMedicare;
   }
 
-  /// Applies progressive tax brackets to [income].
-  /// [brackets] is a list of (upperBound, rate) pairs in ascending order;
-  /// the last entry's upperBound is ignored (treated as infinity).
-  static double _progressive(
-      double income, List<(double upper, double rate)> brackets) {
-    double tax = 0;
-    double prev = 0;
-    for (int i = 0; i < brackets.length; i++) {
-      final upper = i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
-      final rate = brackets[i].$2;
-      if (income <= prev) break;
-      final taxable = (income < upper ? income : upper) - prev;
-      tax += taxable * rate;
-      prev = upper;
-    }
-    return tax;
-  }
-
-  /// State income tax — progressive brackets where applicable (2025, single filer).
+  /// State income tax — sourced from the shared [TaxRegistry] (`us_<postal>`
+  /// 2026, single filer), not hardcoded here. This eliminates the previous
+  /// divergent-duplicate copy of all 51 state tables.
+  ///
+  /// Each jurisdiction's bracket set carries the verified 2026 bands plus the
+  /// state standard deduction (`basicPersonalAmount`), so [AnnualBracketSet.taxOn]
+  /// applies the standard deduction first and then the marginal bands — the
+  /// accurate single-filer model. No-tax states (TX/FL/NV/…) carry a single
+  /// rate-0 band, so `taxOn` returns 0 naturally.
+  ///
+  /// Data: Tax Foundation 2026, verified 2026-06-29 (calcwise-tax-data repo,
+  /// `research/us_states_2026.md`). MFJ state brackets are NOT yet in the
+  /// registry; this path is single-filer for every state regardless of the
+  /// [calculate] `marriedFilingJointly` flag (federal MFJ is honoured; state is
+  /// approximated with single brackets — flagged for a follow-up migration).
+  ///
+  /// Unknown / unrecognised state codes (no `us_<code>` jurisdiction) fall back
+  /// to a 5% flat approximation, preserving the previous default contract.
   static double stateTax(double grossAnnual, String state) {
-    switch (state) {
-      // ── No state income tax ──────────────────────────────────────────────
-      case 'TX':
-      case 'FL':
-      case 'NV':
-      case 'WA':
-      case 'AK':
-      case 'SD':
-      case 'WY':
-      case 'NH': // only taxes interest/dividends, not wages
-      case 'TN': // Hall tax fully repealed
-        return 0;
-
-      // ── Progressive states ───────────────────────────────────────────────
-
-      // California: 9 brackets + 1 % mental-health surcharge above $1 M
-      case 'CA':
-        final baseTax = _progressive(grossAnnual, [
-          (10756, 0.01),
-          (25499, 0.02),
-          (40245, 0.04),
-          (55866, 0.06),
-          (70606, 0.08),
-          (360659, 0.093),
-          (432787, 0.103),
-          (721314, 0.113),
-          (double.infinity, 0.123),
-        ]);
-        final surcharge =
-            grossAnnual > 1000000 ? (grossAnnual - 1000000) * 0.01 : 0.0;
-        return baseTax + surcharge;
-
-      // New York: 9 brackets
-      case 'NY':
-        return _progressive(grossAnnual, [
-          (17150, 0.04),
-          (23600, 0.045),
-          (27900, 0.0525),
-          (161550, 0.0585),
-          (323200, 0.0625),
-          (2155350, 0.0685),
-          (5000000, 0.0965),
-          (25000000, 0.103),
-          (double.infinity, 0.109),
-        ]);
-
-      // New Jersey: 7 brackets
-      case 'NJ':
-        return _progressive(grossAnnual, [
-          (20000, 0.014),
-          (35000, 0.0175),
-          (40000, 0.035),
-          (75000, 0.05525),
-          (500000, 0.0637),
-          (1000000, 0.0897),
-          (double.infinity, 0.1075),
-        ]);
-
-      // Minnesota: 4 brackets
-      case 'MN':
-        return _progressive(grossAnnual, [
-          (31690, 0.0535),
-          (104090, 0.068),
-          (193240, 0.0785),
-          (double.infinity, 0.0985),
-        ]);
-
-      // Oregon: 4 brackets
-      case 'OR':
-        return _progressive(grossAnnual, [
-          (4050, 0.0475),
-          (10200, 0.0675),
-          (125000, 0.0875),
-          (double.infinity, 0.099),
-        ]);
-
-      // Wisconsin: 4 brackets
-      case 'WI':
-        return _progressive(grossAnnual, [
-          (14320, 0.035),
-          (28640, 0.044),
-          (315310, 0.053),
-          (double.infinity, 0.0765),
-        ]);
-
-      // ── Flat-rate states ─────────────────────────────────────────────────
-      case 'IL':
-        return grossAnnual * 0.0495;
-      case 'PA':
-        return grossAnnual * 0.0307;
-      // Ohio 2025: progressive brackets (no standard deduction applied here)
-      case 'OH':
-        return _progressive(grossAnnual, [
-          (26050, 0.0),
-          (100000, 0.02765),
-          (115300, 0.03226),
-          (1000000, 0.03688),
-          (double.infinity, 0.0399),
-        ]);
-      case 'GA':
-        return grossAnnual * 0.0539; // 5.39% flat (2025)
-      case 'NC':
-        return grossAnnual * 0.0425; // 4.25% flat (2025)
-      // Virginia 2025: progressive brackets
-      case 'VA':
-        return _progressive(grossAnnual, [
-          (3000, 0.02),
-          (5000, 0.03),
-          (17000, 0.05),
-          (double.infinity, 0.0575),
-        ]);
-      case 'MA':
-        return grossAnnual * 0.05;
-      case 'CO':
-        return grossAnnual * 0.044;
-      case 'AZ':
-        return grossAnnual * 0.025;
-      case 'MD':
-        return grossAnnual * 0.0575;
-      case 'MI':
-        return grossAnnual * 0.0425;
-      case 'IN':
-        return grossAnnual * 0.0323;
-      case 'KY':
-        return grossAnnual * 0.045;
-      case 'MO':
-        return grossAnnual * 0.0495;
-      case 'AL':
-        return grossAnnual * 0.05;
-      case 'SC':
-        return grossAnnual * 0.064; // 6.4% flat (2024, stepped down from 7%)
-      case 'LA':
-        return grossAnnual * 0.030; // 3.0% flat (HB 10, eff. Jan 1 2025)
-      case 'AR':
-        return grossAnnual * 0.044; // 4.4% flat (Act 1 of 2024 session)
-      case 'MS':
-        return grossAnnual * 0.05;
-      case 'ID':
-        return grossAnnual * 0.05695; // 5.695% flat (2024+)
-      case 'NM':
-        return grossAnnual * 0.059;
-      case 'MT':
-        return grossAnnual * 0.059; // 5.9% flat (HB 192, eff. Jan 1 2024)
-      case 'UT':
-        return grossAnnual * 0.0465;
-      case 'ND':
-        return grossAnnual * 0.029;
-      case 'HI':
-        return grossAnnual * 0.11;
-      case 'VT':
-        return grossAnnual * 0.0875;
-      case 'ME':
-        return grossAnnual * 0.0715;
-      case 'CT':
-        return grossAnnual * 0.0699;
-      case 'RI':
-        return grossAnnual * 0.0599;
-      case 'DE':
-        return grossAnnual * 0.066;
-      case 'DC':
-        return grossAnnual * 0.0895;
-      case 'WV':
-        return grossAnnual * 0.0512; // 5.12% top rate (SB 2, 2023)
-      case 'KS':
-        return grossAnnual * 0.057;
-      case 'NE':
-        return grossAnnual * 0.0584; // 5.84% flat (LB 754, eff. Jan 1 2024)
-      case 'IA':
-        return grossAnnual * 0.038; // 3.8% flat (eff. Jan 2025)
-      case 'OK':
-        return grossAnnual * 0.0475;
-      default:
-        return grossAnnual * 0.05;
+    final set = _reg.annual('us_${state.toLowerCase()}', 2026);
+    if (set == null) {
+      // Code not present in the registry → 5% flat approximation (legacy default).
+      return grossAnnual * 0.05;
     }
+    return set.taxOn(grossAnnual);
   }
 
   /// [secondIncome] – additional W-2 gross income (annual). The two incomes are

@@ -74,12 +74,22 @@ void main() {
       expect(UsSalaryEngine.stateTax(100000, 'TX'), 0.0);
     });
 
-    test('California — progressive brackets (~5842 on 100k)', () {
-      // CA uses 9 progressive brackets; effective tax on $100k ≈ $5,842
-      approx(UsSalaryEngine.stateTax(100000, 'CA'), 5842, tolerance: 5);
+    test('California — registry brackets w/ std deduction (~5223 on 100k)', () {
+      // Now sourced from CalcwiseTax registry (us_ca 2026, single filer):
+      // standard deduction (BPA) $5,540 → taxable $94,460, applied across the
+      // verified 2026 bands. taxOn(100000) = $5,223.42. The old hardcoded copy
+      // returned ~$5,842 (stale 2025 thresholds + no std deduction); the
+      // registry (Tax Foundation 2026, verified) is the source of truth.
+      approx(UsSalaryEngine.stateTax(100000, 'CA'), 5223.42, tolerance: 1.0);
     });
 
-    test('unknown state — defaults to 5%', () {
+    test('Pennsylvania — flat 3.07%, no std deduction (registry)', () {
+      // us_pa 2026: flat 3.07%, no standard deduction → 85000 × 0.0307 = 2609.5
+      approx(UsSalaryEngine.stateTax(85000, 'PA'), 2609.5, tolerance: 1.0);
+    });
+
+    test('unknown state — defaults to 5% (registry has no us_zz)', () {
+      // Codes absent from the registry keep the legacy 5% flat approximation.
       approx(UsSalaryEngine.stateTax(100000, 'ZZ'), 5000);
     });
   });
