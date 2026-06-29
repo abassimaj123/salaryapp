@@ -604,14 +604,14 @@ class UkSalaryEngine {
   }
 
   /// Student loan repayment 2025/26 (9% above plan threshold).
-  /// Plan 1: £24,990 | Plan 2: £27,295 | Plan 4 (Scotland): £31,395 | Plan 5: £25,000
-  /// Plan 0 / negative = none.
+  /// Plan 1: £26,065 | Plan 2: £28,470 | Plan 4 (Scotland): £32,745 | Plan 5: £25,000
+  /// Plan 0 / negative = none. Sources: gov.uk / House of Commons Library CBP-10654.
   static double studentLoanRepayment(double grossAnnual, {int plan = 2}) {
     final threshold = switch (plan) {
-      1 => 24990.0,
-      4 => 31395.0, // Plan 4 (Scotland) 2025/26
+      1 => 26065.0,
+      4 => 32745.0, // Plan 4 (Scotland) 2025/26
       5 => 25000.0,
-      _ => 27295.0, // Plan 2
+      _ => 28470.0, // Plan 2
     };
     if (grossAnnual <= threshold) return 0;
     return (grossAnnual - threshold) * 0.09;
