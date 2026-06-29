@@ -68,19 +68,19 @@ class UsSalaryEngine {
   /// the same registry can be swapped for a remote-updated dataset.
   static TaxRegistry get _reg => CalcwiseTax.registry;
 
-  /// Federal income tax 2025 — brackets + standard deduction now sourced from
-  /// the shared [TaxRegistry] (`us_federal` 2025; default = single filer, `mfj`
+  /// Federal income tax 2026 — brackets + standard deduction now sourced from
+  /// the shared [TaxRegistry] (`us_federal` 2026; default = single filer, `mfj`
   /// variant for married filing jointly). [preTaxDeductions] reduces taxable
-  /// income (e.g. 401k, HSA, FSA). Data verified vs IRS (Rev. Proc. 2024-40 +
+  /// income (e.g. 401k, HSA, FSA). Data verified vs IRS (Rev. Proc. 2025 +
   /// OBBBA standard deduction). See the calcwise-tax-data repo.
   static double federalTax(
     double grossAnnual, {
     bool marriedFilingJointly = false,
     double preTaxDeductions = 0,
   }) {
-    final set = _reg.annual('us_federal', 2025,
+    final set = _reg.annual('us_federal', 2026,
             status: marriedFilingJointly ? 'mfj' : null) ??
-        _reg.annual('us_federal', 2025);
+        _reg.annual('us_federal', 2026);
     if (set == null) return 0.0; // baked data guarantees presence; guard only
     final taxable =
         (grossAnnual - (set.basicPersonalAmount ?? 0) - preTaxDeductions)
@@ -88,15 +88,22 @@ class UsSalaryEngine {
     return taxOnIncome(set.bands, taxable);
   }
 
-  /// FICA 2025: Social Security (6.2% up to $176,100 SS wage base) +
+  /// FICA 2026: Social Security (6.2% up to the $184,500 SS wage base) +
   /// Medicare (1.45%) + Additional Medicare surtax (0.9% above $200,000 single).
+  /// Wage base, Medicare rate and additional-Medicare surtax now sourced from
+  /// the shared [TaxRegistry] (`us_federal` 2026 contributions), not hardcoded.
   static double fica(double grossAnnual) {
-    const double ssWageBase2025 = 176100;
-    const double additionalMedicareThreshold = 200000;
-    final ss = min(grossAnnual, ssWageBase2025) * 0.062;
-    final medicare = grossAnnual * 0.0145;
-    final additionalMedicare = grossAnnual > additionalMedicareThreshold
-        ? (grossAnnual - additionalMedicareThreshold) * 0.009
+    final ssC = _reg.contribution('us_federal', 2026, 'socialSecurity');
+    final medC = _reg.contribution('us_federal', 2026, 'medicare');
+    final ssRate = ssC?.rate ?? 0.062;
+    final ssWageBase = ssC?.ceiling ?? 184500;
+    final medRate = medC?.rate ?? 0.0145;
+    final addlMedRate = medC?.additionalRate ?? 0.009;
+    final addlMedThreshold = medC?.additionalThreshold ?? 200000;
+    final ss = min(grossAnnual, ssWageBase) * ssRate;
+    final medicare = grossAnnual * medRate;
+    final additionalMedicare = grossAnnual > addlMedThreshold
+        ? (grossAnnual - addlMedThreshold) * addlMedRate
         : 0.0;
     return ss + medicare + additionalMedicare;
   }
@@ -359,8 +366,8 @@ class UkSalaryEngine {
   /// Centralized tax tables (calcwise_core). Baked-in floor; remote-updatable.
   static TaxRegistry get _reg => CalcwiseTax.registry;
 
-  /// England, Wales & N. Ireland income tax 2025/26. Bands sourced from the
-  /// shared [TaxRegistry] (`uk` 2025); the HMRC tax code (allowance/taper/K/0T)
+  /// England, Wales & N. Ireland income tax 2026/27. Bands sourced from the
+  /// shared [TaxRegistry] (`uk` 2026); the HMRC tax code (allowance/taper/K/0T)
   /// is resolved by [_taxableForCode] first. (Computing bands via the registry
   /// also corrects the old £42,384 additional-rate cumulative discontinuity.)
   static double _englandWalesIncomeTax(double grossAnnual,
@@ -368,21 +375,20 @@ class UkSalaryEngine {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    final ukBands = _reg.annual('uk', 2025)?.bands;
+    final ukBands = _reg.annual('uk', 2026)?.bands;
     if (ukBands == null) return 0.0; // baked data guarantees presence; guard only
     return taxOnIncome(ukBands, taxable);
   }
 
-  /// Scottish income tax 2025/26 (6 bands). Bands sourced from the shared
-  /// [TaxRegistry] (`uk_scotland` 2025) — this CORRECTS previously stale 2024/25
-  /// thresholds (starter £2,306→£2,827, basic £13,991→£14,921) and the
-  /// advanced/top boundary. The HMRC tax code is resolved by [_taxableForCode].
+  /// Scottish income tax 2026/27 (6 bands). Bands sourced from the shared
+  /// [TaxRegistry] (`uk_scotland` 2026). The HMRC tax code is resolved by
+  /// [_taxableForCode].
   static double _scottishIncomeTax(double grossAnnual,
       {double salarySacrifice = 0, UkTaxCode? taxCode}) {
     final adjustedGross = grossAnnual - salarySacrifice;
     final taxable = _taxableForCode(adjustedGross, taxCode ?? UkTaxCode.standard);
     if (taxable <= 0) return 0;
-    final scotBands = _reg.annual('uk_scotland', 2025)?.bands;
+    final scotBands = _reg.annual('uk_scotland', 2026)?.bands;
     if (scotBands == null) return 0.0; // baked data guarantees presence; guard only
     return taxOnIncome(scotBands, taxable);
   }
@@ -419,41 +425,55 @@ class UkSalaryEngine {
   }
 
   /// NI Class 1 (employee) 2026/27: 8% on £12,570–£50,270, 2% above.
-  /// Salary sacrifice reduces NIable earnings.
+  /// Salary sacrifice reduces NIable earnings. Thresholds and rates now sourced
+  /// from the shared [TaxRegistry] (`uk` 2026 `niClass1`), not hardcoded.
   static double nationalInsurance(double grossAnnual,
       {double salarySacrifice = 0}) {
+    final ni = _reg.contribution('uk', 2026, 'niClass1');
+    final pt = ni?.primaryThreshold ?? _niPrimaryThreshold;
+    final uel = ni?.upperEarningsLimit ?? _niUpperEarningsLimit;
+    final mainRate = ni?.mainRate ?? 0.08;
+    final upperRate = ni?.upperRate ?? 0.02;
     final niableGross = grossAnnual - salarySacrifice;
-    if (niableGross <= _niPrimaryThreshold) return 0;
-    final lower =
-        (niableGross.clamp(_niPrimaryThreshold, _niUpperEarningsLimit) -
-                _niPrimaryThreshold) *
-            0.08;
-    final upper = niableGross > _niUpperEarningsLimit
-        ? (niableGross - _niUpperEarningsLimit) * 0.02
-        : 0.0;
+    if (niableGross <= pt) return 0;
+    final lower = (niableGross.clamp(pt, uel) - pt) * mainRate;
+    final upper = niableGross > uel ? (niableGross - uel) * upperRate : 0.0;
     return lower + upper;
   }
 
-  /// Student loan repayment 2025/26 (9% above plan threshold).
-  /// Plan 1: £26,065 | Plan 2: £28,470 | Plan 4 (Scotland): £32,745 | Plan 5: £25,000
-  /// Plan 0 / negative = none. Sources: gov.uk / House of Commons Library CBP-10654.
+  /// Student loan repayment 2026/27 (9% above plan threshold). Thresholds + rate
+  /// now sourced from the shared [TaxRegistry] (`studentLoan('uk',2026,plan)`):
+  /// Plan 1: £26,900 | Plan 2: £29,385 | Plan 4 (Scotland): £33,795 | Plan 5: £25,000
+  /// Plan 0 / negative = none. Sources: gov.uk / House of Commons Library.
   static double studentLoanRepayment(double grossAnnual, {int plan = 2}) {
-    final threshold = switch (plan) {
-      1 => 26065.0,
-      4 => 32745.0, // Plan 4 (Scotland) 2025/26
-      5 => 25000.0,
-      _ => 28470.0, // Plan 2
+    final planKey = switch (plan) {
+      1 => 'plan1',
+      4 => 'plan4',
+      5 => 'plan5',
+      _ => 'plan2',
     };
+    final sl = _reg.studentLoan('uk', 2026, planKey);
+    final threshold = sl?.threshold ??
+        switch (plan) {
+          1 => 26900.0,
+          4 => 33795.0,
+          5 => 25000.0,
+          _ => 29385.0,
+        };
+    final rate = sl?.rate ?? 0.09;
     if (grossAnnual <= threshold) return 0;
-    return (grossAnnual - threshold) * 0.09;
+    return (grossAnnual - threshold) * rate;
   }
 
-  /// Postgraduate Loan (Plan 3) repayment 2025/26: 6% above £21,000.
+  /// Postgraduate Loan (Plan 3) repayment 2026/27: 6% above £21,000. Threshold +
+  /// rate sourced from the shared [TaxRegistry] (`studentLoan('uk',2026,'postgrad')`).
   /// Cumulable with a main undergraduate plan (1/2/4/5).
   static double postgradLoanRepayment(double grossAnnual) {
-    const threshold = 21000.0;
+    final sl = _reg.studentLoan('uk', 2026, 'postgrad');
+    final threshold = sl?.threshold ?? 21000.0;
+    final rate = sl?.rate ?? 0.06;
     if (grossAnnual <= threshold) return 0;
-    return (grossAnnual - threshold) * 0.06;
+    return (grossAnnual - threshold) * rate;
   }
 
   // ── Auto-enrolment / qualifying earnings (2025/26) ──────────────────────────
@@ -600,166 +620,143 @@ class CaSalaryEngine {
   /// the same registry can be swapped for a remote-updated dataset.
   static TaxRegistry get _reg => CalcwiseTax.registry;
 
-  /// Federal tax 2025 — brackets + Basic Personal Amount now sourced from the
-  /// shared [TaxRegistry] (`ca_federal` 2025), not hardcoded here. The lowest
-  /// band carries the official 14.5% blended 2025 rate (15%→14% on 2025-07-01).
-  /// Source of the data: canada.ca (CRA), verified 2026-06-13. See the
-  /// calcwise-tax-data repo for the canonical dataset + golden tests.
+  /// Federal tax 2026 — brackets + Basic Personal Amount now sourced from the
+  /// shared [TaxRegistry] (`ca_federal` 2026), not hardcoded here. The lowest
+  /// band carries the 2026 lowest rate (14%, the first full year after the
+  /// 15%→14% reduction took effect mid-2025).
+  /// Source of the data: canada.ca (CRA). See the calcwise-tax-data repo for
+  /// the canonical dataset + golden tests.
   static double federalTax(double grossAnnual) {
-    final set = _reg.annual('ca_federal', 2025);
+    final set = _reg.annual('ca_federal', 2026);
     if (set == null) return 0.0; // baked data guarantees presence; guard only
     final taxable = (grossAnnual - (set.basicPersonalAmount ?? 0))
         .clamp(0.0, double.infinity);
     return taxOnIncome(set.bands, taxable);
   }
 
-  // ── 2026 CPP / EI constants ─────────────────────────────────────────────────
-  // Sources (verified 2026-06-13):
-  //  - CPP rates/maximums & CPP2: canada.ca/en/revenue-agency/.../canada-pension-plan-cpp/
-  //    cpp-contribution-rates-maximums-exemptions.html
-  //    YMPE 2026 = $74,600 · YAMPE 2026 = $85,000 · CPP1 5.95% · CPP2 4.00%.
-  //    QPP 2026 (Revenu Québec) shares the same YMPE/YAMPE ceilings; QPP base
-  //    employee rate is 5.4% vs CPP 5.95% — modelled here with the single CPP
-  //    rate as a portfolio-wide simplification (see TODO in calculate()).
-  //  - EI 2026: canada.ca/.../employment-insurance-ei/ei-premium-rates-maximums.html
-  //    MIE 2026 = $68,900 · employee rate (rest of Canada) = 1.63%
-  //    QC employee rate = 1.30% (reduced because QC operates QPIP separately).
-  //  - QPP 2026 (Revenu Québec): base employee rate 5.40% (vs CPP 5.95%).
-  //    QPP2 second ceiling 4.00% = same as CPP2. Modelled separately from CPP.
+  // ── 2026 CPP / QPP / EI — sourced from the shared TaxRegistry ────────────────
+  // All rates/ceilings now come from CalcwiseTax (`ca_federal` / `ca_qc` 2026
+  // contributions) rather than hardcoded constants:
+  //  - ca_federal cpp  {rate .0595, exemption 3500, ceiling 74600 (YMPE)}
+  //  - ca_federal cpp2 {rate .04, lowerThreshold 74600, ceiling 85000 (YAMPE)}
+  //  - ca_federal ei   {rate .0163, ceiling 68900}
+  //  - ca_qc      qpp  {rate .063, exemption 3500, ceiling 74600}
+  //  - ca_qc      qpp2 {rate .04, lowerThreshold 74600, ceiling 85000}
+  //  - ca_qc      ei   {rate .013, ceiling 68900} (reduced — QC runs QPIP)
+  // Literals below are FALLBACKS only (baked data guarantees the registry path).
   static const double _cpp1BasicExemption = 3500;
   static const double _ympe2026 = 74600; // CPP1 / QPP1 first ceiling (YMPE)
   static const double _yampe2026 = 85000; // CPP2 / QPP2 second ceiling (YAMPE)
-  static const double _cpp1Rate = 0.0595;
-  static const double _qpp1Rate = 0.0540; // QPP employee rate 2026 (QC only)
-  static const double _cpp2Rate = 0.04;
   static const double _eiInsurableMax2026 = 68900;
-  static const double _eiRate2026 = 0.0163; // employee rate (rest of Canada)
-  static const double _eiRateQc2026 = 0.0130; // QC employee rate (QPIP offset)
 
-  /// CPP1 2026: 5.95% on earnings $3,500–$74,600 (YMPE).
+  /// CPP1 2026: 5.95% on earnings $3,500–$74,600 (YMPE). Registry-sourced.
   static double cpp1(double grossAnnual) {
-    final pensionable =
-        grossAnnual.clamp(_cpp1BasicExemption, _ympe2026) - _cpp1BasicExemption;
-    return pensionable * _cpp1Rate;
+    final c = _reg.contribution('ca_federal', 2026, 'cpp');
+    final exemption = c?.exemption ?? _cpp1BasicExemption;
+    final ceiling = c?.ceiling ?? _ympe2026;
+    final rate = c?.rate ?? 0.0595;
+    final pensionable = grossAnnual.clamp(exemption, ceiling) - exemption;
+    return pensionable * rate;
   }
 
   /// CPP2 / QPP2 2026: 4.00% on earnings from YMPE ($74,600) up to YAMPE
-  /// ($85,000). Second additional contribution, phased in 2024, fully effective
-  /// since 2025.
+  /// ($85,000). Second additional contribution, fully effective since 2025.
+  /// Registry-sourced (`ca_federal` `cpp2`).
   static double cpp2(double grossAnnual) {
-    if (grossAnnual <= _ympe2026) return 0;
-    return (min(grossAnnual, _yampe2026) - _ympe2026) * _cpp2Rate;
+    final c = _reg.contribution('ca_federal', 2026, 'cpp2');
+    final lower = c?.lowerThreshold ?? _ympe2026;
+    final ceiling = c?.ceiling ?? _yampe2026;
+    final rate = c?.rate ?? 0.04;
+    if (grossAnnual <= lower) return 0;
+    return (min(grossAnnual, ceiling) - lower) * rate;
   }
 
   /// Combined CPP (CPP1 + CPP2) 2026.
   static double cpp(double grossAnnual) =>
       cpp1(grossAnnual) + cpp2(grossAnnual);
 
-  /// QPP1 2026: 5.40% on earnings $3,500–$74,600 (Quebec employees only).
+  /// QPP1 2026: 6.30% on earnings $3,500–$74,600 (Quebec employees only).
+  /// Registry-sourced (`ca_qc` `qpp`).
   static double qpp1(double grossAnnual) {
-    final pensionable =
-        grossAnnual.clamp(_cpp1BasicExemption, _ympe2026) - _cpp1BasicExemption;
-    return pensionable * _qpp1Rate;
+    final c = _reg.contribution('ca_qc', 2026, 'qpp');
+    final exemption = c?.exemption ?? _cpp1BasicExemption;
+    final ceiling = c?.ceiling ?? _ympe2026;
+    final rate = c?.rate ?? 0.063;
+    final pensionable = grossAnnual.clamp(exemption, ceiling) - exemption;
+    return pensionable * rate;
   }
 
-  /// Combined QPP (QPP1 + QPP2) 2026. QPP2 rate/ceiling = CPP2 (identical).
+  /// QPP2 2026: second additional QPP contribution (YMPE→YAMPE).
+  /// Registry-sourced (`ca_qc` `qpp2`); rate/ceiling = CPP2.
+  static double qpp2(double grossAnnual) {
+    final c = _reg.contribution('ca_qc', 2026, 'qpp2');
+    final lower = c?.lowerThreshold ?? _ympe2026;
+    final ceiling = c?.ceiling ?? _yampe2026;
+    final rate = c?.rate ?? 0.04;
+    if (grossAnnual <= lower) return 0;
+    return (min(grossAnnual, ceiling) - lower) * rate;
+  }
+
+  /// Combined QPP (QPP1 + QPP2) 2026.
   static double qpp(double grossAnnual) =>
-      qpp1(grossAnnual) + cpp2(grossAnnual);
+      qpp1(grossAnnual) + qpp2(grossAnnual);
 
   /// EI 2026: 1.63% (rest of Canada) up to insurable max $68,900.
+  /// Registry-sourced (`ca_federal` `ei`).
   static double ei(double grossAnnual) {
-    return grossAnnual.clamp(0, _eiInsurableMax2026) * _eiRate2026;
+    final c = _reg.contribution('ca_federal', 2026, 'ei');
+    final ceiling = c?.ceiling ?? _eiInsurableMax2026;
+    final rate = c?.rate ?? 0.0163;
+    return grossAnnual.clamp(0, ceiling) * rate;
   }
 
   /// EI 2026 Quebec: 1.30% up to insurable max $68,900 (QPIP offset).
+  /// Registry-sourced (`ca_qc` `ei`).
   static double eiQc(double grossAnnual) {
-    return grossAnnual.clamp(0, _eiInsurableMax2026) * _eiRateQc2026;
+    final c = _reg.contribution('ca_qc', 2026, 'ei');
+    final ceiling = c?.ceiling ?? _eiInsurableMax2026;
+    final rate = c?.rate ?? 0.013;
+    return grossAnnual.clamp(0, ceiling) * rate;
   }
 
-  /// Applies progressive brackets to [income].
-  /// [brackets] is a list of (upperBound, rate) pairs in ascending order;
-  /// the last entry's upperBound is treated as infinity.
-  static double _progressive(
-      double income, List<(double upper, double rate)> brackets) {
-    double tax = 0;
-    double prev = 0;
-    for (int i = 0; i < brackets.length; i++) {
-      final upper = i < brackets.length - 1 ? brackets[i].$1 : double.infinity;
-      final rate = brackets[i].$2;
-      if (income <= prev) break;
-      final taxable = (income < upper ? income : upper) - prev;
-      tax += taxable * rate;
-      prev = upper;
-    }
-    return tax;
+  /// Maps a two-letter province postal code to its registry jurisdiction code.
+  static const Map<String, String> _provinceJurisdiction = {
+    'ON': 'ca_on',
+    'QC': 'ca_qc',
+    'BC': 'ca_bc',
+    'AB': 'ca_ab',
+    'MB': 'ca_mb',
+    'SK': 'ca_sk',
+    'NS': 'ca_ns',
+    'NB': 'ca_nb',
+    'NL': 'ca_nl',
+    'PE': 'ca_pe',
+  };
+
+  /// Quebec federal tax abatement (2026): QC residents pay 16.5% less federal
+  /// income tax because QC funds its own parallel social programs. The 0.165
+  /// rate is read from the `ca_qc` jurisdiction's [federalAbatement] when
+  /// present, falling back to the long-standing 0.165 constant.
+  static double quebecFederalAbatement(double grossAnnual) {
+    final abatement = _reg.jurisdiction('ca_qc')?.federalAbatement ?? 0.165;
+    return federalTax(grossAnnual) * abatement;
   }
 
-  /// Ontario 2025: 5 progressive brackets, BPA $12,747.
-  static double _ontarioProvincialTax(double grossAnnual) {
-    final taxable = (grossAnnual - 12747).clamp(0.0, double.infinity);
-    return _progressive(taxable, [
-      (52886, 0.0505),
-      (105775, 0.0915),
-      (150000, 0.1116),
-      (220000, 0.1216),
-      (double.infinity, 0.1316),
-    ]);
-  }
-
-  /// British Columbia 2025: 7 progressive brackets, BPA $11,981.
-  static double _bcProvincialTax(double grossAnnual) {
-    final taxable = (grossAnnual - 11981).clamp(0.0, double.infinity);
-    return _progressive(taxable, [
-      (49279, 0.0506),
-      (98560, 0.0770),
-      (113158, 0.1050),
-      (137407, 0.1229),
-      (186306, 0.1470),
-      (259829, 0.1680),
-      (double.infinity, 0.2050),
-    ]);
-  }
-
-  /// Quebec 2025 provincial tax — 4 progressive brackets.
-  /// Personal basic amount: $18,571 CAD (2025).
-  static double _quebecProvincialTax(double grossAnnual) {
-    // Taxable income after QC basic personal amount
-    final taxable = (grossAnnual - 18571).clamp(0.0, double.infinity);
-    if (taxable <= 53255) return taxable * 0.14;
-    if (taxable <= 106495) return 7455.70 + (taxable - 53255) * 0.19;
-    if (taxable <= 129590) return 17571.30 + (taxable - 106495) * 0.24;
-    return 23113.10 + (taxable - 129590) * 0.2575;
-  }
-
-  /// Quebec federal tax abatement (2026): QC residents pay 16.5% less
-  /// federal income tax because QC funds its own parallel social programs.
-  static double quebecFederalAbatement(double grossAnnual) =>
-      federalTax(grossAnnual) * 0.165;
-
-  /// Provincial income-tax. ON and BC use proper progressive brackets (2025).
-  /// Other provinces use calibrated flat rates as reasonable approximations.
+  /// Provincial income tax — all provinces now sourced from the shared
+  /// [TaxRegistry] (`ca_<prov>` 2026, single filer): each jurisdiction carries
+  /// its verified 2026 progressive bands plus its basic personal amount, and
+  /// [AnnualBracketSet.taxOn] applies the BPA first then the marginal bands.
+  /// This replaces the previous mix of hardcoded ON/BC/QC brackets and flat-rate
+  /// approximations for the other provinces. Unknown codes fall back to a 5.05%
+  /// flat approximation with a $10,000 exemption (legacy default contract).
   static double provincialTax(double grossAnnual, String province) {
-    switch (province) {
-      case 'QC':
-        return _quebecProvincialTax(grossAnnual);
-      case 'ON':
-        return _ontarioProvincialTax(grossAnnual);
-      case 'BC':
-        return _bcProvincialTax(grossAnnual);
-      default:
-        // Flat-rate approximations for remaining provinces (2025 estimates).
-        const rates = <String, double>{
-          'AB': 0.10,
-          'MB': 0.108,
-          'SK': 0.105,
-          'NS': 0.0879,
-          'NB': 0.094,
-          'NL': 0.087,
-          'PE': 0.098,
-        };
-        final taxable = (grossAnnual - 10000).clamp(0.0, double.infinity);
-        return taxable * (rates[province] ?? 0.0505);
+    final code = _provinceJurisdiction[province];
+    final set = code == null ? null : _reg.annual(code, 2026);
+    if (set == null) {
+      final taxable = (grossAnnual - 10000).clamp(0.0, double.infinity);
+      return taxable * 0.0505;
     }
+    return set.taxOn(grossAnnual);
   }
 
   /// [secondIncome] – additional employment income (annual). Cumulated with the

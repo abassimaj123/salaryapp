@@ -56,10 +56,10 @@ void main() {
   });
 
   group('Regression guard — UsSalaryEngine', () {
-    test(r'RG-US-1: federal tax 75k (2025: taxable=59,250 after $15,750 std deduction)', () {
+    test(r'RG-US-1: federal tax 75k (2026: taxable=58,900 after $16,100 std deduction)', () {
       final tax = UsSalaryEngine.federalTax(75000);
-      // 2025 (OBBBA std deduction $15,750): 1192.5+4386+22%×(59250-48475)=7949
-      expect(tax, closeTo(7949, 50));
+      // 2026 registry (us_federal): 1240 + 12%×38000=4560 + 22%×(58900-50400)=1870 = 7670
+      expect(tax, closeTo(7670, 50));
     });
 
     test('RG-US-2: FICA = SS 6.2% + Medicare 1.45% sur 75k', () {
