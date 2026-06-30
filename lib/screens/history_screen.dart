@@ -28,9 +28,55 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
+/// Human-readable labels for the non-calculator save-capable tools, keyed by
+/// screenId. Used to render a generic history card/detail for tools that
+/// don't share the calculator's [SalaryResult] schema.
+const Map<String, String> _kToolLabelsEn = {
+  'benefits': 'Benefits Calculator',
+  'bonus': 'Bonus Calculator',
+  'raise': 'Raise Calculator',
+  'retirement_optimizer': 'Retirement Optimizer',
+  'rrsp_optimizer': 'RRSP Optimizer',
+  'salary_comparison': 'Salary Comparison',
+  'tax_breakdown': 'Tax Breakdown',
+  'w4_wizard': 'W-4 Wizard',
+};
+const Map<String, String> _kToolLabelsFr = {
+  'benefits': 'Avantages sociaux',
+  'bonus': 'Calculateur de prime',
+  'raise': 'Calculateur d’augmentation',
+  'retirement_optimizer': 'Optimiseur de retraite',
+  'rrsp_optimizer': 'Optimiseur REER',
+  'salary_comparison': 'Comparaison de salaire',
+  'tax_breakdown': 'Répartition fiscale',
+  'w4_wizard': 'Assistant W-4',
+};
+const Map<String, String> _kToolLabelsEs = {
+  'benefits': 'Calculadora de beneficios',
+  'bonus': 'Calculadora de bono',
+  'raise': 'Calculadora de aumento',
+  'retirement_optimizer': 'Optimizador de jubilación',
+  'rrsp_optimizer': 'Optimizador RRSP',
+  'salary_comparison': 'Comparación de salario',
+  'tax_breakdown': 'Desglose de impuestos',
+  'w4_wizard': 'Asistente W-4',
+};
+
+String _toolLabel(String screenId, bool fr, bool es) {
+  final map = fr ? _kToolLabelsFr : (es ? _kToolLabelsEs : _kToolLabelsEn);
+  return map[screenId] ?? screenId;
+}
+
 class _HistoryScreenState extends State<HistoryScreen> {
   List<HistoryEntry> _pinned = [];
   List<HistoryEntry> _recent = [];
+  // Entries from the other 8 save-capable tools (benefits, bonus, raise,
+  // retirement_optimizer, rrsp_optimizer, salary_comparison, tax_breakdown,
+  // w4_wizard). They don't share the calculator's SalaryResult schema, so
+  // they're displayed with a generic l1-based card/detail instead of being
+  // forced through [_HistoryCard] / [HistoryDetailScreen].
+  List<core.HistoryEntry> _otherPinned = [];
+  List<core.HistoryEntry> _otherRecent = [];
   bool _loading = true;
   String _searchQuery = '';
 
@@ -51,14 +97,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final data = await historyService.getHistory('salaryapp', screenId: 'calculator');
+    // No screenId filter: History shows entries from every save-capable tool
+    // (calculator, benefits, bonus, raise, retirement_optimizer,
+    // rrsp_optimizer, salary_comparison, tax_breakdown, w4_wizard) since none
+    // of them have a dedicated history view of their own.
+    final data = await historyService.getHistory('salaryapp');
     if (!mounted) return;
+
+    // Calculator entries share the SalaryResult schema → typed flow.
+    final calcEntries = data.where((e) => e.screenId == 'calculator').toList();
     // Convert calcwise_core HistoryEntry → local HistoryEntry via l2 snapshot.
     // Filter out stale entries saved before the l2 schema was in place (grossAnnual=0).
-    final local = data.map(_coreToLocal).where((e) => e.result.grossAnnual > 0).toList();
+    final local = calcEntries
+        .map(_coreToLocal)
+        .where((e) => e.result.grossAnnual > 0)
+        .toList();
+
+    // The other 8 save-capable tools (benefits, bonus, raise,
+    // retirement_optimizer, rrsp_optimizer, salary_comparison, tax_breakdown,
+    // w4_wizard) use their own l1/l2 schemas — shown via a generic card.
+    final otherEntries =
+        data.where((e) => e.screenId != 'calculator').toList();
+
     setState(() {
       _pinned = local.where((e) => e.isPinned).toList();
       _recent = local.where((e) => !e.isPinned).toList();
+      _otherPinned = otherEntries.where((e) => e.isPinned).toList();
+      _otherRecent = otherEntries.where((e) => !e.isPinned).toList();
       _loading = false;
     });
   }
@@ -201,7 +266,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? AppStringsFR.historyLimit
             : (es ? AppStringsES.historyLimit : AppStringsEN.historyLimit);
 
-        final hasEntries = _pinned.isNotEmpty || _recent.isNotEmpty;
+        final hasEntries = _pinned.isNotEmpty ||
+            _recent.isNotEmpty ||
+            _otherPinned.isNotEmpty ||
+            _otherRecent.isNotEmpty;
 
         final bodyContent = Column(
           children: [
@@ -243,7 +311,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return const _HistorySkeleton();
     }
 
-    if (_pinned.isEmpty && _recent.isEmpty) {
+    if (_pinned.isEmpty &&
+        _recent.isEmpty &&
+        _otherPinned.isEmpty &&
+        _otherRecent.isEmpty) {
       return CalcwiseEmptyState(
         icon: Icons.history_edu_rounded,
         title: fr
@@ -275,11 +346,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
               region.contains(q);
         }
 
+        // Other-tool entries follow the same free-tier ring-buffer limit.
+        final otherRecentVisible = isPremium
+            ? _otherRecent
+            : _otherRecent.take(MonetizationConfig.freeRingBufferSize).toList();
+
+        bool matchesQueryOther(core.HistoryEntry e) {
+          if (_searchQuery.isEmpty) return true;
+          final q = _searchQuery.toLowerCase();
+          final label = (e.pinLabel ?? '').toLowerCase();
+          final tool = _toolLabel(e.screenId, fr, es).toLowerCase();
+          return label.contains(q) || tool.contains(q);
+        }
+
         final filteredPinned = _pinned.where(matchesQuery).toList();
         final filteredRecent = recentVisible.where(matchesQuery).toList();
+        final filteredOtherPinned = _otherPinned.where(matchesQueryOther).toList();
+        final filteredOtherRecent =
+            otherRecentVisible.where(matchesQueryOther).toList();
         final noResults = _searchQuery.isNotEmpty &&
             filteredPinned.isEmpty &&
-            filteredRecent.isEmpty;
+            filteredRecent.isEmpty &&
+            filteredOtherPinned.isEmpty &&
+            filteredOtherRecent.isEmpty;
 
         final savedHeader = fr
             ? 'Scénarios enregistrés'
@@ -287,6 +376,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final recentHeader = fr
             ? 'Calculs récents'
             : (es ? 'Cálculos recientes' : 'Recent Calculations');
+        final otherToolsHeader = fr
+            ? 'Autres outils'
+            : (es ? 'Otras herramientas' : 'Other Tools');
 
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -364,6 +456,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   )),
             ],
 
+            // ── Other Tools (benefits, bonus, raise, retirement/RRSP
+            // optimizer, salary comparison, tax breakdown, W-4 wizard) ──────
+            if (filteredOtherPinned.isNotEmpty ||
+                filteredOtherRecent.isNotEmpty) ...[
+              SizedBox(height: AppSpacing.md),
+              _SectionHeader(
+                  label: otherToolsHeader, icon: Icons.apps_rounded),
+              SizedBox(height: AppSpacing.sm),
+              ...filteredOtherPinned.map((e) => _GenericToolCard(
+                    entry: e,
+                    fr: fr,
+                    es: es,
+                    isPremium: isPremium,
+                    onDelete: () => _delete(e.id!),
+                    onUnpin: () => _unpin(e.id!),
+                    onTap: () => _openGenericDetail(e, fr, es),
+                  )),
+              ...filteredOtherRecent.map((e) => _GenericToolCard(
+                    entry: e,
+                    fr: fr,
+                    es: es,
+                    isPremium: isPremium,
+                    onDelete: () => _delete(e.id!),
+                    onUnpin: () => _unpin(e.id!),
+                    onTap: () => _openGenericDetail(e, fr, es),
+                  )),
+            ],
+
             if (!isPremium) ...[
               SizedBox(height: AppSpacing.sm),
               CalcwisePremiumGate(
@@ -395,6 +515,95 @@ class _HistoryScreenState extends State<HistoryScreen> {
           transitionDuration: AppDuration.base,
         ),
       );
+
+  /// Generic detail view for the 8 non-calculator tools: shows the l2
+  /// snapshot's inputs/results as plain label/value rows. These tools don't
+  /// share the calculator's SalaryResult schema, so a typed detail screen
+  /// (like [HistoryDetailScreen]) isn't viable without per-tool views.
+  void _openGenericDetail(core.HistoryEntry e, bool fr, bool es) {
+    final title = _toolLabel(e.screenId, fr, es);
+    final dateStr = DateFormat('MMM d, yyyy  HH:mm', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(e.savedAt);
+    final inputs = (e.l2['inputs'] as Map?)?.cast<String, dynamic>() ??
+        (e.l1).cast<String, dynamic>();
+    final results = (e.l2['results'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    String fmtKey(String k) =>
+        k.replaceAll('_', ' ').split(' ').map((w) =>
+            w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+    String fmtVal(dynamic v) {
+      if (v is num) return v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2);
+      return v.toString();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        builder: (ctx, scrollCtrl) => Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: ListView(
+            controller: scrollCtrl,
+            children: [
+              Text(title,
+                  style: TextStyle(
+                      fontSize: AppTextSize.bodyXl,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primary)),
+              SizedBox(height: AppSpacing.xs),
+              Text(dateStr,
+                  style: TextStyle(
+                      color: AppTheme.labelGray, fontSize: AppTextSize.sm)),
+              SizedBox(height: AppSpacing.lg),
+              if (results.isNotEmpty) ...[
+                Text(
+                    fr ? 'Résultats' : (es ? 'Resultados' : 'Results'),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: AppTextSize.body)),
+                SizedBox(height: AppSpacing.sm),
+                ...results.entries.map((kv) => Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(fmtKey(kv.key)),
+                          Text(fmtVal(kv.value),
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    )),
+                SizedBox(height: AppSpacing.lg),
+              ],
+              if (inputs.isNotEmpty) ...[
+                Text(
+                    fr ? 'Entrées' : (es ? 'Entradas' : 'Inputs'),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: AppTextSize.body)),
+                SizedBox(height: AppSpacing.sm),
+                ...inputs.entries.map((kv) => Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(fmtKey(kv.key)),
+                          Text(fmtVal(kv.value)),
+                        ],
+                      ),
+                    )),
+              ],
+              SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
@@ -415,6 +624,110 @@ class _SectionHeader extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: AppTheme.primary)),
     ]);
+  }
+}
+
+// ─── Generic tool card (non-calculator save-capable tools) ────────────────────
+
+class _GenericToolCard extends StatelessWidget {
+  final core.HistoryEntry entry;
+  final bool fr, es, isPremium;
+  final VoidCallback onDelete;
+  final VoidCallback onUnpin;
+  final VoidCallback onTap;
+
+  const _GenericToolCard({
+    required this.entry,
+    required this.fr,
+    required this.es,
+    required this.isPremium,
+    required this.onDelete,
+    required this.onUnpin,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr = DateFormat('MMM d, yyyy  HH:mm', fr ? 'fr' : (es ? 'es' : 'en'))
+        .format(entry.savedAt);
+    final toolLabel = _toolLabel(entry.screenId, fr, es);
+    final unpinLabel = fr ? 'Désépingler' : (es ? 'Desfijar' : 'Unpin');
+    final deleteLabel = fr ? 'Supprimer' : (es ? 'Eliminar' : 'Delete');
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: AppSpacing.smPlus),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          child: Row(
+            children: [
+              Icon(Icons.apps_rounded, size: 20, color: AppTheme.primary),
+              SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.pinLabel?.isNotEmpty == true
+                          ? entry.pinLabel!
+                          : toolLabel,
+                      style: TextStyle(
+                          fontSize: AppTextSize.body,
+                          fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: AppSpacing.xxs),
+                    Text(dateStr,
+                        style: TextStyle(
+                            color: AppTheme.labelGray,
+                            fontSize: AppTextSize.sm)),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert_rounded,
+                    size: 20, color: AppTheme.labelGray),
+                onSelected: (v) {
+                  switch (v) {
+                    case 'unpin':
+                      onUnpin();
+                      break;
+                    case 'delete':
+                      onDelete();
+                      break;
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (entry.isPinned)
+                    PopupMenuItem(
+                      value: 'unpin',
+                      child: Row(children: [
+                        Icon(Icons.bookmark_remove_outlined, size: 18),
+                        SizedBox(width: AppSpacing.sm),
+                        Text(unpinLabel),
+                      ]),
+                    ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded,
+                          size: 18,
+                          color: CalcwiseSemanticColors.error(
+                              Theme.of(context).brightness)),
+                      SizedBox(width: AppSpacing.sm),
+                      Text(deleteLabel),
+                    ]),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

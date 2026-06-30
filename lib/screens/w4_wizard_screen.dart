@@ -27,6 +27,7 @@ class _W4PdfParams {
       estimatedAnnualTax, estimatedWithholding, refundOrOwed;
   final String dateStr;
   final bool es;
+  final int taxYear;
   const _W4PdfParams({
     required this.step3DependentCredit,
     required this.step4bDeductions,
@@ -36,6 +37,7 @@ class _W4PdfParams {
     required this.refundOrOwed,
     required this.dateStr,
     required this.es,
+    required this.taxYear,
   });
 }
 
@@ -59,7 +61,9 @@ Future<Uint8List> _buildW4PdfBytes(_W4PdfParams p) async {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
-            p.es ? 'Asistente W-4 2025' : 'W-4 Withholding Wizard — 2025',
+            p.es
+                ? 'Asistente W-4 ${p.taxYear}'
+                : 'W-4 Withholding Wizard — ${p.taxYear}',
             style: pw.TextStyle(
                 fontSize: AppTextSize.title, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 4),
@@ -110,8 +114,8 @@ Future<Uint8List> _buildW4PdfBytes(_W4PdfParams p) async {
         pw.SizedBox(height: 20),
         pw.Text(
             p.es
-                ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador.'
-                : '* Estimates based on IRS 2025 W-4 worksheet. '
+                ? '* Basado en el formulario W-4 del IRS ${p.taxYear}. Actualice su W-4 con su empleador.'
+                : '* Estimates based on IRS ${p.taxYear} W-4 worksheet. '
                     'Submit updated W-4 to your employer.',
             style: const pw.TextStyle(fontSize: 9)),
       ],
@@ -122,7 +126,8 @@ Future<Uint8List> _buildW4PdfBytes(_W4PdfParams p) async {
 
 // ─── W-4 Withholding Wizard (US flavor only) ──────────────────────────────────
 //
-// Multi-step wizard implementing IRS 2025 Publication 15-T / W-4 worksheet:
+// Multi-step wizard implementing the IRS Publication 15-T / W-4 worksheet for
+// the current tax year (see [_W4Engine.taxYear], sourced from TaxRegistry):
 //   Step 1 → Filing status & multiple-jobs income
 //   Step 2 → Dependents, other deductions, extra withholding
 //   Step 3 → Results with recommended W-4 amounts + refund estimate
@@ -160,77 +165,61 @@ class _W4Result {
   });
 }
 
-// ─── IRS 2025 W-4 worksheet logic ─────────────────────────────────────────────
+// ─── IRS W-4 worksheet logic ───────────────────────────────────────────────
+//
+// Tax year is sourced dynamically from the shared [TaxRegistry] so this
+// wizard never goes stale — see [W4Engine.taxYear].
 
 class _W4Engine {
   _W4Engine._();
 
-  /// Standard deduction — reads from CalcwiseTax registry (us_federal 2025).
-  /// HOH derived as 1.5× single (IRS convention). Auto-updates with dataset.
+  /// Current W-4 tax year, sourced from the shared [TaxRegistry]
+  /// (`us_federal`). Falls back to 2026 only if the dataset is somehow
+  /// missing both years (baked data guarantees presence in practice).
+  static int get taxYear {
+    final reg = CalcwiseTax.registry;
+    if (reg.annual('us_federal', 2026) != null) return 2026;
+    if (reg.annual('us_federal', 2025) != null) return 2025;
+    return 2026;
+  }
+
+  /// Standard deduction — reads from the shared [TaxRegistry]
+  /// (`us_federal`, [taxYear]). HOH derived as 1.5× single (IRS convention).
+  /// Auto-updates with the dataset, matching the pattern in salary_engine.dart.
   static double standardDeduction(_FilingStatus status) {
     final reg = CalcwiseTax.registry;
+    final year = taxYear;
     final single =
-        reg.annual('us_federal', 2025)?.basicPersonalAmount ?? 15750.0;
+        reg.annual('us_federal', year)?.basicPersonalAmount ?? 16100.0;
     switch (status) {
       case _FilingStatus.single:
         return single;
       case _FilingStatus.marriedJointly:
-        return reg.annual('us_federal', 2025, status: 'mfj')?.basicPersonalAmount
+        return reg.annual('us_federal', year, status: 'mfj')?.basicPersonalAmount
             ?? single * 2;
       case _FilingStatus.headOfHousehold:
         return single * 1.5;
     }
   }
 
-  /// 2025 federal tax using the correct brackets for each filing status.
+  /// Federal tax for [taxYear] using the registry's marginal bands for each
+  /// filing status (mirrors [UsSalaryEngine.federalTax] in salary_engine.dart).
   /// [taxableIncome] is income AFTER subtracting the standard deduction.
+  /// HOH has no dedicated `byStatus` entry in the registry yet, so it falls
+  /// back to the single-filer bands (same approximation as before).
   static double federalTaxForStatus(
       double taxableIncome, _FilingStatus status) {
     if (taxableIncome <= 0) return 0;
-    switch (status) {
-      case _FilingStatus.single:
-        // 2025 single brackets applied to taxable income
-        if (taxableIncome <= 11925) return taxableIncome * 0.10;
-        if (taxableIncome <= 48475)
-          return 1192.5 + (taxableIncome - 11925) * 0.12;
-        if (taxableIncome <= 103350)
-          return 5578.5 + (taxableIncome - 48475) * 0.22;
-        if (taxableIncome <= 197300)
-          return 17651 + (taxableIncome - 103350) * 0.24;
-        if (taxableIncome <= 250525)
-          return 40199 + (taxableIncome - 197300) * 0.32;
-        if (taxableIncome <= 626350)
-          return 57231 + (taxableIncome - 250525) * 0.35;
-        return 188769.75 + (taxableIncome - 626350) * 0.37;
-      case _FilingStatus.marriedJointly:
-        // MFJ 2025 brackets (taxable income after $31,500 standard deduction — OBBBA)
-        if (taxableIncome <= 23850) return taxableIncome * 0.10;
-        if (taxableIncome <= 96950)
-          return 2385 + (taxableIncome - 23850) * 0.12;
-        if (taxableIncome <= 206700)
-          return 11157 + (taxableIncome - 96950) * 0.22;
-        if (taxableIncome <= 394600)
-          return 35302 + (taxableIncome - 206700) * 0.24;
-        if (taxableIncome <= 501050)
-          return 80398 + (taxableIncome - 394600) * 0.32;
-        if (taxableIncome <= 751600)
-          return 114462 + (taxableIncome - 501050) * 0.35;
-        return 202154.5 + (taxableIncome - 751600) * 0.37;
-      case _FilingStatus.headOfHousehold:
-        // HoH 2025 brackets (taxable income after $23,625 standard deduction — OBBBA)
-        if (taxableIncome <= 17000) return taxableIncome * 0.10;
-        if (taxableIncome <= 64850)
-          return 1700 + (taxableIncome - 17000) * 0.12;
-        if (taxableIncome <= 103350)
-          return 7442 + (taxableIncome - 64850) * 0.22;
-        if (taxableIncome <= 197300)
-          return 15912 + (taxableIncome - 103350) * 0.24;
-        if (taxableIncome <= 250500)
-          return 38460 + (taxableIncome - 197300) * 0.32;
-        if (taxableIncome <= 626350)
-          return 55484 + (taxableIncome - 250500) * 0.35;
-        return 187031.5 + (taxableIncome - 626350) * 0.37;
-    }
+    final reg = CalcwiseTax.registry;
+    final year = taxYear;
+    final set = switch (status) {
+      _FilingStatus.marriedJointly =>
+        reg.annual('us_federal', year, status: 'mfj') ??
+            reg.annual('us_federal', year),
+      _ => reg.annual('us_federal', year),
+    };
+    if (set == null) return 0;
+    return taxOnIncome(set.bands, taxableIncome);
   }
 
   /// Pay periods per year for common frequencies.
@@ -313,6 +302,19 @@ class _W4Engine {
 
 class W4WizardScreen extends StatefulWidget {
   const W4WizardScreen({super.key});
+
+  /// Current W-4 tax year, sourced from the shared TaxRegistry. Exposed for
+  /// tests so the year/standard-deduction logic can be verified without
+  /// driving the full wizard UI (which needs Firebase/SQLite singletons).
+  @visibleForTesting
+  static int get debugTaxYear => _W4Engine.taxYear;
+
+  /// Standard deduction for [status] (`'single'`, `'marriedJointly'`,
+  /// `'headOfHousehold'`), sourced from the shared TaxRegistry. Test-only.
+  @visibleForTesting
+  static double debugStandardDeduction(String status) =>
+      _W4Engine.standardDeduction(_FilingStatus.values
+          .firstWhere((s) => s.name == status));
 
   @override
   State<W4WizardScreen> createState() => _W4WizardScreenState();
@@ -522,7 +524,9 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
       builder: (context, useAlt, _) {
         final es = FlavorConfig.isUS && useAlt;
 
-        final title = es ? 'Asistente W-4 2025' : 'W-4 Withholding Wizard 2025';
+        final title = es
+            ? 'Asistente W-4 ${_W4Engine.taxYear}'
+            : 'W-4 Withholding Wizard ${_W4Engine.taxYear}';
         final stepLabels = es
             ? ['Estado', 'Deducciones', 'Resultados']
             : ['Filing Status', 'Deductions', 'Results'];
@@ -1201,7 +1205,10 @@ class _Step3Results extends StatelessWidget {
     final r = result!;
     final isRefund = r.refundOrOwed >= 0;
 
-    final title = es ? 'Recomendaciones W-4 2025' : 'W-4 Recommendations 2025';
+    final taxYear = _W4Engine.taxYear;
+    final title = es
+        ? 'Recomendaciones W-4 $taxYear'
+        : 'W-4 Recommendations $taxYear';
     final step3Label = es
         ? 'Paso 3 — Créditos por dependientes'
         : 'Step 3 — Dependent Credits';
@@ -1228,8 +1235,8 @@ class _Step3Results extends StatelessWidget {
     final restartLabel = es ? 'Reiniciar' : 'Start Over';
     final shareLabel = es ? 'Compartir / Guardar' : 'Share / Save';
     final irsNote = es
-        ? '* Basado en el formulario W-4 del IRS 2025. Actualice su W-4 con su empleador con estos valores.'
-        : '* Based on IRS 2025 W-4 worksheet. Submit an updated W-4 to your employer with these values.';
+        ? '* Basado en el formulario W-4 del IRS $taxYear. Actualice su W-4 con su empleador con estos valores.'
+        : '* Based on IRS $taxYear W-4 worksheet. Submit an updated W-4 to your employer with these values.';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1259,7 +1266,7 @@ class _Step3Results extends StatelessWidget {
                           color: AppTheme.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        es ? 'Resumen W-4 2025' : 'W-4 2025 Summary',
+                        es ? 'Resumen W-4 $taxYear' : 'W-4 $taxYear Summary',
                         style: TextStyle(
                             fontSize: AppTextSize.bodyMd,
                             fontWeight: FontWeight.w700,
@@ -1441,6 +1448,7 @@ class _Step3Results extends StatelessWidget {
             refundOrOwed: r.refundOrOwed,
             dateStr: dateStr,
             es: es,
+            taxYear: _W4Engine.taxYear,
           ),
         ));
     await Printing.sharePdf(
