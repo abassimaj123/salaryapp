@@ -5,6 +5,7 @@ import '../core/flavor_config.dart';
 import '../core/theme/app_theme.dart';
 import '../core/analytics/analytics_service.dart';
 import 'onboarding_screen.dart';
+import '../main.dart' show isSpanishNotifier;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,11 +26,19 @@ class _SplashScreenState extends State<SplashScreen> {
     return 'US';
   }
 
-  String _flavorTagline() => 'Know your true take-home pay';
+  String _flavorTagline() {
+    final alt = isSpanishNotifier.value;
+    if (FlavorConfig.isCA && alt) return 'Connaissez votre salaire net réel';
+    if (FlavorConfig.isUS && alt) return 'Conoce tu salario neto real';
+    return 'Know your true take-home pay';
+  }
 
   List<String> _flavorChips() {
+    final alt = isSpanishNotifier.value;
+    if (FlavorConfig.isCA && alt) return ['Impôt sur le revenu', 'RPC & AE', 'Salaire net'];
     if (FlavorConfig.isCA) return ['Income Tax', 'CPP & EI', 'Net Pay'];
     if (FlavorConfig.isUK) return ['Income Tax', 'National Insurance', 'Net Pay'];
+    if (alt) return ['Impuesto federal', 'FICA', 'Salario neto'];
     return ['Federal Tax', 'FICA', 'Net Pay'];
   }
 

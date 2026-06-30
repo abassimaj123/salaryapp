@@ -1,7 +1,7 @@
 name: salary_app
 description: Salary Calculator
 publish_to: 'none'
-version: 1.0.7+2
+version: 1.0.8+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

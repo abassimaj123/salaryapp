@@ -533,7 +533,7 @@ class _W4WizardScreenState extends State<W4WizardScreen> {
             leading: _step > 0
                 ? IconButton(
                     icon: const Icon(Icons.arrow_back_rounded),
-                    tooltip: 'Back',
+                    tooltip: es ? 'Atrás' : 'Back',
                     onPressed: _prevStep,
                   )
                 : null,
@@ -1501,7 +1501,7 @@ class _CounterButtons extends StatelessWidget {
         IconButton(
           icon: Icon(Icons.remove_circle_outline,
               color: value > 0 ? AppTheme.primary : AppTheme.divider),
-          tooltip: 'Decrease',
+          tooltip: isSpanishNotifier.value ? 'Disminuir' : 'Decrease',
           onPressed: value > 0 ? onDecrement : null,
           splashRadius: 20,
         ),
@@ -1516,7 +1516,7 @@ class _CounterButtons extends StatelessWidget {
         ),
         IconButton(
           icon: Icon(Icons.add_circle_outline, color: AppTheme.primary),
-          tooltip: 'Increase',
+          tooltip: isSpanishNotifier.value ? 'Aumentar' : 'Increase',
           onPressed: onIncrement,
           splashRadius: 20,
         ),
